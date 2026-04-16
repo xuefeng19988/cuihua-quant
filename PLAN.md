@@ -2,74 +2,89 @@
 
 > **项目**: Cuihua Quant System  
 > **启动日期**: 2026-04-16  
-> **当前版本**: v0.2.0  
+> **当前版本**: v0.3.0  
 > **状态**: ✅ Phase 1-3 核心开发完成
 
 ---
 
 ## 🏗️ 已完成模块 ✅
 
-### Phase 1: 核心框架
-| 层级 | 模块 | 文件 | 状态 |
-|------|------|------|------|
-| **数据层** | Futu 同步 | `src/data/futu_sync.py` | ✅ |
-| | AKShare 备用 | `src/data/akshare_sync.py` | ✅ |
-| | SQLite 数据库 | `src/data/database.py` | ✅ |
-| | 数据工具 | `src/data/data_utils.py` | ✅ |
-| | 交易日志 | `src/data/trade_logger.py` | ✅ |
-| **分析层** | 技术指标 | `src/analysis/technical.py` | ✅ |
-| | 情绪分析 | `src/analysis/sentiment.py` | ✅ |
-| | 信号生成 | `src/analysis/signal_gen.py` | ✅ |
-| | 新闻情绪 | `src/analysis/news_sentiment.py` | ✅ |
-| | ML 模型适配 | `src/analysis/ml_model.py` | ✅ |
-| **策略层** | 策略基类 | `src/strategy/base.py` | ✅ |
-| | SMA 交叉 | `src/strategy/sma_cross.py` | ✅ |
-| | 多因子策略 | `src/strategy/multi_factor.py` | ✅ |
-| | 动量策略 | `src/strategy/momentum.py` | ✅ |
-| | 均值回归 | `src/strategy/mean_reversion.py` | ✅ |
-| | 策略运行器 | `src/strategy/runner.py` | ✅ |
-| | 组合再平衡 | `src/strategy/rebalancer.py` | ✅ |
-| **执行层** | 风控模块 | `src/execution/risk_control.py` | ✅ |
-| | 仓位管理 | `src/execution/position_manager.py` | ✅ |
-| | Futu 交易 | `src/execution/futu_trader.py` | ✅ |
-| | 交易流水线 | `src/execution/pipeline.py` | ✅ |
-| | 流水线 v2 | `src/execution/pipeline_v2.py` | ✅ |
-| **回测层** | Backtrader 引擎 | `src/backtest/engine.py` | ✅ |
-| | 回测运行器 | `src/backtest/backtest_runner.py` | ✅ |
-| **监控层** | 每日报告 | `src/monitor/reporter.py` | ✅ |
-| | 绩效分析 | `src/monitor/performance.py` | ✅ |
-| | 报告生成器 | `src/monitor/report_generator.py` | ✅ |
-| | 盘中监控 | `src/monitor/intraday_monitor.py` | ✅ |
-| **工具** | CLI | `cli.py` | ✅ |
-| | CLI v2 | `cli_v2.py` | ✅ |
-| | 单元测试 | `tests/test_core.py` | ✅ |
+### Phase 1: 核心框架 (已完成)
+| 层级 | 模块数 | 状态 |
+|------|--------|------|
+| 数据层 | 5 | ✅ Futu/AKShare/DB/日志/工具 |
+| 分析层 | 5 | ✅ 技术/情绪/信号/新闻/ML |
+| 策略层 | 6 | ✅ 基类/SMA/多因子/动量/均值回归/再平衡 |
+| 执行层 | 4 | ✅ 风控/仓位/Futu交易/流水线 |
+| 回测层 | 2 | ✅ Backtrader引擎/运行器 |
+| 监控层 | 4 | ✅ 报告/绩效/盘中监控 |
+| 工具 | 3 | ✅ CLI/CLIv2/测试 |
+| 配置 | 5 | ✅ app/stocks/schedule/strategies/risk |
 
-### Phase 2: 配置与日志
-- [x] 策略参数配置化 (`config/strategies.yaml`)
-- [x] 风控参数配置化 (`config/risk.yaml`)
-- [x] 交易日志系统 (`trade_logger.py`)
-
-### Phase 3: 集成与验证
-- [x] 情绪数据源扩展 (`news_sentiment.py`)
-- [x] ML 模型集成 (`ml_model.py`)
-- [x] 流水线 v2 全流程 (`pipeline_v2.py`)
-- [x] CLI v2 增强 (`cli_v2.py`)
+**代码统计**: 50 文件，~4000+ 行，6 次提交
 
 ---
 
-## 📊 CLI v2 命令
+## 🔜 后续开发计划
+
+### Phase 4: 实战验证与优化 (1-2 周)
+
+| # | 任务 | 说明 | 优先级 | 预计工时 |
+|---|------|------|--------|----------|
+| 4.1 | 真实数据全流程验证 | 用 38 只股票跑一遍 pipeline，验证全链路 | ⭐⭐⭐ | 2h |
+| 4.2 | 批量回测验证 | 对 38 只股票做批量回测，输出对比报告 | ⭐⭐⭐ | 3h |
+| 4.3 | 策略参数调优 | 基于历史数据优化阈值和权重 | ⭐⭐⭐ | 4h |
+| 4.4 | 绩效追踪面板 | 可视化展示收益率/回撤/胜率曲线 | ⭐⭐ | 6h |
+| 4.5 | 模拟盘接入 | Futu 模拟盘自动交易 1-2 周验证 | ⭐⭐⭐ | 4h |
+| 4.6 | 现有脚本整合 | futu_realtime_predict.py 等集成到新系统 | ⭐⭐ | 3h |
+| 4.7 | 情绪数据源扩展 | 接入 TrendRadar 真实新闻数据 | ⭐⭐ | 3h |
+
+### Phase 5: ML 模型深度集成 (1-2 周)
+
+| # | 任务 | 说明 | 优先级 | 预计工时 |
+|---|------|------|--------|----------|
+| 5.1 | 特征工程完善 | 从 Alpha101/158 提取更多因子 | ⭐⭐⭐ | 6h |
+| 5.2 | LightGBM 训练 | 基于 38 只股票训练预测模型 | ⭐⭐⭐ | 4h |
+| 5.3 | 模型集成到流水线 | ML 信号参与组合决策 | ⭐⭐⭐ | 3h |
+| 5.4 | 模型在线更新 | 每周自动重训模型 | ⭐⭐ | 4h |
+| 5.5 | 模型对比分析 | LightGBM vs RF vs LR 效果对比 | ⭐⭐ | 3h |
+
+### Phase 6: 高级功能 (2-3 周)
+
+| # | 任务 | 说明 | 优先级 | 预计工时 |
+|---|------|------|--------|----------|
+| 6.1 | 自动调参系统 | 基于历史回测自动优化策略参数 | ⭐⭐ | 6h |
+| 6.2 | 多市场支持 | 扩展美股数据接入 | ⭐⭐ | 4h |
+| 6.3 | 实时风控预警 | 盘中实时推送止损/止盈通知 | ⭐⭐⭐ | 4h |
+| 6.4 | Web 监控面板 | Flask/Streamlit 可视化界面 | ⭐ | 8h |
+| 6.5 | 策略回测引擎升级 | 支持多策略并行对比 | ⭐⭐ | 6h |
+| 6.6 | 投资组合优化 | Markowitz 有效前沿、Black-Litterman | ⭐ | 6h |
+
+### Phase 7: 生产化 (持续)
+
+| # | 任务 | 说明 | 优先级 | 预计工时 |
+|---|------|------|--------|----------|
+| 7.1 | 系统稳定性优化 | 异常处理/重试/日志完善 | ⭐⭐⭐ | 4h |
+| 7.2 | 自动化部署 | Docker 容器化 | ⭐ | 4h |
+| 7.3 | 文档完善 | API 文档 + 使用指南 | ⭐⭐ | 6h |
+| 7.4 | 单元测试覆盖 | 目标 >80% 覆盖率 | ⭐⭐ | 6h |
+| 7.5 | 性能优化 | 批量查询/缓存优化 | ⭐⭐ | 3h |
+
+---
+
+## 📊 CLI 命令
 
 ```bash
-# 同步数据
+# 数据同步
 python cli_v2.py sync --pool watchlist --days 30
 
-# 分析信号
+# 信号分析
 python cli_v2.py analyze --pool watchlist --top 5
 
 # 回测
 python cli_v2.py backtest --pool csi300_top
 
-# 运行完整流水线
+# 全流程
 python cli_v2.py pipeline --ml
 
 # 组合再平衡
@@ -96,14 +111,13 @@ python cli_v2.py status
 
 ---
 
-## 🔮 未来规划
+## 🎯 下一步: Phase 4.1 真实数据全流程验证
 
-| 阶段 | 任务 | 优先级 |
-|------|------|--------|
-| Phase 4 | 绩效追踪面板 | ⭐⭐ |
-| Phase 4 | 自动调参 | ⭐⭐ |
-| Phase 4 | Web 监控面板 | ⭐ |
-| Phase 4 | 多市场支持 (美股) | ⭐ |
+用现有数据库里的 38 只股票完整跑一次 pipeline，验证:
+- 信号生成是否合理
+- 风控是否生效
+- 报告格式是否正确
+- 交易日志是否正常
 
 ---
 
