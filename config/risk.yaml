@@ -1,0 +1,23 @@
+# Risk Management Configuration
+
+# Account Settings
+total_capital: 1000000           # 总资金 (元)
+max_single_position_pct: 0.10   # 单只股票最大仓位 10%
+max_total_exposure_pct: 0.90    # 最大总仓位 90%
+max_position_count: 10          # 最大持仓数量
+
+# Stop Loss / Take Profit
+stop_loss_pct: 0.08             # 止损线 8%
+take_profit_pct: 0.20           # 止盈线 20%
+
+# Portfolio Risk
+max_daily_loss_pct: 0.03        # 单日最大亏损 3%
+max_drawdown_pct: 0.15          # 最大回撤 15%
+
+# Rebalancing
+rebalance_threshold: 0.05       # 调仓阈值 5%
+
+# Monitor Settings
+monitor:
+  anomaly_threshold: 0.03       # 异动阈值 3%
+  check_interval: 300           # 检查间隔 (秒)
