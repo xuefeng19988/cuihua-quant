@@ -1,0 +1,46 @@
+# Scheduling Configuration
+# Defines when different modules should run.
+# Format: Standard Cron expressions (minute hour day month day_of_week)
+# The main.py or a cron wrapper will read this to trigger tasks.
+
+schedule:
+  # Data Collection
+  - id: sync_daily_data
+    name: "Daily Data Sync"
+    cron: "30 16 * * 1-5"  # After market close
+    task: "data.sync"
+    params:
+      days_back: 5  # Fetch last 5 days to ensure no gaps
+      pools: ["watchlist"]
+
+  # Analysis & Signal Generation
+  - id: generate_signals
+    name: "Generate Trading Signals"
+    cron: "00 17 * * 1-5"  # After data sync
+    task: "analysis.generate_signals"
+    params:
+      strategies: ["tech_indicators", "sentiment"]
+
+  # Prediction (Existing logic integration)
+  - id: price_prediction
+    name: "Close Price Prediction"
+    cron: "00 10 * * 1-5"
+    task: "analysis.predict_prices"
+    params:
+      model: "linear_regression_v1"
+
+  # Notifications
+  - id: send_daily_report
+    name: "Send Daily Report"
+    cron: "00 20 * * 1-5"
+    task: "monitor.report_daily"
+    params:
+      channels: ["wecom"]
+
+  # High Frequency / Real-time (for intraday monitoring)
+  - id: intraday_monitor
+    name: "Intraday Anomaly Monitor"
+    cron: "*/30 9-15 * * 1-5"
+    task: "monitor.check_anomalies"
+    params:
+      threshold_pct: 3.0

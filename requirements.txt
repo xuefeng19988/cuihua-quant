@@ -1,0 +1,20 @@
+# Core dependencies
+pandas>=1.5.0
+numpy>=1.23.0
+ta-lib>=0.4.0  # Technical Analysis
+pyyaml>=6.0    # Config loading
+sqlalchemy>=2.0.0
+aioschedule  # Async scheduling
+
+# Data Sources
+futu-api>=6.0.0  # Futu OpenAPI
+requests>=2.28.0
+
+# Analysis & ML (Optional for Phase 2)
+lightgbm>=3.3.0
+scikit-learn>=1.0.0
+nltk>=3.7.0  # For sentiment analysis
+
+# Visualization
+matplotlib>=3.6.0
+seaborn>=0.12.0
