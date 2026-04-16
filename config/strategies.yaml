@@ -1,0 +1,39 @@
+# Strategy Parameters Configuration
+# All strategy thresholds and weights are defined here.
+# No hardcoding in Python files.
+
+# Multi-Factor Strategy
+multi_factor:
+  enabled: true
+  weights:
+    momentum: 0.30
+    value: 0.20
+    technical: 0.30
+    volatility: 0.20
+  buy_threshold: 0.5      # Score >= this triggers BUY
+  sell_threshold: -0.3    # Score <= this triggers SELL
+
+# Momentum Strategy
+momentum:
+  enabled: true
+  roc_period: 20              # Rate of Change period (days)
+  ma_fast: 5                  # Fast MA period
+  ma_slow: 20                 # Slow MA period
+  min_volume_ratio: 1.2       # Volume must be > 1.2x average
+  momentum_threshold: 0.05    # 5% ROC minimum
+
+# Mean Reversion Strategy
+mean_reversion:
+  enabled: true
+  rsi_oversold: 30
+  rsi_overbought: 70
+  bb_deviation: 2.0           # Bollinger Bands standard deviations
+  ma_period: 20
+  ma_threshold: 0.05          # 5% deviation from MA triggers signal
+
+# Signal Aggregation
+signal_aggregation:
+  tech_weight: 0.6            # Technical analysis weight in combined signal
+  sentiment_weight: 0.4       # Sentiment analysis weight
+  min_score_to_buy: 0.0       # Minimum combined score to consider BUY
+  max_positions: 10           # Maximum number of simultaneous positions
