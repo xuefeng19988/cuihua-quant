@@ -1,6 +1,6 @@
 """
 Phase 36: Multi-Asset Portfolio Manager
-Support for stocks, bonds, crypto, and commodities.
+Support for stocks, bonds, and commodities.
 """
 
 import os
@@ -16,7 +16,7 @@ project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 class MultiAssetPortfolio:
     """
     Multi-asset portfolio manager.
-    Supports stocks, bonds, crypto, commodities.
+    Supports stocks, bonds, commodities.
     """
     
     def __init__(self, initial_capital: float = 1000000):
@@ -24,9 +24,8 @@ class MultiAssetPortfolio:
         self.cash = initial_capital
         self.positions: Dict[str, Dict] = {}
         self.asset_classes = {
-            'stocks': {'allocation': 0.60, 'positions': {}},
+            'stocks': {'allocation': 0.70, 'positions': {}},
             'bonds': {'allocation': 0.20, 'positions': {}},
-            'crypto': {'allocation': 0.10, 'positions': {}},
             'commodities': {'allocation': 0.10, 'positions': {}}
         }
         
