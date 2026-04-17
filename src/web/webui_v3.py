@@ -881,21 +881,57 @@ def create_webui_v3():
         
     @app.route('/charts', methods=['GET', 'POST'])
     def charts():
+        import yaml
         from src.monitor.advanced_charts import AdvancedChartGenerator
+        
+        # 加载股票列表
+        cfg_path = os.path.join(project_root, 'config', 'stocks.yaml')
+        with open(cfg_path, 'r') as f:
+            cfg = yaml.safe_load(f)
+        raw_stocks = cfg.get('pools', {}).get('watchlist', {}).get('stocks', [])
+        stock_options = ''
+        stock_names = {}
+        for item in raw_stocks:
+            if isinstance(item, dict):
+                code = item.get('code', '')
+                name = item.get('name', '')
+            else:
+                code = item
+                name = ''
+            stock_names[code] = name
+            label = f"{code} {name}".strip() if name else code
+            stock_options += f'<option value="{code}">{label}</option>'
+        
+        code = request.form.get('code') or request.args.get('code', 'SH.600519')
+        days = request.form.get('days') or request.args.get('days', '60')
         
         chart_html = None
         if request.method == 'POST' or request.args:
-            code = request.form.get('code') or request.args.get('code', 'SH.600519')
-            days = int(request.form.get('days') or request.args.get('days', 60))
-            
             charts = AdvancedChartGenerator()
-            chart_html = charts.generate_kline_with_indicators(code, days)
+            chart_html = charts.generate_kline_with_indicators(code, int(days))
+        
+        selected_name = stock_names.get(code, '')
+        selected_label = f"{code} {selected_name}".strip() if selected_name else code
         
         content = f"""<div class="header"><div><h1>📉 图表分析</h1><p style="color: var(--text-secondary); margin-top: 0.5rem;">交互式 K 线图与技术指标</p></div></div>
-        <div class="card">{'<div class="alert alert-info">📊 选择股票生成图表</div></div>' if not chart_html else chart_html}"""
+        <div class="card">
+        <form method="POST" class="form-row" style="margin-bottom: 1.5rem;">
+            <div class="form-group"><label class="form-label">股票代码</label>
+            <select name="code" class="form-select">{stock_options}</select></div>
+            <div class="form-group"><label class="form-label">时间范围</label>
+            <select name="days" class="form-select">
+                <option value="30" {'selected' if str(days)=='30' else ''}>30 天</option>
+                <option value="60" {'selected' if str(days)=='60' else ''}>60 天</option>
+                <option value="90" {'selected' if str(days)=='90' else ''}>90 天</option>
+                <option value="180" {'selected' if str(days)=='180' else ''}>180 天</option>
+            </select></div>
+            <div class="form-group"><label class="form-label">&nbsp;</label>
+            <button type="submit" class="btn btn-primary">📊 生成图表</button></div>
+        </form>
+        {chart_html if chart_html else '<div class="alert alert-info">📊 选择股票后点击"生成图表"</div>'}
+        </div>"""
         return render_template_string(BASE_LAYOUT,
             content=content,
-            chart_html=chart_html,
             page='charts'
         )
         
