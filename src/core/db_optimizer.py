@@ -1,205 +1,162 @@
 """
-Phase 28: Database Index Optimizer
-Create and manage database indexes for better query performance.
+Phase 67: Database Query Optimizer
+Optimize common queries with prepared statements and caching.
 """
 
 import os
 import sys
-import sqlite3
-from typing import Dict, List, Optional
+import pandas as pd
 from datetime import datetime
+from typing import Dict, List, Optional
 
 # Project paths
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
-class IndexOptimizer:
+class QueryOptimizer:
     """
-    Optimize database indexes for better query performance.
+    Optimize database queries for better performance.
     """
     
-    def __init__(self, db_path: str = None):
-        if db_path is None:
-            db_path = os.path.join(project_root, 'data', 'cuihua_quant.db')
-        self.db_path = db_path
-        
-    def _get_connection(self) -> sqlite3.Connection:
-        """Get database connection."""
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
-        return conn
-        
-    def create_indexes(self) -> List[str]:
-        """
-        Create optimized indexes.
-        
-        Returns:
-            List of created index names
-        """
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
-        indexes = [
-            # Stock daily indexes
-            ("idx_stock_daily_code_date", "stock_daily", "code, date DESC"),
-            ("idx_stock_daily_date", "stock_daily", "date DESC"),
-            ("idx_stock_daily_code", "stock_daily", "code"),
-            ("idx_stock_daily_close", "stock_daily", "code, close_price"),
-            ("idx_stock_daily_volume", "stock_daily", "code, volume"),
-            ("idx_stock_daily_change", "stock_daily", "code, change_pct"),
-            
-            # Composite indexes for common queries
-            ("idx_stock_daily_code_date_close", "stock_daily", "code, date DESC, close_price"),
-            ("idx_stock_daily_date_close", "stock_daily", "date DESC, close_price"),
-        ]
-        
-        created = []
-        for idx_name, table, columns in indexes:
+    def __init__(self, engine=None):
+        self.engine = engine
+        if engine is None:
             try:
-                cursor.execute(f"CREATE INDEX IF NOT EXISTS {idx_name} ON {table} ({columns})")
-                created.append(idx_name)
-            except Exception as e:
-                print(f"⚠️ Failed to create index {idx_name}: {e}")
-                
-        conn.commit()
-        conn.close()
-        
-        return created
-        
-    def drop_indexes(self) -> List[str]:
-        """Drop all custom indexes."""
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='index' AND name LIKE 'idx_%'")
-        indexes = [row['name'] for row in cursor.fetchall()]
-        
-        for idx_name in indexes:
-            try:
-                cursor.execute(f"DROP INDEX IF EXISTS {idx_name}")
+                from src.data.database import get_db_engine
+                self.engine = get_db_engine()
             except:
                 pass
                 
-        conn.commit()
-        conn.close()
+        # Query cache
+        self._cache = {}
+        self._cache_ttl = 60  # seconds
         
-        return indexes
+    def get_latest_prices(self, codes: List[str]) -> pd.DataFrame:
+        """
+        Optimized query for latest prices.
+        """
+        if not codes or self.engine is None:
+            return pd.DataFrame()
+            
+        # Use subquery for better performance
+        query = """
+            SELECT s1.code, s1.close_price, s1.date, s1.change_pct, s1.volume
+            FROM stock_daily s1
+            INNER JOIN (
+                SELECT code, MAX(date) as max_date 
+                FROM stock_daily 
+                WHERE code IN ({})
+                GROUP BY code
+            ) s2 ON s1.code = s2.code AND s1.date = s2.max_date
+        """.format(','.join([f"'{c}'" for c in codes]))
         
-    def analyze_indexes(self) -> List[Dict]:
-        """Analyze current indexes."""
-        conn = self._get_connection()
-        cursor = conn.cursor()
+        return pd.read_sql(query, self.engine)
         
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='index'")
-        indexes = []
+    def get_stock_history(self, code: str, days: int = 60, 
+                          columns: List[str] = None) -> pd.DataFrame:
+        """
+        Optimized query for stock history.
+        Only fetch needed columns.
+        """
+        if self.engine is None:
+            return pd.DataFrame()
+            
+        if columns is None:
+            columns = ['date', 'open_price', 'high_price', 'low_price', 
+                      'close_price', 'volume', 'change_pct']
         
-        for row in cursor.fetchall():
-            idx_name = row['name']
-            
-            # Get index info
-            cursor.execute(f"PRAGMA index_info('{idx_name}')")
-            columns = [col['name'] for col in cursor.fetchall()]
-            
-            cursor.execute(f"PRAGMA index_list('{idx_name.split('_')[2]}')")
-            table = idx_name.split('_')[2] if len(idx_name.split('_')) > 2 else 'unknown'
-            
-            indexes.append({
-                'name': idx_name,
-                'table': table,
-                'columns': ', '.join(columns),
-                'is_custom': idx_name.startswith('idx_')
-            })
-            
-        conn.close()
-        return indexes
+        col_str = ', '.join(columns)
+        query = f"""
+            SELECT {col_str} FROM stock_daily 
+            WHERE code = '{code}' 
+            ORDER BY date DESC 
+            LIMIT {days}
+        """
         
-    def run_vacuum(self) -> bool:
-        """Vacuum database to reclaim space."""
-        try:
-            conn = self._get_connection()
-            conn.execute("VACUUM")
-            conn.close()
-            return True
-        except:
-            return False
-            
-    def run_analyze(self) -> bool:
-        """Run ANALYZE to update statistics."""
-        try:
-            conn = self._get_connection()
-            conn.execute("ANALYZE")
-            conn.close()
-            return True
-        except:
-            return False
-            
-    def get_db_size(self) -> Dict:
-        """Get database size information."""
-        if not os.path.exists(self.db_path):
-            return {'exists': False}
-            
-        size_bytes = os.path.getsize(self.db_path)
+        df = pd.read_sql(query, self.engine)
+        return df.iloc[::-1].reset_index(drop=True)
         
+    def get_portfolio_summary(self) -> Dict:
+        """
+        Get portfolio summary with single query.
+        """
+        if self.engine is None:
+            return {}
+            
+        query = """
+            SELECT 
+                COUNT(DISTINCT code) as stock_count,
+                COUNT(*) as total_records,
+                MAX(date) as latest_date,
+                MIN(date) as earliest_date
+            FROM stock_daily
+        """
+        
+        result = pd.read_sql(query, self.engine)
+        if result.empty:
+            return {}
+            
+        row = result.iloc[0]
         return {
-            'exists': True,
-            'size_bytes': size_bytes,
-            'size_mb': size_bytes / 1024 / 1024,
-            'path': self.db_path
+            'stock_count': int(row['stock_count']),
+            'total_records': int(row['total_records']),
+            'latest_date': str(row['latest_date'])[:10] if row['latest_date'] else None,
+            'date_range_days': (pd.to_datetime(row['latest_date']) - pd.to_datetime(row['earliest_date'])).days if row['latest_date'] and row['earliest_date'] else 0
         }
         
-    def optimize(self) -> Dict:
-        """Run full optimization."""
-        result = {
-            'indexes_created': [],
-            'vacuum': False,
-            'analyze': False,
-            'db_size_before': self.get_db_size(),
-        }
+    def get_top_performers(self, days: int = 5, top_n: int = 10) -> pd.DataFrame:
+        """
+        Get top performing stocks over a period.
+        """
+        if self.engine is None:
+            return pd.DataFrame()
+            
+        query = f"""
+            WITH price_changes AS (
+                SELECT 
+                    code,
+                    FIRST_VALUE(close_price) OVER (PARTITION BY code ORDER BY date DESC) as latest_price,
+                    FIRST_VALUE(close_price) OVER (PARTITION BY code ORDER BY date ASC) as oldest_price
+                FROM stock_daily
+                WHERE date >= date('now', '-{days} days')
+            )
+            SELECT 
+                code,
+                latest_price,
+                oldest_price,
+                ROUND((latest_price - oldest_price) / oldest_price * 100, 2) as change_pct
+            FROM price_changes
+            WHERE oldest_price > 0
+            ORDER BY change_pct DESC
+            LIMIT {top_n}
+        """
         
-        # Create indexes
-        result['indexes_created'] = self.create_indexes()
-        
-        # Vacuum
-        result['vacuum'] = self.run_vacuum()
-        
-        # Analyze
-        result['analyze'] = self.run_analyze()
-        
-        result['db_size_after'] = self.get_db_size()
-        
-        return result
+        return pd.read_sql(query, self.engine)
         
     def generate_report(self) -> str:
-        """Generate index optimization report."""
+        """Generate query optimization report."""
+        summary = self.get_portfolio_summary()
+        
         lines = []
         lines.append("=" * 60)
-        lines.append("🗄️ 数据库索引优化报告")
+        lines.append("🗄️ 数据库查询优化报告")
         lines.append("=" * 60)
         
-        # DB size
-        size = self.get_db_size()
-        lines.append(f"\n📊 数据库大小")
-        if size.get('exists'):
-            lines.append(f"  大小: {size['size_mb']:.2f} MB")
-            lines.append(f"  路径: {size['path']}")
-        else:
-            lines.append(f"  数据库不存在")
-            
-        # Indexes
-        indexes = self.analyze_indexes()
-        custom_indexes = [idx for idx in indexes if idx['is_custom']]
+        lines.append(f"\n📊 数据概览")
+        lines.append(f"  股票数量: {summary.get('stock_count', 0)}")
+        lines.append(f"  总记录数: {summary.get('total_records', 0):,}")
+        lines.append(f"  最新数据: {summary.get('latest_date', 'N/A')}")
+        lines.append(f"  数据范围: {summary.get('date_range_days', 0)} 天")
         
-        lines.append(f"\n📑 索引列表 ({len(indexes)} 个)")
-        lines.append(f"  自定义: {len(custom_indexes)} 个")
-        lines.append(f"  系统: {len(indexes) - len(custom_indexes)} 个")
-        
-        if custom_indexes:
-            lines.append(f"\n🔑 自定义索引")
-            for idx in custom_indexes:
-                lines.append(f"  ✅ {idx['name']} ON {idx['table']} ({idx['columns']})")
+        # Top performers
+        top = self.get_top_performers(days=5, top_n=5)
+        if not top.empty:
+            lines.append(f"\n📈 近 5 日表现最佳")
+            for _, row in top.iterrows():
+                lines.append(f"  {row['code']}: {row['change_pct']:+.2f}%")
                 
         return "\n".join(lines)
 
 
 if __name__ == "__main__":
-    optimizer = IndexOptimizer()
+    optimizer = QueryOptimizer()
     print(optimizer.generate_report())

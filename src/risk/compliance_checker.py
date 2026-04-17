@@ -35,7 +35,7 @@ class ComplianceStatus(Enum):
 
 
 @dataclass
-ComplianceRule:
+class ComplianceRule:
     """合规规则"""
     rule_id: str
     name: str

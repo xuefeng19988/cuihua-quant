@@ -12,7 +12,7 @@ import random
 
 
 @dataclass
-ParameterSpace:
+class ParameterSpace:
     """参数空间"""
     name: str
     param_type: str  # int/float/categorical
@@ -23,7 +23,7 @@ ParameterSpace:
 
 
 @dataclass
-OptimizationResult:
+class OptimizationResult:
     """优化结果"""
     best_params: Dict
     best_score: float

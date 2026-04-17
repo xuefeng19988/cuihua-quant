@@ -28,7 +28,7 @@ class AccountStatus(Enum):
 
 
 @dataclass
-AccountInfo:
+class AccountInfo:
     """账户信息"""
     account_id: str
     name: str

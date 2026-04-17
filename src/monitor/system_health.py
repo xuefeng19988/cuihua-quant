@@ -23,7 +23,7 @@ class HealthStatus(Enum):
 
 
 @dataclass
-ComponentHealth:
+class ComponentHealth:
     """组件健康"""
     name: str
     status: HealthStatus

@@ -70,7 +70,7 @@ class CompleteTradingSystem:
         from src.execution.risk_control import RiskManager
         from src.execution.advanced_risk import AdvancedRiskManager
         from src.execution.portfolio_optimizer import PortfolioOptimizer
-        from src.execution.paper_trading_v2 import PaperTradingSimulator
+        from src.execution.paper_trading import PaperTradingSimulator
         
         self.risk_mgr = RiskManager(self.config.get('risk', {}))
         self.advanced_risk = AdvancedRiskManager()

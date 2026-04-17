@@ -23,7 +23,7 @@ class BehaviorBias(Enum):
 
 
 @dataclass
-BehaviorPattern:
+class BehaviorPattern:
     """行为模式"""
     bias_type: BehaviorBias
     description: str
