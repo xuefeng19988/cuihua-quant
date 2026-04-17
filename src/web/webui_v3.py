@@ -217,6 +217,49 @@ def create_webui_v3():
         margin-top: 0.5rem;
     }
 
+    /* Collapsible groups */
+    .nav-group { margin: 0.125rem 0; }
+    .nav-group-header {
+        display: flex; align-items: center; gap: 0.75rem;
+        padding: 0.625rem 1rem; margin: 0.125rem 0;
+        border-radius: var(--radius);
+        color: var(--text-secondary);
+        font-size: 0.875rem; font-weight: 500;
+        cursor: pointer; transition: all 0.2s;
+        user-select: none;
+    }
+    .nav-group-header:hover { background: var(--bg-hover); color: var(--text-primary); }
+    .nav-group-header span:first-child { font-size: 1rem; }
+    .nav-group-arrow {
+        margin-left: auto; font-size: 0.625rem;
+        transition: transform 0.2s;
+    }
+    .nav-group.open .nav-group-arrow { transform: rotate(90deg); }
+    .nav-group-items {
+        max-height: 0; overflow: hidden;
+        transition: max-height 0.3s ease;
+    }
+    .nav-group.open .nav-group-items { max-height: 500px; }
+    .nav-group-items .nav-item {
+        padding-left: 2.75rem; font-size: 0.8125rem;
+    }
+    .nav-group-items .nav-item span {
+        font-size: 0.5rem; margin-right: 0.25rem;
+    }
+
+    .sidebar-footer { border-top: 1px solid var(--border); margin-top: 0.75rem; padding-top: 0.5rem; }
+    .sidebar-footer .nav-item { margin: 0.125rem 0; }
+    .sidebar-footer .logout { color: var(--danger); }
+
+    .sidebar-user {
+        display: flex; align-items: center; gap: 0.625rem;
+        padding: 0.75rem; margin-top: 0.5rem;
+        background: rgba(0,0,0,0.15); border-radius: var(--radius);
+    }
+    .user-avatar { font-size: 1.5rem; }
+    .user-name { font-size: 0.8125rem; font-weight: 600; }
+    .user-role { font-size: 0.6875rem; color: var(--text-secondary); }
+
     .nav-item {
         display: flex;
         align-items: center;
@@ -932,52 +975,83 @@ def create_webui_v3():
         user = user or {'username': 'admin', 'nickname': '管理员', 'avatar': '🦜'}
         avatar = user.get('avatar', '🦜')
         nickname = user.get('nickname', user.get('username', 'admin'))
+
+        # Auto-open group for current page
+        trade_pages = {'analysis', 'charts', 'backtest', 'paper'}
+        research_pages = {'strategies', 'factors', 'heatmap', 'events', 'articles'}
+        risk_pages = {'risk', 'alerts', 'stoploss', 'stress', 'compliance'}
+        tool_pages = {'performance', 'behavior', 'paramopt', 'reports', 'research'}
+
+        trade_open = 'open' if page in trade_pages else ''
+        research_open = 'open' if page in research_pages else ''
+        risk_open = 'open' if page in risk_pages else ''
+        tool_open = 'open' if page in tool_pages else ''
+
         return f"""
     <nav class="sidebar" id="sidebar">
         <div class="logo">🦜 翠花量化</div>
 
-        <div class="nav-section">核心功能</div>
+        <!-- 核心功能 -->
         <a href="/" class="nav-item {{ 'active' if page=='dashboard' else '' }}"><span>📊</span> 监控看板</a>
         <a href="/stocks" class="nav-item {{ 'active' if page=='stocks' else '' }}"><span>💼</span> 股票池</a>
-        <a href="/analysis" class="nav-item {{ 'active' if page=='analysis' else '' }}"><span>📈</span> 信号分析</a>
-        <a href="/backtest" class="nav-item {{ 'active' if page=='backtest' else '' }}"><span>🔬</span> 回测中心</a>
-        <a href="/charts" class="nav-item {{ 'active' if page=='charts' else '' }}"><span>📉</span> 图表分析</a>
         <a href="/portfolio" class="nav-item {{ 'active' if page=='portfolio' else '' }}"><span>🌍</span> 投资组合</a>
-        <a href="/risk" class="nav-item {{ 'active' if page=='risk' else '' }}"><span>🛡️</span> 风险监控</a>
 
-        <div class="nav-section">策略与研究</div>
-        <a href="/strategies" class="nav-item {{ 'active' if page=='strategies' else '' }}"><span>🎯</span> 策略管理</a>
-        <a href="/factors" class="nav-item {{ 'active' if page=='factors' else '' }}"><span>🧮</span> 因子研究</a>
-        <a href="/events" class="nav-item {{ 'active' if page=='events' else '' }}"><span>📅</span> 事件研究</a>
-        <a href="/research" class="nav-item {{ 'active' if page=='research' else '' }}"><span>📓</span> 研究笔记本</a>
-        <a href="/heatmap" class="nav-item {{ 'active' if page=='heatmap' else '' }}"><span>🔥</span> 热力图</a>
-        <a href="/articles" class="nav-item {{ 'active' if page=='articles' else '' }}"><span>📰</span> 文章信息</a>
-
-        <div class="nav-section">交易与风控</div>
-        <a href="/alerts" class="nav-item {{ 'active' if page=='alerts' else '' }}"><span>🔔</span> 告警中心</a>
-        <a href="/paper" class="nav-item {{ 'active' if page=='paper' else '' }}"><span>📝</span> 模拟盘</a>
-        <a href="/stoploss" class="nav-item {{ 'active' if page=='stoploss' else '' }}"><span>🛑</span> 智能止损</a>
-        <a href="/stress" class="nav-item {{ 'active' if page=='stress' else '' }}"><span>💥</span> 压力测试</a>
-        <a href="/compliance" class="nav-item {{ 'active' if page=='compliance' else '' }}"><span>✅</span> 合规检查</a>
-
-        <div class="nav-section">系统工具</div>
-        <a href="/performance" class="nav-item {{ 'active' if page=='performance' else '' }}"><span>📊</span> 绩效分析</a>
-        <a href="/behavior" class="nav-item {{ 'active' if page=='behavior' else '' }}"><span>🧠</span> 行为分析</a>
-        <a href="/paramopt" class="nav-item {{ 'active' if page=='paramopt' else '' }}"><span>⚡</span> 参数优化</a>
-        <a href="/reports" class="nav-item {{ 'active' if page=='reports' else '' }}"><span>📑</span> 自动报告</a>
-        <a href="/settings" class="nav-item {{ 'active' if page=='settings' else '' }}"><span>⚙️</span> 系统设置</a>
-
-        <div style="border-top: 1px solid var(--border); margin: 0.75rem 0; padding-top: 0.75rem;">
-            <a href="/profile" class="nav-item {{ 'active' if page=='profile' else '' }}"><span>👤</span> 个人信息</a>
-            <a href="/logout" class="nav-item" style="color: var(--danger);"><span>🚪</span> 退出登录</a>
+        <!-- 交易 -->
+        <div class="nav-group {trade_open}">
+            <div class="nav-group-header" onclick="this.parentElement.classList.toggle('open')"><span>📈</span> 交易 <span class="nav-group-arrow">▸</span></div>
+            <div class="nav-group-items">
+                <a href="/analysis" class="nav-item {{ 'active' if page=='analysis' else '' }}"><span></span> 信号分析</a>
+                <a href="/charts" class="nav-item {{ 'active' if page=='charts' else '' }}"><span></span> 图表分析</a>
+                <a href="/backtest" class="nav-item {{ 'active' if page=='backtest' else '' }}"><span></span> 回测中心</a>
+                <a href="/paper" class="nav-item {{ 'active' if page=='paper' else '' }}"><span></span> 模拟盘</a>
+            </div>
         </div>
 
-        <div style="padding: 0.75rem; margin-top: 0.5rem; background: rgba(0,0,0,0.2); border-radius: var(--radius); display: flex; align-items: center; gap: 0.5rem;">
-            <span style="font-size: 1.25rem;">{avatar}</span>
-            <div>
-                <div style="font-size: 0.875rem; font-weight: 600;">{nickname}</div>
-                <div style="font-size: 0.7rem; color: var(--text-secondary);">管理员</div>
+        <!-- 研究 -->
+        <div class="nav-group {research_open}">
+            <div class="nav-group-header" onclick="this.parentElement.classList.toggle('open')"><span>🔬</span> 研究 <span class="nav-group-arrow">▸</span></div>
+            <div class="nav-group-items">
+                <a href="/strategies" class="nav-item {{ 'active' if page=='strategies' else '' }}"><span></span> 策略管理</a>
+                <a href="/factors" class="nav-item {{ 'active' if page=='factors' else '' }}"><span></span> 因子研究</a>
+                <a href="/heatmap" class="nav-item {{ 'active' if page=='heatmap' else '' }}"><span></span> 热力图</a>
+                <a href="/events" class="nav-item {{ 'active' if page=='events' else '' }}"><span></span> 事件研究</a>
+                <a href="/articles" class="nav-item {{ 'active' if page=='articles' else '' }}"><span></span> 文章信息</a>
             </div>
+        </div>
+
+        <!-- 风控 -->
+        <div class="nav-group {risk_open}">
+            <div class="nav-group-header" onclick="this.parentElement.classList.toggle('open')"><span>🛡️</span> 风控 <span class="nav-group-arrow">▸</span></div>
+            <div class="nav-group-items">
+                <a href="/risk" class="nav-item {{ 'active' if page=='risk' else '' }}"><span></span> 风险监控</a>
+                <a href="/alerts" class="nav-item {{ 'active' if page=='alerts' else '' }}"><span></span> 告警中心</a>
+                <a href="/stoploss" class="nav-item {{ 'active' if page=='stoploss' else '' }}"><span></span> 智能止损</a>
+                <a href="/stress" class="nav-item {{ 'active' if page=='stress' else '' }}"><span></span> 压力测试</a>
+                <a href="/compliance" class="nav-item {{ 'active' if page=='compliance' else '' }}"><span></span> 合规检查</a>
+            </div>
+        </div>
+
+        <!-- 工具 -->
+        <div class="nav-group {tool_open}">
+            <div class="nav-group-header" onclick="this.parentElement.classList.toggle('open')"><span>🔧</span> 工具 <span class="nav-group-arrow">▸</span></div>
+            <div class="nav-group-items">
+                <a href="/performance" class="nav-item {{ 'active' if page=='performance' else '' }}"><span></span> 绩效分析</a>
+                <a href="/behavior" class="nav-item {{ 'active' if page=='behavior' else '' }}"><span></span> 行为分析</a>
+                <a href="/paramopt" class="nav-item {{ 'active' if page=='paramopt' else '' }}"><span></span> 参数优化</a>
+                <a href="/reports" class="nav-item {{ 'active' if page=='reports' else '' }}"><span></span> 自动报告</a>
+                <a href="/research" class="nav-item {{ 'active' if page=='research' else '' }}"><span></span> 研究笔记本</a>
+            </div>
+        </div>
+
+        <div class="sidebar-footer">
+            <a href="/settings" class="nav-item {{ 'active' if page=='settings' else '' }}"><span>⚙️</span> 系统设置</a>
+            <a href="/profile" class="nav-item {{ 'active' if page=='profile' else '' }}"><span>👤</span> 个人信息</a>
+            <a href="/logout" class="nav-item logout"><span>🚪</span> 退出登录</a>
+        </div>
+
+        <div class="sidebar-user">
+            <span class="user-avatar">{avatar}</span>
+            <div><div class="user-name">{nickname}</div><div class="user-role">管理员</div></div>
         </div>
     </nav>
     """
