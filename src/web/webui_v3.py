@@ -1629,36 +1629,88 @@ def create_webui_v3():
         user = get_user_info()
         return render_page(content, 'charts', user=user)
 
-    @app.route('/portfolio')
+    @app.route('/portfolio', methods=['GET', 'POST'])
     @login_required
     def portfolio():
+        import yaml
+        pf_path = os.path.join(project_root, 'config', 'portfolio.yaml')
+        msg = ''
+        if request.method == 'POST':
+            action = request.form.get('action')
+            try:
+                with open(pf_path, 'r') as f:
+                    pf = yaml.safe_load(f) or {'portfolio': {'total_capital': 1000000, 'positions': []}}
+                p = pf.get('portfolio', {})
+                if action == 'set_capital':
+                    p['total_capital'] = float(request.form.get('total_capital', 1000000))
+                    msg = '✅ 总资金已更新'
+                elif action == 'add_position':
+                    pos = {'code': request.form.get('code', '').strip(), 'name': request.form.get('name', '').strip(), 'buy_price': float(request.form.get('buy_price', 0)), 'quantity': int(request.form.get('quantity', 0)), 'target_price': float(request.form.get('target_price', 0) or 0), 'stop_loss': float(request.form.get('stop_loss', 0) or 0)}
+                    if pos['code'] and pos['buy_price'] and pos['quantity']:
+                        p.setdefault('positions', []).append(pos)
+                        msg = f"✅ 已添加 {pos['code']}"
+                elif action == 'del_position':
+                    idx = int(request.form.get('idx', -1))
+                    if 0 <= idx < len(p.get('positions', [])):
+                        r = p['positions'].pop(idx)
+                        msg = f"✅ 已删除 {r.get('code', '')}"
+                pf['portfolio'] = p
+                with open(pf_path, 'w') as f:
+                    yaml.dump(pf, f, allow_unicode=True, default_flow_style=False)
+            except Exception as e:
+                msg = f'❌ {str(e)}'
+        with open(pf_path, 'r') as f:
+            pf = yaml.safe_load(f) or {'portfolio': {'total_capital': 1000000, 'positions': []}}
+        p = pf.get('portfolio', {})
+        total_capital = p.get('total_capital', 1000000)
+        positions = p.get('positions', [])
+        sn = get_stock_names()
+        try:
+            from src.data.database import get_db_engine
+            engine = get_db_engine()
+        except:
+            engine = None
+        total_market = 0; total_cost = 0; pos_rows = []
+        for i, pos in enumerate(positions):
+            code = pos.get('code', ''); bp = pos.get('buy_price', 0); qty = pos.get('quantity', 0); cost = bp * qty; total_cost += cost
+            cp = bp
+            if engine:
+                try:
+                    df = pd.read_sql(f"SELECT close_price FROM stock_daily WHERE code='{code}' ORDER BY date DESC LIMIT 1", engine)
+                    if not df.empty: cp = df.iloc[0]['close_price']
+                except: pass
+            mv = cp * qty; pnl = mv - cost; total_market += mv
+            color = 'var(--success)' if pnl >= 0 else 'var(--danger)'
+            tp = f"{((pos.get('target_price',0)-bp)/bp*100):+.1f}%" if pos.get('target_price') else '--'
+            pos_rows.append([f'<span class="badge badge-warning">{code}</span>', pos.get('name',''), f'¥{bp:.2f}', f'{qty}', f'¥{cp:.2f}', f'<span style="color:{color};font-weight:600">¥{pnl:+,.0f} ({((cp-bp)/bp*100):+.1f}%)</span>', tp, f'<form method="POST" style="display:inline"><input type="hidden" name="action" value="del_position"><input type="hidden" name="idx" value="{i}"><button type="submit" class="btn btn-danger" style="padding:0.2rem 0.5rem;font-size:0.7rem" onclick="return confirm(\'确定删除?\')">🗑️</button></form>'])
+        cash = total_capital - total_cost; tpnl = total_market - total_cost; tpct = (tpnl/total_cost*100) if total_cost > 0 else 0; pc = 'var(--success)' if tpnl >= 0 else 'var(--danger)'
+        pt = make_table(['代码','名称','买入价','数量','现价','盈亏','目标','操作'], pos_rows) if pos_rows else '<div class="alert alert-info">💡 暂无持仓，下方添加</div>'
+        codes = get_stock_codes()
+        sopts = ''.join(f'<option value="{c}">{c} {sn.get(c,"")}</option>' for c in codes)
         content = f"""
-        <div class="header">
-            <div><h1>🌍 投资组合</h1><p style="color:var(--text-secondary)">组合配置与资产配置分析</p></div>
-        </div>
+        <div class="header"><div><h1>🌍 投资组合</h1><p style="color:var(--text-secondary)">持仓管理与资金配置</p></div></div>
+        {f'<div class="alert alert-success">{msg}</div>' if msg else ''}
         <div class="stats-grid">
-            <div class="stat-card"><div class="stat-label">总资产</div><div class="stat-value">¥0</div><div class="stat-change">暂无持仓</div></div>
-            <div class="stat-card"><div class="stat-label">可用现金</div><div class="stat-value">¥0</div><div class="stat-change">--</div></div>
-            <div class="stat-card"><div class="stat-label">持仓数量</div><div class="stat-value">0</div><div class="stat-change">--</div></div>
-            <div class="stat-card"><div class="stat-label">今日盈亏</div><div class="stat-value">¥0</div><div class="stat-change">--</div></div>
+            <div class="stat-card"><div class="stat-label">总资金</div><div class="stat-value" style="font-size:1.5rem">¥{total_capital:,.0f}</div></div>
+            <div class="stat-card"><div class="stat-label">持仓市值</div><div class="stat-value" style="font-size:1.5rem">¥{total_market:,.0f}</div></div>
+            <div class="stat-card"><div class="stat-label">可用现金</div><div class="stat-value" style="font-size:1.5rem">¥{cash:,.0f}</div></div>
+            <div class="stat-card"><div class="stat-label">总盈亏</div><div class="stat-value" style="font-size:1.5rem;color:{pc}">¥{tpnl:+,.0f}</div></div>
         </div>
-        <div class="card">
-            <div class="card-header"><h3 class="card-title">📋 持仓明细</h3></div>
-            <div class="alert alert-info">💡 接入模拟盘或实盘后显示持仓数据</div>
-        </div>
+        <div class="card"><div class="card-header"><h3 class="card-title">📋 持仓明细</h3></div>{pt}</div>
         <div class="grid-2">
-            <div class="card">
-                <div class="card-header"><h3 class="card-title">🎯 组合优化</h3></div>
-                <p style="color:var(--text-secondary);font-size:0.875rem">
-                    支持 <span class="tag">portfolio_optimizer</span> <span class="tag">rebalancer</span> <span class="tag">position_manager</span>
-                </p>
-            </div>
-            <div class="card">
-                <div class="card-header"><h3 class="card-title">🔒 组合保险</h3></div>
-                <p style="color:var(--text-secondary);font-size:0.875rem">
-                    支持 <span class="tag">portfolio_insurance</span> CPPI / TIPP 策略
-                </p>
-            </div>
+            <div class="card"><div class="card-header"><h3 class="card-title">💰 总资金</h3></div>
+                <form method="POST" class="form-row" style="align-items:end">
+                    <div class="form-group"><label class="form-label">总资金 (元)</label><input type="number" name="total_capital" class="form-input" value="{total_capital}" step="10000"></div>
+                    <div class="form-group"><label class="form-label">&nbsp;</label><button type="submit" name="action" value="set_capital" class="btn btn-primary">💾 保存</button></div>
+                </form></div>
+            <div class="card"><div class="card-header"><h3 class="card-title">➕ 添加持仓</h3></div>
+                <form method="POST" class="form-row" style="align-items:end">
+                    <div class="form-group"><label class="form-label">股票</label><select name="code" class="form-select">{sopts}</select></div>
+                    <div class="form-group"><label class="form-label">买入价</label><input type="number" name="buy_price" class="form-input" step="0.01" required></div>
+                    <div class="form-group"><label class="form-label">数量</label><input type="number" name="quantity" class="form-input" step="100" required></div>
+                    <div class="form-group"><label class="form-label">目标价</label><input type="number" name="target_price" class="form-input" step="0.01"></div>
+                    <div class="form-group"><label class="form-label">&nbsp;</label><button type="submit" name="action" value="add_position" class="btn btn-success">➕ 添加</button></div>
+                </form></div>
         </div>
         """
         user = get_user_info()
