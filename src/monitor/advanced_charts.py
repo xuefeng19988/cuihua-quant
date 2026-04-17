@@ -79,6 +79,7 @@ class AdvancedChartGenerator:
             
         df = df.iloc[::-1].reset_index(drop=True)
         df['date'] = pd.to_datetime(df['date'])
+        df['date_cn'] = df['date'].dt.strftime('%Y年%m月%d日')
         
         try:
             import plotly.graph_objects as go
@@ -145,7 +146,7 @@ class AdvancedChartGenerator:
         
         # Candlestick (中国股市：红涨绿跌)
         fig.add_trace(go.Candlestick(
-            x=df['date'],
+            x=df['date_cn'],
             open=df['open'],
             high=df['high'],
             low=df['low'],
@@ -159,39 +160,39 @@ class AdvancedChartGenerator:
         
         # Moving Averages
         if 'ma' in indicators:
-            fig.add_trace(go.Scatter(x=df['date'], y=df['ma5'], name='MA5 均线', line=dict(width=1)), row=1, col=1)
-            fig.add_trace(go.Scatter(x=df['date'], y=df['ma10'], name='MA10 均线', line=dict(width=1)), row=1, col=1)
-            fig.add_trace(go.Scatter(x=df['date'], y=df['ma20'], name='MA20 均线', line=dict(width=1)), row=1, col=1)
+            fig.add_trace(go.Scatter(x=df['date_cn'], y=df['ma5'], name='MA5 均线', line=dict(width=1)), row=1, col=1)
+            fig.add_trace(go.Scatter(x=df['date_cn'], y=df['ma10'], name='MA10 均线', line=dict(width=1)), row=1, col=1)
+            fig.add_trace(go.Scatter(x=df['date_cn'], y=df['ma20'], name='MA20 均线', line=dict(width=1)), row=1, col=1)
             
         # Bollinger Bands
         if 'bb' in indicators:
-            fig.add_trace(go.Scatter(x=df['date'], y=df['bb_upper'], name='布林上轨', 
+            fig.add_trace(go.Scatter(x=df['date_cn'], y=df['bb_upper'], name='布林上轨', 
                                     line=dict(width=1, dash='dash')), row=1, col=1)
-            fig.add_trace(go.Scatter(x=df['date'], y=df['bb_lower'], name='布林下轨', 
+            fig.add_trace(go.Scatter(x=df['date_cn'], y=df['bb_lower'], name='布林下轨', 
                                     line=dict(width=1, dash='dash')), row=1, col=1)
             
         # Volume
         current_row = 2
         if 'volume' in indicators:
             colors = ['red' if row['close'] >= row['open'] else 'green' for _, row in df.iterrows()]
-            fig.add_trace(go.Bar(x=df['date'], y=df['volume'], marker_color=colors, name='成交量'), 
+            fig.add_trace(go.Bar(x=df['date_cn'], y=df['volume'], marker_color=colors, name='成交量'), 
                          row=current_row, col=1)
             current_row += 1
             
         # MACD
         if 'macd' in indicators:
-            fig.add_trace(go.Scatter(x=df['date'], y=df['macd'], name='MACD 线', line=dict(width=1)), 
+            fig.add_trace(go.Scatter(x=df['date_cn'], y=df['macd'], name='MACD 线', line=dict(width=1)), 
                          row=current_row, col=1)
-            fig.add_trace(go.Scatter(x=df['date'], y=df['macd_signal'], name='信号线', line=dict(width=1)), 
+            fig.add_trace(go.Scatter(x=df['date_cn'], y=df['macd_signal'], name='信号线', line=dict(width=1)), 
                          row=current_row, col=1)
             colors = ['red' if v >= 0 else 'green' for v in df['macd_hist']]
-            fig.add_trace(go.Bar(x=df['date'], y=df['macd_hist'], marker_color=colors, name='MACD 柱'), 
+            fig.add_trace(go.Bar(x=df['date_cn'], y=df['macd_hist'], marker_color=colors, name='MACD 柱'), 
                          row=current_row, col=1)
             current_row += 1
             
         # RSI
         if 'rsi' in indicators:
-            fig.add_trace(go.Scatter(x=df['date'], y=df['rsi'], name='RSI 相对强弱', line=dict(width=2)), 
+            fig.add_trace(go.Scatter(x=df['date_cn'], y=df['rsi'], name='RSI 相对强弱', line=dict(width=2)), 
                          row=current_row, col=1)
             fig.add_hline(y=70, line_dash="dash", line_color="red", row=current_row, col=1)
             fig.add_hline(y=30, line_dash="dash", line_color="green", row=current_row, col=1)
