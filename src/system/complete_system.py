@@ -60,7 +60,7 @@ class CompleteTradingSystem:
         self.regime_detector = MarketRegimeDetector()
         
         # Strategy layer
-        from src.strategy.ensemble_manager import StrategyEnsembleManager
+        from src.strategy.ensemble import StrategyEnsembleManager
         from src.strategy.optimizer import GeneticOptimizer
         
         self.strategy_ensemble = StrategyEnsembleManager(['momentum', 'mean_reversion'])
@@ -78,7 +78,7 @@ class CompleteTradingSystem:
         self.paper_trader = PaperTradingSimulator()
         
         # Monitoring layer
-        from src.monitor.performance_analyzer import StrategyPerformanceAnalyzer
+        from src.monitor.performance import StrategyPerformanceAnalyzer
         from src.monitor.live_monitor import LiveTradingMonitor
         from src.monitor.report_generator import PerformanceReporter
         

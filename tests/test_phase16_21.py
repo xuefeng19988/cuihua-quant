@@ -192,7 +192,7 @@ class TestPerformanceDashboard(unittest.TestCase):
     """Test performance dashboard."""
     
     def test_dashboard_generation(self):
-        from src.monitor.performance_dashboard import PerformanceDashboard
+        from src.monitor.performance import PerformanceDashboard
         dashboard = PerformanceDashboard()
         report = dashboard.generate_dashboard()
         self.assertIsInstance(report, str)

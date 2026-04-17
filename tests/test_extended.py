@@ -19,14 +19,14 @@ class TestPipelineValidator(unittest.TestCase):
     
     def test_validator_initialization(self):
         """Test validator can be initialized."""
-        from src.execution.pipeline_validator import PipelineValidator
+        from src.execution.pipeline import PipelineValidator
         validator = PipelineValidator()
         self.assertIsNotNone(validator)
         self.assertIsNotNone(validator.engine)
         
     def test_data_check(self):
         """Test data availability check."""
-        from src.execution.pipeline_validator import PipelineValidator
+        from src.execution.pipeline import PipelineValidator
         validator = PipelineValidator()
         result = validator._check_data()
         self.assertIn('status', result)
@@ -36,7 +36,7 @@ class TestPerformanceDashboard(unittest.TestCase):
     
     def test_dashboard_generation(self):
         """Test dashboard can be generated."""
-        from src.monitor.performance_dashboard import PerformanceDashboard
+        from src.monitor.performance import PerformanceDashboard
         dashboard = PerformanceDashboard()
         report = dashboard.generate_dashboard()
         self.assertIsInstance(report, str)

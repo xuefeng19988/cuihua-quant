@@ -491,119 +491,120 @@ def create_webui_v3():
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>翠花量化 - 登录</title>
+        <title>翠花量化</title>
         <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body {
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-                background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #252550 100%);
+                background: #0a0a1a;
                 min-height: 100vh;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                color: #e0e0ff;
+                color: #fff;
             }
             .login-container {
                 width: 100%;
-                max-width: 420px;
+                max-width: 380px;
                 padding: 2rem;
             }
             .login-card {
-                background: rgba(37, 37, 80, 0.9);
-                border-radius: 16px;
-                padding: 2.5rem 2rem;
-                border: 1px solid rgba(255,255,255,0.1);
-                box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-                backdrop-filter: blur(10px);
+                background: rgba(255,255,255,0.03);
+                border-radius: 20px;
+                padding: 2.5rem 2rem 2rem;
+                border: 1px solid rgba(255,255,255,0.08);
             }
             .login-logo {
                 text-align: center;
-                margin-bottom: 2rem;
+                margin-bottom: 2.5rem;
             }
-            .login-logo .icon { font-size: 3rem; margin-bottom: 0.5rem; }
+            .login-logo .icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
             .login-logo h1 {
-                font-size: 1.5rem;
-                font-weight: 700;
-                background: linear-gradient(135deg, #6366f1, #a855f7);
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;
+                font-size: 1.25rem;
+                font-weight: 600;
+                letter-spacing: 0.05em;
             }
-            .login-logo p { color: #8888aa; font-size: 0.875rem; margin-top: 0.25rem; }
-            .form-group { margin-bottom: 1.25rem; }
+            .login-logo p { color: rgba(255,255,255,0.4); font-size: 0.75rem; margin-top: 0.25rem; }
+            .form-group { margin-bottom: 1rem; }
             .form-label {
                 display: block;
-                font-size: 0.875rem;
-                color: #8888aa;
-                margin-bottom: 0.5rem;
+                font-size: 0.75rem;
+                color: rgba(255,255,255,0.5);
+                margin-bottom: 0.375rem;
+                letter-spacing: 0.05em;
+                text-transform: uppercase;
             }
             .form-input {
                 width: 100%;
-                padding: 0.75rem 1rem;
-                background: rgba(26, 26, 62, 0.8);
+                padding: 0.75rem 0.875rem;
+                background: rgba(255,255,255,0.05);
                 border: 1px solid rgba(255,255,255,0.1);
-                border-radius: 10px;
-                color: #e0e0ff;
+                border-radius: 8px;
+                color: #fff;
                 font-size: 0.9375rem;
-                transition: border-color 0.2s;
+                transition: all 0.2s;
             }
+            .form-input::placeholder { color: rgba(255,255,255,0.25); }
             .form-input:focus {
                 outline: none;
-                border-color: #6366f1;
+                border-color: rgba(99,102,241,0.6);
+                background: rgba(255,255,255,0.08);
             }
+            .captcha-wrap { margin: 1rem 0; }
+            .captcha-trigger {
+                display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+                padding: 0.625rem; background: rgba(255,255,255,0.05);
+                border: 1px dashed rgba(255,255,255,0.15); border-radius: 8px;
+                cursor: pointer; color: rgba(255,255,255,0.5); font-size: 0.8125rem;
+                transition: all 0.2s; user-select: none;
+            }
+            .captcha-trigger:hover { border-color: rgba(99,102,241,0.5); color: rgba(255,255,255,0.8); }
+            .captcha-trigger.verified { border: 1px solid rgba(34,197,94,0.3); color: #22c55e; background: rgba(34,197,94,0.05); }
             .login-btn {
                 width: 100%;
                 padding: 0.875rem;
-                background: linear-gradient(135deg, #6366f1, #a855f7);
+                background: #6366f1;
                 border: none;
-                border-radius: 10px;
-                color: white;
-                font-size: 1rem;
-                font-weight: 600;
+                border-radius: 8px;
+                color: #fff;
+                font-size: 0.9375rem;
+                font-weight: 500;
                 cursor: pointer;
-                transition: all 0.3s;
-                margin-top: 0.75rem;
-                letter-spacing: 0.25em;
+                transition: all 0.2s;
+                margin-top: 0.5rem;
             }
-            .login-btn:hover:not(:disabled) {
-                transform: translateY(-2px);
-                box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+            .login-btn:hover:not(:disabled) { background: #7c7ff7; }
+            .login-btn:disabled { opacity: 0.3; cursor: not-allowed; background: rgba(255,255,255,0.1); }
+            .remember-row {
+                display: flex; align-items: center; gap: 0.5rem;
+                margin: 0.75rem 0 1.25rem;
             }
-            .login-btn:disabled {
-                opacity: 0.35;
-                cursor: not-allowed;
-                background: linear-gradient(135deg, #3a3a5e, #4a4a6e);
+            .remember-row input[type="checkbox"] {
+                width: 14px; height: 14px; accent-color: #6366f1;
+            }
+            .remember-row label {
+                font-size: 0.8125rem; color: rgba(255,255,255,0.5); cursor: pointer;
             }
             .error-msg {
-                background: rgba(239, 68, 68, 0.15);
-                border-left: 3px solid #ef4444;
-                padding: 0.75rem 1rem;
+                background: rgba(239,68,68,0.1);
+                border: 1px solid rgba(239,68,68,0.2);
+                padding: 0.625rem 0.875rem;
                 border-radius: 8px;
-                margin-bottom: 1.25rem;
-                font-size: 0.875rem;
+                margin-bottom: 1rem;
+                font-size: 0.8125rem;
                 color: #fca5a5;
             }
-            /* Slider Captcha */
-            .captcha-wrap { margin-bottom: 1.25rem; }
-            .captcha-trigger {
-                display: flex; align-items: center; gap: 0.5rem;
-                padding: 0.625rem 1rem; background: rgba(26,26,62,0.8);
-                border: 1px solid rgba(255,255,255,0.1); border-radius: 10px;
-                cursor: pointer; color: #8888aa; font-size: 0.875rem;
-                transition: all 0.2s; user-select: none;
-            }
-            .captcha-trigger:hover { border-color: #6366f1; color: #e0e0ff; }
-            .captcha-trigger.verified { border-color: #22c55e; color: #22c55e; background: rgba(34,197,94,0.1); }
-            .captcha-trigger.verified::before { content: '✅'; }
+            .footer { text-align: center; margin-top: 2rem; color: rgba(255,255,255,0.25); font-size: 0.6875rem; }
+            /* Captcha Overlay */
             .captcha-overlay {
                 display: none; position: fixed; inset: 0;
-                background: rgba(0,0,0,0.5); z-index: 1000;
+                background: rgba(0,0,0,0.7); z-index: 1000;
                 align-items: center; justify-content: center;
             }
             .captcha-overlay.show { display: flex; }
             .captcha-box {
-                background: #1a1a3e; border-radius: 12px;
-                padding: 1.25rem; width: 320px;
-                box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+                background: #1a1a2e; border-radius: 12px;
+                padding: 1.25rem; width: 310px;
             }
             .captcha-canvas-wrap {
                 position: relative; width: 280px; height: 155px;
@@ -613,58 +614,48 @@ def create_webui_v3():
             .captcha-canvas-wrap canvas { display: block; }
             .captcha-slider {
                 position: relative; width: 280px; height: 40px;
-                margin: 0 auto; background: #252550;
+                margin: 0 auto; background: rgba(255,255,255,0.05);
                 border-radius: 20px; border: 1px solid rgba(255,255,255,0.1);
             }
             .captcha-slider-text {
                 position: absolute; inset: 0; display: flex;
                 align-items: center; justify-content: center;
-                color: #8888aa; font-size: 0.8125rem; pointer-events: none;
+                color: rgba(255,255,255,0.4); font-size: 0.75rem; pointer-events: none;
             }
             .captcha-slider-bar {
                 position: absolute; top: 2px; left: 2px;
                 width: 36px; height: 36px; border-radius: 18px;
-                background: linear-gradient(135deg, #6366f1, #a855f7);
-                cursor: grab; display: flex; align-items: center;
-                justify-content: center; font-size: 1.125rem; z-index: 1;
-                box-shadow: 0 2px 8px rgba(99,102,241,0.4);
-                transition: none;
+                background: #6366f1; cursor: grab; display: flex;
+                align-items: center; justify-content: center;
+                font-size: 1rem; z-index: 1; transition: none;
             }
             .captcha-slider-bar:active { cursor: grabbing; }
-            .captcha-slider-bar.success { background: #22c55e; box-shadow: 0 2px 8px rgba(34,197,94,0.4); }
-            .captcha-slider-bar.fail { background: #ef4444; box-shadow: 0 2px 8px rgba(239,68,68,0.4); }
+            .captcha-slider-bar.success { background: #22c55e; }
+            .captcha-slider-bar.fail { background: #ef4444; }
             .captcha-slider-track {
                 position: absolute; top: 2px; left: 2px; height: 36px;
                 border-radius: 18px; background: rgba(99,102,241,0.15);
                 transition: width 0.05s;
             }
-            @keyframes shake {
-                0%, 100% { transform: translateX(0); }
-                20% { transform: translateX(-8px); }
-                40% { transform: translateX(8px); }
-                60% { transform: translateX(-4px); }
-                80% { transform: translateX(4px); }
-            }
-            .captcha-box.shake { animation: shake 0.4s ease; }
-            @keyframes pulse {
-                0%, 100% { opacity: 1; }
-                50% { opacity: 0.6; }
-            }
-            .captcha-trigger { animation: pulse 2s infinite; }
-            .captcha-trigger.verified { animation: none; }
             .captcha-close {
                 position: absolute; top: 8px; right: 8px;
                 background: rgba(255,255,255,0.1); border: none;
-                color: #8888aa; width: 24px; height: 24px;
-                border-radius: 12px; cursor: pointer; font-size: 0.875rem;
+                color: rgba(255,255,255,0.5); width: 24px; height: 24px;
+                border-radius: 12px; cursor: pointer; font-size: 0.75rem;
             }
             .captcha-refresh {
                 position: absolute; top: 8px; left: 8px;
                 background: rgba(255,255,255,0.1); border: none;
-                color: #8888aa; width: 24px; height: 24px;
-                border-radius: 12px; cursor: pointer; font-size: 0.875rem;
+                color: rgba(255,255,255,0.5); width: 24px; height: 24px;
+                border-radius: 12px; cursor: pointer; font-size: 0.75rem;
             }
-            .footer { text-align: center; margin-top: 2rem; color: #8888aa; font-size: 0.75rem; }
+            @keyframes shake {
+                0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)}
+                40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)}
+            }
+            .captcha-box.shake { animation: shake 0.4s ease; }
+        </style>
+    </head>
         </style>
     </head>
     <body>
@@ -673,7 +664,7 @@ def create_webui_v3():
                 <div class="login-logo">
                     <div class="icon">🦜</div>
                     <h1>翠花量化</h1>
-                    <p>Cuihua Quant System</p>
+                    <p>CUIHUA QUANT</p>
                 </div>
                 {{ error_msg }}
                 <form method="POST" id="loginForm">
@@ -690,9 +681,9 @@ def create_webui_v3():
                             <span>🛡️</span><span id="captchaText">点击完成安全验证</span>
                         </div>
                     </div>
-                    <div class="form-group" style="display:flex;align-items:center;gap:0.5rem">
-                        <input type="checkbox" id="remember_me" name="remember_me" style="width:16px;height:16px;accent-color:#6366f1">
-                        <label for="remember_me" style="font-size:0.875rem;color:#8888aa;cursor:pointer;user-select:none">记住我 (30天免登录)</label>
+                    <div class="remember-row">
+                        <input type="checkbox" id="remember_me" name="remember_me">
+                        <label for="remember_me">记住我，30天免登录</label>
                     </div>
                     <button type="submit" class="login-btn" id="loginBtn" disabled>请完成验证</button>
                     <input type="hidden" name="captcha_verified" id="captchaVerified" value="">
@@ -733,6 +724,7 @@ def create_webui_v3():
             }
 
             window.openCaptcha = function() {
+                if (verified) return;
                 document.getElementById('captchaOverlay').classList.add('show');
                 initCaptcha();
             };
@@ -743,6 +735,7 @@ def create_webui_v3():
 
             window.initCaptcha = function() {
                 if (!ctx) return;
+                if (verified) return;
                 bar = document.getElementById('captchaBar');
                 track = document.getElementById('captchaTrack');
                 bar.style.left = '2px';
@@ -889,11 +882,13 @@ def create_webui_v3():
                         closeCaptcha();
                         var trigger = document.getElementById('captchaTrigger');
                         trigger.className = 'captcha-trigger verified';
-                        trigger.innerHTML = '<span>🛡️</span><span>验证通过</span>';
-                        document.getElementById('captchaText').textContent = '验证通过';
+                        trigger.removeAttribute('onclick');
+                        trigger.innerHTML = '<span>✅</span><span>验证通过</span>';
                         var btn = document.getElementById('loginBtn');
                         btn.disabled = false;
-                        btn.textContent = '登 录';
+                        btn.textContent = '🔐 登 录';
+                        btn.style.opacity = '1';
+                        btn.style.cursor = 'pointer';
                         document.getElementById('captchaVerified').value = '1';
                     }, 600);
                 } else {
@@ -1612,7 +1607,7 @@ def create_webui_v3():
         chart_html = None
         if request.method == 'POST' or request.args.get('code'):
             try:
-                from src.monitor.advanced_charts import AdvancedChartGenerator
+                from src.monitor.charts import AdvancedChartGenerator
                 charts = AdvancedChartGenerator()
                 chart_html = charts.generate_kline_with_indicators(code, int(days))
             except:

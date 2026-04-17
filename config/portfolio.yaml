@@ -1,0 +1,14 @@
+# 投资组合配置
+portfolio:
+  total_capital: 1000000  # 总资金 (元)
+  cash: 500000  # 可用现金 (元)
+  
+  positions: []
+  # 格式:
+  # - code: "SZ.002594"
+  #   name: "比亚迪"
+  #   buy_price: 80.00
+  #   quantity: 1000
+  #   buy_date: "2026-04-01"
+  #   target_price: 120.00
+  #   stop_loss: 70.00
