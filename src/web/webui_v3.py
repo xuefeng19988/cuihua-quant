@@ -377,6 +377,7 @@ def create_webui_v3():
         <a href="/factors" class="nav-item {{ 'active' if page=='factors' else '' }}"><span>🧮</span> 因子研究</a>
         <a href="/events" class="nav-item {{ 'active' if page=='events' else '' }}"><span>📅</span> 事件研究</a>
         <a href="/research" class="nav-item {{ 'active' if page=='research' else '' }}"><span>📓</span> 研究笔记本</a>
+        <a href="/heatmap" class="nav-item {{ 'active' if page=='heatmap' else '' }}"><span>🔥</span> 热力图</a>
 
         <div class="nav-section">交易与风控</div>
         <a href="/alerts" class="nav-item {{ 'active' if page=='alerts' else '' }}"><span>🔔</span> 告警中心</a>
@@ -1014,6 +1015,53 @@ def create_webui_v3():
         <div class="alert alert-info">💡 研究笔记本提供交互式研究环境，支持因子挖掘、ML 训练、市场状态分析等</div>
         """
         return render_page(content, 'research')
+
+    @app.route('/heatmap')
+    def heatmap():
+        try:
+            from src.analysis.sector_heatmap import SectorHeatmap
+            h = SectorHeatmap()
+            codes = list(h.sector_mapping.keys())
+            df = h.get_sector_returns(codes, period=5)
+            html_heatmap = h.generate_html_heatmap(df) if not df.empty else None
+
+            # Also build a table view
+            if not df.empty:
+                rows = []
+                for _, row in df.iterrows():
+                    ret = row['return']
+                    color = 'var(--success)' if ret > 0 else 'var(--danger)'
+                    bg = 'rgba(34,197,94,0.15)' if ret > 0 else 'rgba(239,68,68,0.15)'
+                    intensity = min(abs(ret) / 0.2, 1.0)  # cap at 20%
+                    rows.append([
+                        row['sector'],
+                        f'<span style="color:{color};font-weight:600">{ret:+.2%}</span>',
+                        f'<div class="progress-bar"><div class="progress-fill" style="width:{intensity*100:.0f}%;background:{color}"></div></div>',
+                    ])
+                table_html = make_table(['板块', '涨跌幅', '强度'], rows)
+            else:
+                table_html = '<div class="alert alert-warning">⚠️ 暂无板块数据</div>'
+
+            content = f"""
+            <div class="header">
+                <div><h1>🔥 板块热力图</h1><p style="color:var(--text-secondary)">板块/行业涨跌热力分布</p></div>
+            </div>
+            {html_heatmap if html_heatmap else ''}
+            <div class="card">
+                <div class="card-header"><h3 class="card-title">📊 板块涨跌幅</h3></div>
+                {table_html}
+            </div>
+            <div class="alert alert-info">💡 数据基于近 5 个交易日个股收益，按板块均值聚合</div>
+            """
+            return render_page(content, 'heatmap')
+        except Exception as e:
+            content = f"""
+            <div class="header">
+                <div><h1>🔥 板块热力图</h1><p style="color:var(--text-secondary)">板块/行业涨跌热力分布</p></div>
+            </div>
+            <div class="alert alert-error">❌ 热力图加载失败: {str(e)}</div>
+            """
+            return render_page(content, 'heatmap')
 
     @app.route('/alerts')
     def alerts():
