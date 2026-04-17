@@ -1,29 +1,33 @@
 <template>
   <div class="login-container">
-    <el-form ref="loginForm" :model="loginForm" :rules="loginRules" class="login-form">
+    <div class="login-form">
       <div class="title-container">
         <h3 class="title">🦜 翠花量化</h3>
         <p class="subtitle">CUIHUA QUANT SYSTEM</p>
       </div>
 
-      <el-form-item prop="username">
-        <span class="svg-container"><i class="el-icon-user"></i></span>
-        <el-input v-model="loginForm.username" placeholder="用户名" prefix-icon="el-icon-user" />
-      </el-form-item>
+      <el-form ref="loginForm" :model="loginForm" :rules="loginRules" class="login-form">
+        <el-form-item prop="username">
+          <el-input v-model="loginForm.username" placeholder="用户名" prefix-icon="el-icon-user" />
+        </el-form-item>
 
-      <el-form-item prop="password">
-        <span class="svg-container"><i class="el-icon-lock"></i></span>
-        <el-input v-model="loginForm.password" type="password" placeholder="密码" prefix-icon="el-icon-lock"
-          @keyup.enter.native="handleLogin" />
-      </el-form-item>
+        <el-form-item prop="password">
+          <el-input v-model="loginForm.password" type="password" placeholder="密码" prefix-icon="el-icon-lock"
+            @keyup.enter.native="handleLogin" show-password />
+        </el-form-item>
 
-      <el-checkbox v-model="loginForm.remember" style="margin-bottom: 16px;">记住我，30天免登录</el-checkbox>
+        <el-checkbox v-model="loginForm.remember" style="margin-bottom: 16px;">记住我，30天免登录</el-checkbox>
 
-      <el-button :loading="loading" type="primary" style="width: 100%; margin-bottom: 16px;"
-        @click.native.prevent="handleLogin">
-        登 录
-      </el-button>
-    </el-form>
+        <el-button :loading="loading" type="primary" style="width: 100%; margin-bottom: 16px;"
+          @click.native.prevent="handleLogin">
+          登 录
+        </el-button>
+
+        <div style="text-align: center;">
+          <el-link type="primary" @click="$router.push('/register')">没有账号？去注册</el-link>
+        </div>
+      </el-form>
+    </div>
   </div>
 </template>
 
@@ -40,7 +44,19 @@ export default {
       loading: false
     }
   },
+  created() {
+    this.checkInit()
+  },
   methods: {
+    checkInit() {
+      fetch('/api/auth/check-init')
+        .then(r => r.json())
+        .then(d => {
+          if (!d.has_users) {
+            this.$router.push('/register')
+          }
+        })
+    },
     handleLogin() {
       this.$refs.loginForm.validate(valid => {
         if (!valid) return
@@ -94,5 +110,4 @@ export default {
 .title-container { text-align: center; margin-bottom: 30px; }
 .title { font-size: 24px; font-weight: 600; color: #303133; margin: 0; }
 .subtitle { font-size: 12px; color: #909399; margin: 8px 0 0; letter-spacing: 2px; }
-.svg-container { position: absolute; left: 10px; color: #c0c4cc; }
 </style>

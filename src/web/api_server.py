@@ -34,9 +34,65 @@ def _load_auth():
         with open(_auth_path, 'r') as f:
             AUTH_CONFIG = yaml.safe_load(f).get('auth', {})
 
+def hash_password(password):
+    """SHA256 密码哈希"""
+    return hashlib.sha256(password.encode()).hexdigest()
+
 def check_auth(username, password):
-    admin = AUTH_CONFIG.get('admin', {})
-    return username == admin.get('username', 'admin') and password == admin.get('password', 'admin123')
+    """验证用户名密码（从配置文件读取）"""
+    users = AUTH_CONFIG.get('users', {})
+    user = users.get(username)
+    if not user:
+        return False
+    return user.get('password_hash') == hash_password(password)
+
+def has_users():
+    """检查是否已有注册用户"""
+    users = AUTH_CONFIG.get('users', {})
+    return len(users) > 0
+
+def register_user(username, password, nickname='', email='', avatar='🦜'):
+    """注册新用户"""
+    if not username or not password:
+        return False, '用户名和密码不能为空'
+    if len(password) < 6:
+        return False, '密码长度不能少于6位'
+    users = AUTH_CONFIG.get('users', {})
+    if username in users:
+        return False, '用户名已存在'
+    users[username] = {
+        'password_hash': hash_password(password),
+        'nickname': nickname or username,
+        'email': email,
+        'avatar': avatar,
+        'theme': 'dark',
+        'language': 'zh',
+        'created_at': datetime.now().isoformat()
+    }
+    # 保存配置文件
+    if os.path.exists(_auth_path):
+        with open(_auth_path, 'r') as f:
+            cfg = yaml.safe_load(f) or {'auth': {'users': {}}}
+    else:
+        cfg = {'auth': {'users': {}}}
+    cfg['auth']['users'] = users
+    with open(_auth_path, 'w') as f:
+        yaml.dump(cfg, f, allow_unicode=True, default_flow_style=False)
+    _load_auth()
+    return True, '注册成功'
+
+def get_user_info(username):
+    """获取用户信息"""
+    users = AUTH_CONFIG.get('users', {})
+    user = users.get(username, {})
+    return {
+        'username': username,
+        'nickname': user.get('nickname', username),
+        'email': user.get('email', ''),
+        'avatar': user.get('avatar', '🦜'),
+        'theme': user.get('theme', 'dark'),
+        'language': user.get('language', 'zh')
+    }
 
 def generate_token():
     return secrets.token_hex(32)
@@ -95,6 +151,27 @@ def get_db_engine():
 
 # ========== API 路由 ==========
 
+@app.route('/api/auth/check-init', methods=['GET'])
+def api_check_init():
+    """检查是否已初始化（有注册用户）"""
+    return jsonify({ 'code': 200, 'has_users': has_users() })
+
+@app.route('/api/auth/register', methods=['POST'])
+def api_register():
+    """用户注册"""
+    data = request.get_json() or {}
+    username = data.get('username', '').strip()
+    password = data.get('password', '').strip()
+    nickname = data.get('nickname', '').strip()
+    email = data.get('email', '').strip()
+    success, msg = register_user(username, password, nickname or username, email)
+    if success:
+        token = generate_token()
+        session['api_token'] = token
+        session['username'] = username
+        return jsonify({ 'code': 200, 'token': token, 'message': msg })
+    return jsonify({ 'code': 400, 'message': msg })
+
 @app.route('/api/auth/login', methods=['POST'])
 def api_login():
     data = request.get_json() or {}
@@ -104,18 +181,17 @@ def api_login():
         token = generate_token()
         session['api_token'] = token
         session['username'] = username
-        admin = AUTH_CONFIG.get('admin', {})
-        return jsonify({
-            'code': 200, 'token': token,
-            'data': { 'name': admin.get('nickname', '管理员'), 'avatar': admin.get('avatar', '🦜') }
-        })
+        user = get_user_info(username)
+        return jsonify({ 'code': 200, 'token': token, 'data': user })
     return jsonify({ 'code': 400, 'message': '用户名或密码错误' })
 
 @app.route('/api/auth/info', methods=['GET'])
 @token_required
 def api_auth_info():
-    admin = AUTH_CONFIG.get('admin', {})
-    return jsonify({ 'code': 200, 'name': admin.get('nickname', '管理员'), 'avatar': admin.get('avatar', '🦜') })
+    username = session.get('username', '')
+    if not username:
+        return jsonify({ 'code': 401, 'message': '未登录' })
+    return jsonify({ 'code': 200, **get_user_info(username) })
 
 @app.route('/api/auth/logout', methods=['POST'])
 def api_logout():
