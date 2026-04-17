@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  # Cuihua Quant System
+  cuihua-quant:
+    build: .
+    container_name: cuihua-quant
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./config:/app/config:ro
+    environment:
+      - FUTU_HOST=host.docker.internal
+      - FUTU_PORT=11112
+      - DB_PATH=data/cuihua_quant.db
+      - LOG_LEVEL=INFO
+    restart: unless-stopped
+    depends_on:
+      - futu-opend
+
+  # Futu OpenD (optional, if running in Docker)
+  futu-opend:
+    image: futunnopen/futuopend:latest
+    container_name: futu-opend
+    ports:
+      - "11111:11111"
+      - "11112:11112"
+      - "11113:11113"
+    volumes:
+      - ./futu_config:/futu_config
+    restart: unless-stopped
+    environment:
+      - FUTU_API_KEY=${FUTU_API_KEY}
+      - FUTU_SECRET=${FUTU_SECRET}
+
+  # Redis for caching (optional)
+  redis:
+    image: redis:7-alpine
+    container_name: cuihua-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+volumes:
+  redis_data:
