@@ -12,6 +12,9 @@ from typing import Dict, List, Optional
 
 # Project paths
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+sys.path.insert(0, project_root)
+
+from src.core.utils import load_stock_names
 
 class AdvancedChartGenerator:
     """
@@ -25,41 +28,11 @@ class AdvancedChartGenerator:
             self.engine = get_db_engine()
         except:
             pass
-    
-    @staticmethod
-    def _load_stock_names() -> dict:
-        """加载股票代码到名称的映射"""
-        import yaml
-        names = {}
-        cfg_path = os.path.join(project_root, 'config', 'stocks.yaml')
-        try:
-            with open(cfg_path, 'r') as f:
-                cfg = yaml.safe_load(f)
-            for pool_data in cfg.get('pools', {}).values():
-                for item in pool_data.get('stocks', []):
-                    if isinstance(item, dict):
-                        code = item.get('code', '')
-                        name = item.get('name', '')
-                        if code and code not in names:
-                            names[code] = name
-                    elif isinstance(item, str) and item not in names:
-                        names[item] = ''
-        except:
-            pass
-        return names
             
     def generate_kline_with_indicators(self, code: str, days: int = 60, 
                                         indicators: List[str] = None) -> Optional[str]:
         """
         Generate K-line chart with technical indicators overlay.
-        
-        Args:
-            code: Stock code
-            days: Number of days
-            indicators: List of indicators to show ['ma', 'macd', 'rsi', 'bb']
-            
-        Returns:
-            HTML string with chart
         """
         if indicators is None:
             indicators = ['ma', 'volume']
@@ -114,7 +87,7 @@ class AdvancedChartGenerator:
             df['bb_lower'] = df['bb_mid'] - 2 * std20
             
         # Load stock name
-        stock_names = self._load_stock_names()
+        stock_names = load_stock_names()
         stock_name = stock_names.get(code, '')
         title_label = f"{code} {stock_name} K线图".strip() if stock_name else f"{code} K线图"
         

@@ -17,26 +17,7 @@ sys.path.insert(0, project_root)
 from src.data.trade_logger import TradeLogger
 from src.data.database import get_db_engine
 
-def _load_stock_names() -> dict:
-    """加载股票代码到名称的映射"""
-    import yaml
-    names = {}
-    cfg_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'config', 'stocks.yaml')
-    try:
-        with open(cfg_path, 'r') as f:
-            cfg = yaml.safe_load(f)
-        for pool_data in cfg.get('pools', {}).values():
-            for item in pool_data.get('stocks', []):
-                if isinstance(item, dict):
-                    code = item.get('code', '')
-                    name = item.get('name', '')
-                    if code and code not in names:
-                        names[code] = name
-                elif isinstance(item, str) and item not in names:
-                    names[item] = ''
-    except:
-        pass
-    return names
+from src.core.utils import load_stock_names  # 统一入口
 
 class PerformanceDashboard:
     """

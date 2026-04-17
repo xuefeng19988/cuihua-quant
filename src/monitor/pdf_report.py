@@ -12,25 +12,7 @@ from typing import Dict, List, Optional
 # Project paths
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
-def _load_stock_names() -> dict:
-    """加载股票代码到名称的映射"""
-    names = {}
-    cfg_path = os.path.join(project_root, 'config', 'stocks.yaml')
-    try:
-        with open(cfg_path, 'r') as f:
-            cfg = yaml.safe_load(f)
-        for pool_data in cfg.get('pools', {}).values():
-            for item in pool_data.get('stocks', []):
-                if isinstance(item, dict):
-                    code = item.get('code', '')
-                    name = item.get('name', '')
-                    if code and code not in names:
-                        names[code] = name
-                elif isinstance(item, str) and item not in names:
-                    names[item] = ''
-    except:
-        pass
-    return names
+from src.core.utils import load_stock_names  # 统一入口
 
 class PDFReportGenerator:
     """
