@@ -8,8 +8,9 @@ import sys
 import json
 import yaml
 import hashlib
+import secrets
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 from functools import wraps
 
@@ -43,6 +44,57 @@ def check_auth(username, password):
 def get_user_info():
     """获取当前用户信息"""
     return AUTH_CONFIG.get('admin', {})
+
+def generate_remember_token():
+    """生成安全的记住令牌"""
+    return secrets.token_hex(32)  # 64字符随机令牌
+
+def save_remember_token(username, token):
+    """保存记住令牌到配置文件（只存哈希，不存原文）"""
+    if os.path.exists(_auth_path):
+        with open(_auth_path, 'r') as f:
+            cfg = yaml.safe_load(f) or {}
+        token_hash = hashlib.sha256(token.encode()).hexdigest()
+        expires = (datetime.now() + timedelta(days=30)).isoformat()
+        cfg['auth']['remember'] = {
+            'token_hash': token_hash,
+            'username': username,
+            'expires': expires,
+            'created': datetime.now().isoformat()
+        }
+        with open(_auth_path, 'w') as f:
+            yaml.dump(cfg, f, allow_unicode=True, default_flow_style=False)
+        _load_auth()
+
+def verify_remember_token(token):
+    """验证记住令牌，返回用户名或 None"""
+    remember = AUTH_CONFIG.get('remember', {})
+    stored_hash = remember.get('token_hash')
+    expires = remember.get('expires')
+    if not stored_hash or not expires:
+        return None
+    # 检查过期
+    try:
+        if datetime.fromisoformat(expires) < datetime.now():
+            return None
+    except:
+        return None
+    # 验证哈希
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
+    if token_hash == stored_hash:
+        return remember.get('username')
+    return None
+
+def clear_remember_token():
+    """清除记住令牌"""
+    if os.path.exists(_auth_path):
+        with open(_auth_path, 'r') as f:
+            cfg = yaml.safe_load(f) or {}
+        if 'remember' in cfg.get('auth', {}):
+            cfg['auth'].pop('remember')
+        with open(_auth_path, 'w') as f:
+            yaml.dump(cfg, f, allow_unicode=True, default_flow_style=False)
+        _load_auth()
 
 
 def create_webui_v3():
@@ -524,6 +576,67 @@ def create_webui_v3():
                 font-size: 0.875rem;
                 color: #fca5a5;
             }
+            /* Slider Captcha */
+            .captcha-wrap { margin-bottom: 1.25rem; }
+            .captcha-trigger {
+                display: flex; align-items: center; gap: 0.5rem;
+                padding: 0.625rem 1rem; background: rgba(26,26,62,0.8);
+                border: 1px solid rgba(255,255,255,0.1); border-radius: 10px;
+                cursor: pointer; color: #8888aa; font-size: 0.875rem;
+                transition: all 0.2s; user-select: none;
+            }
+            .captcha-trigger:hover { border-color: #6366f1; color: #e0e0ff; }
+            .captcha-trigger.verified { border-color: #22c55e; color: #22c55e; background: rgba(34,197,94,0.1); }
+            .captcha-trigger.verified::before { content: '✅'; }
+            .captcha-overlay {
+                display: none; position: fixed; inset: 0;
+                background: rgba(0,0,0,0.5); z-index: 1000;
+                align-items: center; justify-content: center;
+            }
+            .captcha-overlay.show { display: flex; }
+            .captcha-box {
+                background: #1a1a3e; border-radius: 12px;
+                padding: 1.25rem; width: 320px;
+                box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            }
+            .captcha-canvas-wrap {
+                position: relative; width: 280px; height: 155px;
+                margin: 0 auto 0.75rem; border-radius: 8px; overflow: hidden;
+                background: #252550;
+            }
+            .captcha-canvas-wrap canvas { display: block; }
+            .captcha-slider {
+                position: relative; width: 280px; height: 40px;
+                margin: 0 auto; background: #252550;
+                border-radius: 20px; border: 1px solid rgba(255,255,255,0.1);
+            }
+            .captcha-slider-text {
+                position: absolute; inset: 0; display: flex;
+                align-items: center; justify-content: center;
+                color: #8888aa; font-size: 0.8125rem; pointer-events: none;
+            }
+            .captcha-slider-bar {
+                position: absolute; top: 2px; left: 2px;
+                width: 36px; height: 36px; border-radius: 18px;
+                background: linear-gradient(135deg, #6366f1, #a855f7);
+                cursor: grab; display: flex; align-items: center;
+                justify-content: center; font-size: 1.125rem; z-index: 1;
+                transition: none;
+            }
+            .captcha-slider-bar:active { cursor: grabbing; }
+            .captcha-slider-bar.success { background: #22c55e; }
+            .captcha-close {
+                position: absolute; top: 8px; right: 8px;
+                background: rgba(255,255,255,0.1); border: none;
+                color: #8888aa; width: 24px; height: 24px;
+                border-radius: 12px; cursor: pointer; font-size: 0.875rem;
+            }
+            .captcha-refresh {
+                position: absolute; top: 8px; left: 8px;
+                background: rgba(255,255,255,0.1); border: none;
+                color: #8888aa; width: 24px; height: 24px;
+                border-radius: 12px; cursor: pointer; font-size: 0.875rem;
+            }
             .footer { text-align: center; margin-top: 2rem; color: #8888aa; font-size: 0.75rem; }
         </style>
     </head>
@@ -535,7 +648,7 @@ def create_webui_v3():
                     <h1>翠花量化</h1>
                     <p>Cuihua Quant System</p>
                 </div>
-                {error_msg}
+                {{ error_msg }}
                 <form method="POST">
                     <div class="form-group">
                         <label class="form-label">用户名</label>
@@ -545,11 +658,181 @@ def create_webui_v3():
                         <label class="form-label">密码</label>
                         <input type="password" name="password" class="form-input" placeholder="请输入密码" required>
                     </div>
+                    <div class="form-group" style="display:flex;align-items:center;gap:0.5rem">
+                        <input type="checkbox" id="remember_me" name="remember_me" style="width:16px;height:16px;accent-color:#6366f1">
+                        <label for="remember_me" style="font-size:0.875rem;color:#8888aa;cursor:select;user-select:none">记住我 (30天免登录)</label>
+                    </div>
                     <button type="submit" class="login-btn">登 录</button>
+                </form>
+                <div class="captcha-wrap">
+                    <div class="captcha-trigger" id="captchaTrigger" onclick="openCaptcha()">
+                        <span>🛡️</span><span>点击完成安全验证</span>
+                    </div>
+                </div>
+                <button type="submit" class="login-btn" id="loginBtn" disabled style="opacity:0.4;cursor:not-allowed">请完成验证</button>
+                <input type="hidden" name="captcha_verified" id="captchaVerified" value="">
                 </form>
                 <div class="footer">Cuihua Quant v3.1.0 &copy; 2026</div>
             </div>
         </div>
+
+        <!-- Captcha Overlay -->
+        <div class="captcha-overlay" id="captchaOverlay">
+            <div class="captcha-box">
+                <div class="captcha-canvas-wrap">
+                    <canvas id="captchaCanvas" width="280" height="155"></canvas>
+                    <button class="captcha-refresh" onclick="initCaptcha()" title="刷新">🔄</button>
+                    <button class="captcha-close" onclick="closeCaptcha()">✕</button>
+                </div>
+                <div class="captcha-slider">
+                    <div class="captcha-slider-text">向右拖动滑块完成验证</div>
+                    <div class="captcha-slider-bar" id="captchaBar">→</div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+        (function() {
+            var canvas = document.getElementById('captchaCanvas');
+            var ctx = canvas ? canvas.getContext('2d') : null;
+            var W = 280, H = 155, L = 42, R = 10;
+            var targetX, verified = false;
+            var bar, startX;
+
+            function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+
+            window.openCaptcha = function() {
+                document.getElementById('captchaOverlay').classList.add('show');
+                initCaptcha();
+            };
+
+            window.closeCaptcha = function() {
+                document.getElementById('captchaOverlay').classList.remove('show');
+            };
+
+            window.initCaptcha = function() {
+                if (!ctx) return;
+                bar = document.getElementById('captchaBar');
+                bar.style.left = '2px';
+                bar.className = 'captcha-slider-bar';
+                bar.innerHTML = '→';
+                verified = false;
+                targetX = rand(80, W - L - 30);
+
+                // Draw background
+                ctx.clearRect(0, 0, W, H);
+                ctx.fillStyle = '#2d2d6e';
+                ctx.fillRect(0, 0, W, H);
+
+                // Draw random shapes as background
+                for (var i = 0; i < 8; i++) {
+                    ctx.beginPath();
+                    ctx.arc(rand(20, W-20), rand(20, H-20), rand(10, 40), 0, Math.PI * 2);
+                    ctx.fillStyle = 'hsla(' + rand(200, 300) + ', 60%, 50%, 0.15)';
+                    ctx.fill();
+                }
+
+                // Draw target slot
+                drawPuzzle(ctx, targetX, 40, 'rgba(0,0,0,0.4)');
+            };
+
+            function drawPuzzle(c, x, y, color) {
+                c.beginPath();
+                c.moveTo(x, y);
+                c.lineTo(x + L * 2/3, y);
+                c.arc(x + L * 2/3, y - R, R, 0, Math.PI, true);
+                c.lineTo(x + L, y);
+                c.lineTo(x + L, y + L * 2/3);
+                c.arc(x + L + R, y + L * 2/3, R, 0, Math.PI * 1.5, false);
+                c.lineTo(x + L, y + L);
+                c.lineTo(x, y + L);
+                c.arc(x, y + L * 2/3, R, 0, Math.PI * 1.5, true);
+                c.lineTo(x, y);
+                c.closePath();
+                c.fillStyle = color;
+                c.fill();
+            }
+
+            // Drag events
+            var sliderBar = null;
+            function onDown(e) {
+                if (verified) return;
+                e.preventDefault();
+                sliderBar = document.getElementById('captchaBar');
+                startX = (e.touches ? e.touches[0].clientX : e.clientX);
+                document.addEventListener('mousemove', onMove);
+                document.addEventListener('mouseup', onUp);
+                document.addEventListener('touchmove', onMove, {passive: false});
+                document.addEventListener('touchend', onUp);
+            }
+
+            function onMove(e) {
+                if (!sliderBar || verified) return;
+                e.preventDefault();
+                var cx = (e.touches ? e.touches[0].clientX : e.clientX);
+                var dx = cx - startX;
+                dx = Math.max(0, Math.min(dx, W - 38));
+                sliderBar.style.left = (dx + 2) + 'px';
+            }
+
+            function onUp() {
+                if (!sliderBar) return;
+                document.removeEventListener('mousemove', onMove);
+                document.removeEventListener('mouseup', onUp);
+                document.removeEventListener('touchmove', onMove);
+                document.removeEventListener('touchend', onUp);
+
+                var left = parseInt(sliderBar.style.left) - 2;
+                var diff = Math.abs(left - targetX);
+
+                if (diff <= 8) {
+                    // Success
+                    verified = true;
+                    sliderBar.innerHTML = '✓';
+                    sliderBar.className = 'captcha-slider-bar success';
+
+                    // Redraw success on canvas
+                    ctx.clearRect(0, 0, W, H);
+                    ctx.fillStyle = '#1a3a2a';
+                    ctx.fillRect(0, 0, W, H);
+                    ctx.fillStyle = '#22c55e';
+                    ctx.font = 'bold 48px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('✓', W/2, H/2);
+
+                    setTimeout(function() {
+                        closeCaptcha();
+                        var trigger = document.getElementById('captchaTrigger');
+                        trigger.className = 'captcha-trigger verified';
+                        trigger.innerHTML = '<span>🛡️</span><span>验证通过</span>';
+                        var btn = document.getElementById('loginBtn');
+                        btn.disabled = false;
+                        btn.style.opacity = '1';
+                        btn.style.cursor = 'pointer';
+                        btn.textContent = '登 录';
+                        document.getElementById('captchaVerified').value = '1';
+                    }, 500);
+                } else {
+                    // Fail - reset
+                    sliderBar.style.transition = 'left 0.3s';
+                    sliderBar.style.left = '2px';
+                    setTimeout(function() {
+                        sliderBar.style.transition = 'none';
+                    }, 300);
+                    // Randomize target
+                    targetX = rand(80, W - L - 30);
+                    initCaptcha();
+                }
+                sliderBar = null;
+            }
+
+            if (document.getElementById('captchaBar')) {
+                document.getElementById('captchaBar').addEventListener('mousedown', onDown);
+                document.getElementById('captchaBar').addEventListener('touchstart', onDown, {passive: false});
+            }
+        })();
+        </script>
     </body>
     </html>
     """
@@ -701,14 +984,42 @@ def create_webui_v3():
 
     @app.route('/login', methods=['GET', 'POST'])
     def login():
-        if request.method == 'POST':
-            username = request.form.get('username', '').strip()
-            password = request.form.get('password', '').strip()
-            if check_auth(username, password):
+        # 检查记住我 cookie 自动登录
+        remember_token = request.cookies.get('remember_token')
+        if remember_token:
+            username = verify_remember_token(remember_token)
+            if username:
                 session['logged_in'] = True
                 session['username'] = username
                 session.permanent = True
                 return redirect(url_for('dashboard'))
+            else:
+                # 令牌无效，清除 cookie
+                resp = redirect(url_for('login'))
+                resp.set_cookie('remember_token', '', expires=0)
+                return resp
+
+        if request.method == 'POST':
+            username = request.form.get('username', '').strip()
+            password = request.form.get('password', '').strip()
+            remember_me = request.form.get('remember_me') == 'on'
+            captcha_ok = request.form.get('captcha_verified') == '1'
+            if not captcha_ok:
+                error_msg = '<div class="error-msg">❌ 请先完成拖拽验证</div>'
+                return render_template_string(LOGIN_PAGE, error_msg=error_msg)
+            if check_auth(username, password):
+                session['logged_in'] = True
+                session['username'] = username
+                session.permanent = True
+                resp = redirect(url_for('dashboard'))
+                if remember_me:
+                    # 生成随机令牌，只存哈希到服务端
+                    token = generate_remember_token()
+                    save_remember_token(username, token)
+                    # 设置 cookie (30天)  httponly=True 防 XSS
+                    resp.set_cookie('remember_token', token, max_age=30*24*3600,
+                                   httponly=True, samesite='Lax')
+                return resp
             else:
                 error_msg = '<div class="error-msg">❌ 用户名或密码错误</div>'
                 return render_template_string(LOGIN_PAGE, error_msg=error_msg)
@@ -717,7 +1028,9 @@ def create_webui_v3():
     @app.route('/logout')
     def logout():
         session.clear()
-        return redirect(url_for('login'))
+        resp = redirect(url_for('login'))
+        resp.set_cookie('remember_token', '', expires=0)
+        return resp
 
     @app.route('/profile', methods=['GET', 'POST'])
     @login_required
