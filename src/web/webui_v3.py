@@ -491,6 +491,37 @@ def create_webui_v3():
         except:
             count = 0
 
+        # 热力图：涨跌排行
+        top_gainers = []
+        top_losers = []
+        heatmap_date = '--'
+        try:
+            from src.data.database import get_db_engine
+            engine = get_db_engine()
+            stock_names = get_stock_names()
+            df = pd.read_sql('''
+                SELECT t1.code, t1.close_price, t1.date, t2.close_price as prev_price
+                FROM stock_daily t1
+                LEFT JOIN stock_daily t2
+                    ON t1.code = t2.code
+                    AND t2.date = (SELECT MAX(date) FROM stock_daily WHERE code = t1.code AND date < t1.date)
+                WHERE t1.date = (SELECT MAX(date) FROM stock_daily WHERE code = t1.code)
+            ''', engine)
+            if not df.empty:
+                df['change'] = ((df['close_price'] - df['prev_price']) / df['prev_price'] * 100).round(2)
+                heatmap_date = str(df.iloc[0]['date'])
+                for _, row in df.nlargest(5, 'change').iterrows():
+                    c = row['code']
+                    top_gainers.append({'code': c, 'name': stock_names.get(c, ''), 'price': f"{row['close_price']:.2f}", 'change': row['change']})
+                for _, row in df.nsmallest(5, 'change').iterrows():
+                    c = row['code']
+                    top_losers.append({'code': c, 'name': stock_names.get(c, ''), 'price': f"{row['close_price']:.2f}", 'change': row['change']})
+        except:
+            pass
+
+        gainers_rows = ''.join(f"""<tr><td><span class="badge badge-warning">{g['code']}</span></td><td>{g['name']}</td><td>¥{g['price']}</td><td style="color:var(--success);font-weight:600">+{g['change']:.2f}%</td></tr>""" for g in top_gainers) if top_gainers else '<tr><td colspan="4" style="text-align:center;color:var(--text-secondary)">暂无数据</td></tr>'
+        losers_rows = ''.join(f"""<tr><td><span class="badge badge-warning">{l['code']}</span></td><td>{l['name']}</td><td>¥{l['price']}</td><td style="color:var(--danger);font-weight:600">{l['change']:.2f}%</td></tr>""" for l in top_losers) if top_losers else '<tr><td colspan="4" style="text-align:center;color:var(--text-secondary)">暂无数据</td></tr>'
+
         content = f"""
         <div class="header">
             <div><h1>📊 监控看板</h1><p style="color:var(--text-secondary)">实时系统状态与交易概览</p></div>
@@ -518,6 +549,16 @@ def create_webui_v3():
                 <div class="stat-label">磁盘空间</div>
                 <div class="stat-value" style="font-size:1.25rem;">{'✅' if disk['status']=='OK' else '⚠️'}</div>
                 <div class="stat-change">{disk.get('message', '')}</div>
+            </div>
+        </div>
+        <div class="grid-2">
+            <div class="card">
+                <div class="card-header"><h3 class="card-title" style="color:var(--success)">📈 涨幅 Top 5 <span style="color:var(--text-secondary);font-size:0.8125rem">({heatmap_date})</span></h3></div>
+                <div class="table-container"><table><thead><tr><th>代码</th><th>名称</th><th>价格</th><th>涨跌</th></tr></thead><tbody>{gainers_rows}</tbody></table></div>
+            </div>
+            <div class="card">
+                <div class="card-header"><h3 class="card-title" style="color:var(--danger)">📉 跌幅 Top 5 <span style="color:var(--text-secondary);font-size:0.8125rem">({heatmap_date})</span></h3></div>
+                <div class="table-container"><table><thead><tr><th>代码</th><th>名称</th><th>价格</th><th>涨跌</th></tr></thead><tbody>{losers_rows}</tbody></table></div>
             </div>
         </div>
         <div class="card">
@@ -586,6 +627,16 @@ def create_webui_v3():
                         msg = f'✅ 已删除 {del_code}'
                     except Exception as e:
                         msg = f'❌ 删除失败: {str(e)}'
+            elif action == 'refresh':
+                refresh_code = request.form.get('refresh_code', '').strip()
+                if refresh_code:
+                    try:
+                        from src.data.akshare_sync import AKShareSync
+                        syncer = AKShareSync()
+                        syncer.fetch_and_save(refresh_code, days_back=30)
+                        msg = f'✅ 已拉取 {refresh_code} 近30天历史数据'
+                    except Exception as e:
+                        msg = f'❌ 拉取失败: {str(e)}'
 
         # 重新加载
         stock_names = get_stock_names()
@@ -634,13 +685,15 @@ def create_webui_v3():
         rows = []
         for s in stocks_data:
             color = 'var(--success)' if s['change'] > 0 else ('var(--danger)' if s['change'] < 0 else 'var(--text-primary)')
+            has_price = s['price'] != '-'
+            refresh_btn = f'''<form method="POST" style="display:inline"><input type="hidden" name="action" value="refresh"><input type="hidden" name="refresh_code" value="{s["code"]}"><button type="submit" class="btn btn-primary" style="padding:0.25rem 0.5rem;font-size:0.75rem">🔄</button></form>''' if not has_price else '<span style="color:var(--text-secondary);font-size:0.7rem">已有</span>'
             del_btn = f'''<form method="POST" style="display:inline"><input type="hidden" name="action" value="delete"><input type="hidden" name="del_code" value="{s["code"]}"><button type="submit" class="btn btn-danger" style="padding:0.25rem 0.5rem;font-size:0.75rem" onclick="return confirm('确定删除 {s["code"]} {s["name"]}?')">🗑️</button></form>'''
             rows.append([
                 f'<span class="badge badge-warning">{s["code"]}</span>',
                 s['name'],
                 f"¥{s['price']}",
                 f'<span style="color:{color}">{s["change"]:+.2f}%</span>',
-                f'<a href="/charts?code={s["code"]}" class="btn btn-secondary" style="padding:0.25rem 0.5rem;font-size:0.75rem">📉</a> {del_btn}'
+                f'{refresh_btn} <a href="/charts?code={s["code"]}" class="btn btn-secondary" style="padding:0.25rem 0.5rem;font-size:0.75rem">📉</a> {del_btn}'
             ])
 
         # 分页导航
