@@ -510,6 +510,7 @@ def create_webui_v3():
                 <thead>
                     <tr>
                         <th>代码</th>
+                        <th>名称</th>
                         <th>最新价</th>
                         <th>涨跌幅</th>
                         <th>信号</th>
@@ -520,6 +521,7 @@ def create_webui_v3():
                     {% for stock in stocks %}
                     <tr>
                         <td><span class="badge badge-warning">{{ stock.code }}</span></td>
+                        <td>{{ stock.name }}</td>
                         <td>¥{{ stock.price }}</td>
                         <td style="color: {{ 'var(--success)' if stock.change > 0 else 'var(--danger)' }}">
                             {{ stock.change:+.2f }}%
@@ -570,6 +572,7 @@ def create_webui_v3():
                     <tr>
                         <th>排名</th>
                         <th>代码</th>
+                        <th>名称</th>
                         <th>收盘价</th>
                         <th>综合得分</th>
                         <th>技术分</th>
@@ -582,6 +585,7 @@ def create_webui_v3():
                     <tr>
                         <td><span class="badge {{ 'badge-success' if sig.rank <= 5 else 'badge-warning' }}">#{{ sig.rank }}</span></td>
                         <td><span class="badge badge-warning">{{ sig.code }}</span></td>
+                        <td>{{ sig.name }}</td>
                         <td>¥{{ sig.close }}</td>
                         <td style="color: {{ 'var(--success)' if sig.combined_score > 0 else 'var(--danger)' }}">
                             {{ sig.combined_score:+.3f }}
@@ -768,7 +772,20 @@ def create_webui_v3():
         cfg_path = os.path.join(project_root, 'config', 'stocks.yaml')
         with open(cfg_path, 'r') as f:
             cfg = yaml.safe_load(f)
-        stocks_list = cfg.get('pools', {}).get('watchlist', {}).get('stocks', [])
+        raw_stocks = cfg.get('pools', {}).get('watchlist', {}).get('stocks', [])
+        
+        # Build stock name mapping
+        stock_names = {}
+        stocks_list = []
+        for item in raw_stocks:
+            if isinstance(item, dict):
+                code = item.get('code', '')
+                name = item.get('name', '')
+            else:
+                code = item
+                name = ''
+            stock_names[code] = name
+            stocks_list.append(code)
         
         engine = get_db_engine()
         stocks_data = []
@@ -788,21 +805,25 @@ def create_webui_v3():
                     price = '-'
                     change = 0
                 stocks_data.append({
-                    'code': code, 'price': f"{price:.2f}" if isinstance(price, (int, float)) else price,
-                    'change': round(change, 2), 'signal': '-'
+                    'code': code,
+                    'name': stock_names.get(code, ''),
+                    'price': f"{price:.2f}" if isinstance(price, (int, float)) else price,
+                    'change': round(change, 2),
+                    'signal': '-'
                 })
             except:
-                stocks_data.append({'code': code, 'price': '-', 'change': 0, 'signal': '-'})
+                stocks_data.append({'code': code, 'name': stock_names.get(code, ''), 'price': '-', 'change': 0, 'signal': '-'})
         
         stocks_rows = ''.join(
             f"""<tr><td><span class="badge badge-warning">{s['code']}</span></td>
+            <td>{s['name']}</td>
             <td>¥{s['price']}</td>
             <td style="color: {'var(--success)' if s['change'] > 0 else 'var(--danger)'}">{s['change']:+.2f}%</td>
             <td>{s['signal']}</td></tr>""" for s in stocks_data
         )
         content = f"""<div class="header"><div><h1>💼 股票池管理</h1><p style="color: var(--text-secondary); margin-top: 0.5rem;">共 {len(stocks_list)} 只股票</p></div></div>
         <div class="card"><div class="table-container"><table>
-        <thead><tr><th>代码</th><th>最新价</th><th>涨跌幅</th><th>信号</th></tr></thead>
+        <thead><tr><th>代码</th><th>名称</th><th>最新价</th><th>涨跌幅</th><th>信号</th></tr></thead>
         <tbody>{stocks_rows}</tbody></table></div></div>"""
         return render_template_string(BASE_LAYOUT,
             content=content,
@@ -819,9 +840,22 @@ def create_webui_v3():
         cfg_path = os.path.join(project_root, 'config', 'stocks.yaml')
         with open(cfg_path, 'r') as f:
             cfg = yaml.safe_load(f)
+        
+        # Build stock name mapping
+        stock_names = {}
+        for pool_data in cfg.get('pools', {}).values():
+            for item in pool_data.get('stocks', []):
+                if isinstance(item, dict):
+                    code = item.get('code', '')
+                    name = item.get('name', '')
+                    if code and code not in stock_names:
+                        stock_names[code] = name
+                elif isinstance(item, str) and item not in stock_names:
+                    stock_names[item] = ''
             
         pool = request.form.get('pool', 'watchlist') if request.method == 'POST' else 'watchlist'
-        codes = cfg.get('pools', {}).get(pool, {}).get('stocks', [])
+        raw_codes = cfg.get('pools', {}).get(pool, {}).get('stocks', [])
+        codes = [item.get('code', item) if isinstance(item, dict) else item for item in raw_codes]
         
         signals = []
         if codes:
@@ -831,12 +865,13 @@ def create_webui_v3():
                 signals = df.to_dict('records')
                 for s in signals:
                     s['signals'] = ', '.join(s.get('signals', [])) if s.get('signals') else 'None'
+                    s['name'] = stock_names.get(s.get('code', ''), '')
         
         signal_rows = ''.join(
-            f"""<tr><td>#{s.get('rank','')}</td><td>{s.get('code','')}</td><td>{s.get('close','')}</td><td>{s.get('combined_score','')}</td></tr>"""
+            f"""<tr><td>#{s.get('rank','')}</td><td>{s.get('code','')}</td><td>{s.get('name','')}</td><td>{s.get('close','')}</td><td>{s.get('combined_score','')}</td></tr>"""
             for s in signals
         ) if signals else ''
-        card_html = f'<div class="card"><div class="table-container"><table><thead><tr><th>排名</th><th>代码</th><th>收盘价</th><th>综合得分</th></tr></thead><tbody>{signal_rows}</tbody></table></div></div>' if signals else '<div class="card"><div class="alert alert-info">💡 暂无数据，请先同步数据</div></div>'
+        card_html = f'<div class="card"><div class="table-container"><table><thead><tr><th>排名</th><th>代码</th><th>名称</th><th>收盘价</th><th>综合得分</th></tr></thead><tbody>{signal_rows}</tbody></table></div></div>' if signals else '<div class="card"><div class="alert alert-info">💡 暂无数据，请先同步数据</div></div>'
         content = f"""<div class="header"><div><h1>📈 信号分析</h1><p style="color: var(--text-secondary); margin-top: 0.5rem;">基于技术指标和情绪分析的交易信号</p></div></div>{card_html}"""
         return render_template_string(BASE_LAYOUT,
             content=content,

@@ -5,11 +5,32 @@ Generate professional PDF reports.
 
 import os
 import sys
+import yaml
 from datetime import datetime
 from typing import Dict, List, Optional
 
 # Project paths
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+
+def _load_stock_names() -> dict:
+    """加载股票代码到名称的映射"""
+    names = {}
+    cfg_path = os.path.join(project_root, 'config', 'stocks.yaml')
+    try:
+        with open(cfg_path, 'r') as f:
+            cfg = yaml.safe_load(f)
+        for pool_data in cfg.get('pools', {}).values():
+            for item in pool_data.get('stocks', []):
+                if isinstance(item, dict):
+                    code = item.get('code', '')
+                    name = item.get('name', '')
+                    if code and code not in names:
+                        names[code] = name
+                elif isinstance(item, str) and item not in names:
+                    names[item] = ''
+    except:
+        pass
+    return names
 
 class PDFReportGenerator:
     """
@@ -61,6 +82,12 @@ class PDFReportGenerator:
             f.write(html)
             
         return filepath
+    
+    def _get_stock_label(self, code: str) -> str:
+        """获取股票标签 (代码 + 名称)"""
+        names = _load_stock_names()
+        name = names.get(code, '')
+        return f"{code} {name}".strip() if name else code
         
     def _create_report_html(self, title: str, data: Dict) -> str:
         """Create HTML for general report."""
@@ -119,7 +146,9 @@ class PDFReportGenerator:
         
     def _create_stock_html(self, data: Dict) -> str:
         """Create HTML for stock report."""
-        return self._create_report_html(f"股票分析报告 - {data.get('code', '')}", data)
+        code = data.get('code', '')
+        label = self._get_stock_label(code)
+        return self._create_report_html(f"股票分析报告 - {label}", data)
         
     def _render_metrics(self, metrics: Dict) -> str:
         """Render metrics cards."""

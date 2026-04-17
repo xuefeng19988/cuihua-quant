@@ -17,6 +17,27 @@ sys.path.insert(0, project_root)
 from src.data.trade_logger import TradeLogger
 from src.data.database import get_db_engine
 
+def _load_stock_names() -> dict:
+    """加载股票代码到名称的映射"""
+    import yaml
+    names = {}
+    cfg_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'config', 'stocks.yaml')
+    try:
+        with open(cfg_path, 'r') as f:
+            cfg = yaml.safe_load(f)
+        for pool_data in cfg.get('pools', {}).values():
+            for item in pool_data.get('stocks', []):
+                if isinstance(item, dict):
+                    code = item.get('code', '')
+                    name = item.get('name', '')
+                    if code and code not in names:
+                        names[code] = name
+                elif isinstance(item, str) and item not in names:
+                    names[item] = ''
+    except:
+        pass
+    return names
+
 class PerformanceDashboard:
     """
     Generates text-based performance dashboard with key metrics.
@@ -78,6 +99,7 @@ class PerformanceDashboard:
                 
         # Data Coverage
         lines.append("\n📊 数据覆盖")
+        stock_names = _load_stock_names()
         try:
             df = pd.read_sql("SELECT code, COUNT(*) as cnt, MAX(date) as last FROM stock_daily GROUP BY code", self.engine)
             if not df.empty:
@@ -85,6 +107,12 @@ class PerformanceDashboard:
                 lines.append(f"  总记录: {df['cnt'].sum()}")
                 lines.append(f"  平均记录: {df['cnt'].mean():.0f}")
                 lines.append(f"  最新数据: {df['last'].max()}")
+                # Show stock list with names
+                lines.append("\n  股票列表:")
+                for _, row in df.iterrows():
+                    name = stock_names.get(row['code'], '')
+                    label = f"{row['code']} {name}".strip() if name else row['code']
+                    lines.append(f"    {label}: {row['cnt']} 条")
         except:
             lines.append("  无法查询数据库")
             
@@ -93,8 +121,11 @@ class PerformanceDashboard:
         
     def generate_stock_report(self, code: str) -> str:
         """Generate report for single stock."""
+        stock_names = _load_stock_names()
+        name = stock_names.get(code, '')
+        label = f"{code} {name}".strip() if name else code
         lines = []
-        lines.append(f"📊 {code} 分析报告")
+        lines.append(f"📊 {label} 分析报告")
         lines.append("-" * 40)
         
         try:
