@@ -2,7 +2,7 @@
   <div class="app-container">
     <el-row :gutter="20">
       <el-col :span="8" v-for="tool in tools" :key="tool.name">
-        <el-card shadow="hover" style="margin-bottom: 20px;cursor:pointer;" @click="$message.info(tool.name + ' 功能开发中')">
+        <el-card shadow="hover" style="margin-bottom: 20px;">
           <div style="font-size: 24px;margin-bottom: 8px;">{{ tool.icon }}</div>
           <div style="font-size: 16px;font-weight: 600;margin-bottom: 4px;">{{ tool.name }}</div>
           <div style="color: #909399;font-size: 13px;">{{ tool.desc }}</div>
