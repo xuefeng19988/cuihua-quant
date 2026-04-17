@@ -1,12 +1,163 @@
-# 🦜 翠花量化系统 (Cuihua Quant System)
+# 🦜 翠花量化系统 Cuihua Quant System
 
-> **模块化、可扩展的量化交易平台**  
-> **版本**: v3.0.0 | **状态**: ✅ 开发中
+> 专业量化交易分析平台 | 前后端分离架构 | Vue 2 + Element UI + Flask REST API
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Code Size](https://img.shields.io/github/languages/code-size/xuefeng19988/cuihua-quant)](https://github.com/xuefeng19988/cuihua-quant)
-[![Stars](https://img.shields.io/github/stars/xuefeng19988/cuihua-quant?style=social)](https://github.com/xuefeng19988/cuihua-quant/stargazers)
+[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://python.org)
+[![Vue](https://img.shields.io/badge/Vue-2.7-brightgreen.svg)](https://vuejs.org)
+[![Element UI](https://img.shields.io/badge/Element--UI-2.15-409EFF.svg)](https://element.eleme.io)
+[![Flask](https://img.shields.io/badge/Flask-2.0+-lightgrey.svg)](https://flask.palletsprojects.com)
+
+---
+
+## 📊 项目概览
+
+翠花量化系统是一个专业的量化交易分析平台，提供股票池管理、信号分析、回测中心、投资组合管理、风险监控等一站式量化交易工具。
+
+### ✨ 核心特性
+
+| 模块 | 功能 |
+|------|------|
+| 📊 监控看板 | 系统状态、涨跌热力图、快速导航 |
+| 💼 股票池 | 新增/删除/分页/实时价格刷新 |
+| 🌍 投资组合 | 持仓管理、资金配置、盈亏计算 |
+| 📈 信号分析 | 多因子信号生成、技术/情绪评分 |
+| 📉 图表分析 | ECharts K线图、技术指标 |
+| 🔬 回测中心 | 策略回测、绩效分析、收益曲线 |
+| 🔥 热力图 | 板块涨跌排行、强度可视化 |
+| 🎯 策略管理 | 30+ 策略库、生命周期管理 |
+| 🧮 因子研究 | 25+ 因子、Alpha101、Fama-French |
+| 🛡️ 风控系统 | 风险监控、智能止损、压力测试、合规检查 |
+| 🔔 告警中心 | 实时告警、规则管理 |
+| 📰 文章信息 | TrendRadar 新闻、股票相关性匹配 |
+
+---
+
+## 🏗️ 架构设计
+
+```
+cuihua-quant/
+├── frontend/                  # Vue 2 前端 (Element UI)
+│   ├── dist/                  # 生产构建输出
+│   ├── public/
+│   └── src/
+│       ├── api/               # API 请求封装
+│       ├── layout/            # 布局组件 (侧边栏+头部)
+│       ├── router/            # 路由配置 (25+ 页面)
+│       ├── store/             # Vuex 状态管理
+│       ├── styles/            # 全局样式
+│       ├── utils/             # 工具函数
+│       └── views/             # 页面组件
+├── src/
+│   ├── analysis/              # 分析层 (因子/情绪/ML/信号)
+│   ├── backtest/              # 回测层 (Backtrader)
+│   ├── config/                # 配置模块
+│   ├── core/                  # 核心模块
+│   ├── data/                  # 数据层 (Futu/AKShare)
+│   ├── execution/             # 执行层 (仓位/模拟盘)
+│   ├── monitor/               # 监控层 (报告/告警)
+│   ├── risk/                  # 风控层 (止损/压力测试)
+│   ├── strategy/              # 策略层 (30+ 策略)
+│   └── web/
+│       └── api_server.py      # REST API 后端
+├── config/
+│   ├── auth.yaml              # 认证配置
+│   ├── portfolio.yaml         # 投资组合配置
+│   └── stocks.yaml            # 股票池配置
+└── data/                      # 数据存储
+
+```
+
+## 🚀 快速开始
+
+### 环境要求
+
+- Python 3.8+
+- Node.js 16+ (前端开发)
+- SQLite (默认数据库)
+
+### 安装
+
+```bash
+# 克隆项目
+git clone https://github.com/xuefeng19988/cuihua-quant.git
+cd cuihua-quant
+
+# 安装 Python 依赖
+pip install -r requirements.txt
+
+# 安装前端依赖 (开发模式)
+cd frontend && npm install && cd ..
+```
+
+### 启动
+
+```bash
+# 方式一: API 服务 (生产模式，已内置前端)
+python3 src/web/api_server.py
+# 访问 http://127.0.0.1:5000
+
+# 方式二: 前后端分离开发模式
+# 终端 1: 启动 API
+python3 src/web/api_server.py
+# 终端 2: 启动前端开发服务器
+cd frontend && npm run dev
+# 访问 http://localhost:9528
+```
+
+### 默认账号
+
+| 角色 | 用户名 | 密码 |
+|------|--------|------|
+| 管理员 | admin | admin123 |
+
+⚠️ **首次登录后请修改默认密码！**
+
+---
+
+## 📋 API 文档
+
+### 认证
+
+| 接口 | 方法 | 说明 |
+|------|------|------|
+| `/api/auth/login` | POST | 登录获取 Token |
+| `/api/auth/info` | GET | 获取用户信息 |
+| `/api/auth/logout` | POST | 退出登录 |
+
+### 数据
+
+| 接口 | 方法 | 说明 |
+|------|------|------|
+| `/api/dashboard` | GET | 仪表盘数据 (状态+热力图) |
+| `/api/stocks` | GET/POST/DELETE | 股票池管理 |
+| `/api/portfolio` | GET/POST | 投资组合管理 |
+| `/api/signals` | GET | 信号分析 |
+| `/api/charts` | GET | 图表数据 |
+| `/api/heatmap` | GET | 板块热力图 |
+| `/api/strategies` | GET | 策略列表 |
+| `/api/factors` | GET | 因子列表 |
+| `/api/alerts` | GET | 告警列表 |
+| `/api/risk` | GET | 风险指标 |
+
+---
+
+## 🛠️ 技术栈
+
+### 后端
+- **Flask** - Web 框架
+- **SQLite** - 数据库
+- **AKShare** - 行情数据
+- **Futu API** - 富途交易接口
+- **Pandas** - 数据处理
+- **PyYAML** - 配置管理
+
+### 前端
+- **Vue 2** - 前端框架
+- **Element UI** - UI 组件库
+- **Vue Router** - 路由管理
+- **Vuex** - 状态管理
+- **ECharts** - 数据可视化
+- **Axios** - HTTP 请求
 
 ---
 
@@ -14,456 +165,44 @@
 
 | 指标 | 数据 |
 |------|------|
-| **总文件数** | 157+ |
-| **代码行数** | ~35,000+ |
-| **模块数** | 108+ 🎯 |
-| **策略数** | 30+ |
-| **因子数** | 25+ |
-| **测试覆盖** | 45+ 测试用例 |
-| **开发阶段** | 持续迭代中 |
+| Python 文件 | 147+ |
+| 前端文件 | 35+ |
+| 代码行数 | ~30K |
+| 功能页面 | 25+ |
+| API 端点 | 15+ |
+| 策略数量 | 30+ |
+| 因子数量 | 25+ |
+| Git 提交 | 80+ |
 
 ---
 
-## ✨ 核心特性
+## 📝 更新日志
 
-### 🔄 数据处理
-- **双数据源**: Futu OpenD 实时行情 + AKShare 备用源
-- **数据质量检查**: 完整性/一致性/时效性/异常值检测
-- **多级缓存**: 内存缓存 + 文件缓存，智能 TTL 管理
-- **统一数据访问层**: 内置缓存、重试、查询优化
+### v3.1.0 (2026-04-18)
+- 🎨 Vue + Element UI 前端重构
+- 🔐 登录认证 + Token 机制
+- 📋 侧边栏分组折叠菜单
+- 🌍 投资组合管理
+- 📰 文章信息 + TrendRadar 集成
+- 🔥 板块热力图
+- 🧹 代码优化 (合并重复模块)
+- 📉 仪表盘涨跌热力图
+- 💼 股票池增删查改
 
-### 📈 策略系统 (30+ 策略)
-- **30+ 内置策略**: SMA 交叉、多因子、动量、均值回归、期权、新闻交易、配对交易、波动率交易、统计套利、行业轮动、季节性策略、突破策略等
-- **AI 策略助手**: 基于市场状态的自动策略推荐
-- **策略生命周期管理**: 研究→模拟→小资金→全仓→衰退→退役
-- **策略参数自动调优**: 贝叶斯优化、滚动窗口优化、敏感性分析
-- **交易日历优化**: 季节性效应识别与利用
-- **组合保险策略**: CPPI/TIPP 保本策略
-- **策略组合管理**: 动态权重分配、性能加权、风险调整
-- **策略轮动引擎**: 基于夏普比率的自动策略选择
-- **自定义策略框架**: 易于扩展的策略基类
-
-### 🧠 分析与因子 (25+ 因子)
-- **技术指标**: MA/RSI/MACD/布林带/ATR 等 20+ 指标
-- **Alpha101 因子库**: WorldQuant 101 alpha 因子实现
-- **25+ 高级因子**: 质量/价值/成长/情绪/微观结构/流动性/动量反转/波动率风险溢价
-- **因子研究平台**: IC/ICIR 分析、分组收益、单调性检验
-- **因子择时系统**: 动态因子权重调整，捕捉因子轮动
-- **市场状态检测**: GMM 聚类识别牛/熊/震荡市
-- **情绪分析**: 新闻情绪、社交媒体情绪映射
-- **事件研究框架**: 财报/政策/黑天鹅事件影响分析
-- **组合归因分析**: Brinson 模型（配置/选择/交互效应）
-- **市场微观结构**: 订单流/价差/深度分析
-- **交易行为分析**: 7 种行为偏差检测（处置效应/过度自信等）
-- **智能信号聚合器**: 7 类信号融合，加权聚合，共识度计算，自动建议
-
-### 🎯 交易执行
-- **多层风控**: 止损/止盈/最大回撤/日亏损限制/紧急平仓
-- **智能止损系统**: 6 种止损类型（固定/追踪/波动率/支撑阻力/时间/相关性）
-- **高级风险管理**: VaR/CVaR 计算、压力测试、风险指标
-- **实时风险仪表板**: 5 大风险指标，4 级风险等级，实时告警
-- **自动对冲系统**: 6 种对冲类型，智能对冲建议，效果评估
-- **智能仓位管理**: Kelly 公式、最优 f、风险平价、波动率目标、自适应仓位
-- **组合再平衡引擎**: 偏离阈值检测、分批执行计划
-- **交易成本优化**: 滑点/手续费优化、执行策略对比
-- **多资产支持**: 股票/债券/加密货币/商品
-- **加密货币交易**: 5 大交易所，8 种主流币，组合管理与再平衡
-- **智能订单路由**: 多经纪商最佳执行
-- **市场冲击模型**: Almgren-Chriss 最优执行调度 (TWAP/VWAP)
-- **交易成本分析**: 佣金/滑点/印花税综合成本分析
-- **交易合规检查**: 10 种合规规则、实时检查、审计日志
-
-### 📊 回测验证
-- **多引擎回测**: Backtrader 引擎 + 事件驱动回测
-- **自动化回测流水线**: 一键回测所有策略，并行执行，自动对比报告
-- **回测可视化器**: 完整指标展示、月度收益表、回撤分析、交易分组
-- **Walk-Forward 分析**: 滚动训练测试，防止过拟合
-- **蒙特卡洛模拟**: 收益/回撤分布模拟
-- **综合绩效分析**: 夏普/索提诺/卡尔马/Alpha/Beta/信息比率
-- **策略绩效归因**: 月度收益/滚动指标/相对基准分析
-
-### 🤖 机器学习
-- **ML 交易流水线**: 端到端 ML 流程
-- **模型支持**: LightGBM、RandomForest、集成学习
-- **特征工程**: 自动特征生成、选择、重要性分析
-- **时间序列交叉验证**: 防止数据泄漏
-- **贝叶斯优化**: 策略参数自动调优
-- **遗传算法优化**: 策略参数自动优化
-- **网格/随机搜索**: 多参数优化
-
-### 🌐 Web 界面
-- **8 功能页面**: 仪表板/股票池/分组/查询/筛选/图表/导出/报告
-- **响应式设计**: 桌面/平板/手机自适应
-- **暗色主题**: 专业交易界面风格
-- **PWA 支持**: 离线缓存、添加到主屏幕
-- **交互式图表**: Plotly K 线图/技术指标/散点图/雷达图/树图/热力图
-- **实时数据推送**: WebSocket 实时更新
-- **回测可视化器**: 完整指标展示、月度收益表、回撤分析、交易分组
-
-### 📤 数据导出
-- **多格式导出**: CSV/Excel/PDF/HTML
-- **报告生成**: 每日绩效/投资组合/股票分析 PDF 报告
-- **图表导出**: PNG/PDF 格式
-
-### 🔒 安全与用户
-- **用户认证**: 注册/登录/Session 管理
-- **操作审计**: 完整操作日志记录
-- **权限管理**: 角色基础访问控制
-
-### 🌍 国际化
-- **中英文双语**: 完整中英文支持
-- **多语言 CLI**: 一键切换语言
-
-### ⚡ 性能优化
-- **向量化计算**: NumPy/Pandas 向量化操作
-- **异步处理**: 并发数据获取与信号生成
-- **数据库索引**: 复合索引优化查询
-- **代码优化**: 记忆化缓存、内存优化、并行处理
-- **性能基准测试**: 函数级性能测试、内存/CPU 监控、测试套件对比
-
-### 📋 系统管理
-- **自动报告生成**: 日/周/月/季/年报自动生成，Markdown/HTML 导出
-- **多账户管理**: 个人/机构/模拟/家族账户统一管理，跨账户分析
-- **系统健康检查**: 5 大检查（资源/数据库/数据/策略/风险），自动故障诊断
-- **策略健康度监控**: 实时策略状态监控，3 级健康评估
-- **告警系统**: 多渠道告警（控制台/邮件/Webhook/自定义），冷却时间管理
-- **市场情绪指标**: 6 维度情绪分析，5 级情绪分类
-- **社交交易系统**: 交易员档案、跟单功能、排行榜、社交信号流
-- **策略市场框架**: 插件化策略生态，8 大类别，评价与推荐系统
-- **量化研究笔记本**: 5 种研究模板，一键创建/运行，导出 Python/HTML
-
-### 🔄 自动化
-- **工作流引擎**: 依赖管理、自动重试、超时控制
-- **定时任务**: 数据同步、信号生成、报告推送
-- **策略轮动**: 自动选择最佳策略
+### v3.0.0 (2026-04-17)
+- 🦜 Phase 1-108 完成
+- 核心架构搭建
+- 30+ 策略实现
+- 25+ 因子研究
 
 ---
 
-## 📁 项目结构
+## 📄 License
 
-```
-cuihua-quant/
-├── cli.py                      # CLI v1 入口
-├── cli_v2.py                   # CLI v2 增强版
-├── cli_i18n.py                 # 多语言 CLI
-├── main.py                     # 主入口
-├── setup.py                    # PyPI 打包配置
-├── requirements.txt            # 依赖清单
-├── Dockerfile                  # Docker 配置
-├── docker-compose.yml          # Docker Compose
-├── docker-compose.prod.yml     # 生产环境配置
-│
-├── config/                     # ⚙️ 配置目录
-│   ├── app.yaml                # 应用设置
-│   ├── stocks.yaml             # 股票池定义
-│   ├── strategies.yaml         # 策略参数
-│   ├── risk.yaml               # 风控参数
-│   ├── schedule.yaml           # 运行计划
-│   ├── logging.yaml            # 日志配置
-│   └── notifications.yaml      # 通知模板
-│
-├── src/                        # 💻 源代码
-│   ├── core/                   # 核心模块
-│   │   ├── config.py           # 统一配置管理器
-│   │   ├── exceptions.py       # 异常体系
-│   │   ├── error_handler.py    # 错误处理与重试
-│   │   ├── cache.py            # 查询缓存系统
-│   │   ├── data_access.py      # 统一数据访问层
-│   │   ├── di_container.py     # 依赖注入容器
-│   │   ├── interfaces.py       # 核心接口定义
-│   │   ├── types.py            # 类型定义
-│   │   ├── logging_config.py   # 结构化日志
-│   │   ├── auth.py             # 用户认证
-│   │   ├── audit_logger.py     # 审计日志
-│   │   ├── websocket_manager.py# WebSocket 管理
-│   │   ├── workflow.py         # 工作流引擎
-│   │   ├── optimizer.py        # 代码优化工具
-│   │   └── enhanced_features.py# 增强功能
-│   │
-│   ├── data/                   # 数据层
-│   │   ├── futu_sync.py        # Futu 数据同步
-│   │   ├── akshare_sync.py     # AKShare 备用源
-│   │   ├── database.py         # 数据库模型
-│   │   ├── trade_logger.py     # 交易日志
-│   │   ├── data_utils.py       # 数据工具
-│   │   ├── data_export.py      # 数据导出
-│   │   ├── stock_groups.py     # 股票分组管理
-│   │   ├── quality_checker.py  # 数据质量检查
-│   │   ├── us_stocks.py        # 美股数据
-│   │   └── crypto.py           # 加密货币数据
-│   │
-│   ├── analysis/               # 分析层
-│   │   ├── technical.py        # 技术指标计算
-│   │   ├── sentiment.py        # 情绪分析
-│   │   ├── signal_gen.py       # 信号生成引擎
-│   │   ├── news_sentiment.py   # 新闻情绪集成
-│   │   ├── ml_model.py         # ML 模型适配器
-│   │   ├── ml_adapter.py       # ML 模型接口
-│   │   ├── ml_trainer.py       # ML 训练器
-│   │   ├── ml_trainer_v2.py    # ML 训练器 v2
-│   │   ├── ml_pipeline.py      # ML 交易流水线
-│   │   ├── feature_engineering.py # 特征工程
-│   │   ├── alpha101.py         # Alpha101 因子库
-│   │   ├── fama_french.py      # Fama-French 模型
-│   │   ├── factor_analysis.py  # 因子分析面板
-│   │   ├── factor_research.py  # 因子研究平台
-│   │   ├── regime_detector.py  # 市场状态检测
-│   │   ├── sector_heatmap.py   # 板块热力图
-│   │   ├── extended_sentiment.py # 扩展情绪分析
-│   │   ├── alternative_data.py # 另类数据
-│   │   ├── new_factors.py      # 新 Alpha 因子
-│   │   └── lstm_model.py       # LSTM 模型
-│   │
-│   ├── strategy/               # 策略层
-│   │   ├── base.py             # 策略基类
-│   │   ├── sma_cross.py        # SMA 交叉策略
-│   │   ├── multi_factor.py     # 多因子策略
-│   │   ├── momentum.py         # 动量策略
-│   │   ├── mean_reversion.py   # 均值回归策略
-│   │   ├── runner.py           # 策略运行器
-│   │   ├── rebalancer.py       # 组合再平衡
-│   │   ├── ensemble.py         # 集成学习策略
-│   │   ├── options_strategy.py # 期权策略
-│   │   ├── param_optimizer.py  # 参数优化器
-│   │   ├── auto_tuner.py       # 自动调参
-│   │   ├── optimizer.py        # 遗传算法优化
-│   │   ├── news_trading.py     # 新闻交易策略
-│   │   ├── new_strategies.py   # 新策略集合
-│   │   └── ensemble_manager.py # 策略组合管理
-│   │
-│   ├── execution/              # 执行层
-│   │   ├── risk_control.py     # 风控模块
-│   │   ├── position_manager.py # 仓位管理
-│   │   ├── futu_trader.py      # Futu 交易接口
-│   │   ├── pipeline.py         # 交易流水线 v1
-│   │   ├── pipeline_v2.py      # 交易流水线 v2
-│   │   ├── pipeline_validator.py # 流水线验证器
-│   │   ├── paper_trading.py    # 模拟盘 v1
-│   │   ├── paper_trading_v2.py # 模拟盘 v2
-│   │   ├── real_trading.py     # 实盘环境管理
-│   │   ├── advanced_risk.py    # 高级风险管理
-│   │   ├── multi_asset.py      # 多资产投资组合
-│   │   ├── order_router.py     # 智能订单路由
-│   │   └── portfolio_optimizer.py # 投资组合优化
-│   │
-│   ├── backtest/               # 回测层
-│   │   ├── engine.py           # Backtrader 引擎
-│   │   ├── backtest_runner.py  # 回测运行器
-│   │   ├── advanced_backtest.py# 高级回测分析
-│   │   └── event_driven.py     # 事件驱动回测
-│   │
-│   ├── monitor/                # 监控层
-│   │   ├── reporter.py         # 每日报告
-│   │   ├── performance.py      # 绩效分析
-│   │   ├── report_generator.py # 报告生成器
-│   │   ├── performance_dashboard.py # 绩效看板
-│   │   ├── intraday_monitor.py # 盘中监控
-│   │   ├── risk_alert.py       # 风险预警
-│   │   ├── charts.py           # 交互式图表
-│   │   ├── advanced_charts.py  # 高级图表生成器
-│   │   ├── strategy_comparison.py # 策略对比
-│   │   ├── metrics.py          # 系统指标
-│   │   ├── notifications.py    # 通知系统
-│   │   ├── pdf_report.py       # PDF 报告生成
-│   │   ├── live_monitor.py     # 实盘监控
-│   │   ├── performance_analyzer.py # 绩效分析器
-│   │   └── advanced_viz.py     # 高级可视化
-│   │
-│   ├── web/                    # Web 界面
-│   │   ├── dashboard.py        # Web 看板 v1
-│   │   ├── dashboard_v2.py     # Web 看板 v2 (增强版)
-│   │   ├── wsgi.py             # WSGI 入口
-│   │   └── pwa.py              # PWA 支持
-│   │
-│   ├── system/                 # 系统集成
-│   │   └── complete_system.py  # 完整交易系统
-│   │
-│   ├── plugins/                # 插件系统
-│   │   ├── manager.py          # 插件管理器
-│   │   └── __init__.py
-│   │
-│   └── modules/                # 高级模块
-│       ├── phase54_58.py       # Phase 54-58 模块
-│       └── phase59_62.py       # Phase 59-62 模块
-│
-├── tests/                      # 🧪 测试
-│   ├── test_core.py            # 核心测试
-│   ├── test_extended.py        # 扩展测试
-│   ├── test_phase16_21.py      # Phase 16-21 测试
-│   └── mock_data.py            # Mock 数据生成器
-│
-├── docs/                       # 📚 文档
-│   ├── API.md                  # API 文档
-│   ├── DEPLOY.md               # 部署指南
-│   ├── PERFORMANCE.md          # 性能优化
-│   └── README_EN.md            # 英文文档
-│
-├── examples/                   # 📖 示例
-│   └── README.md               # 示例说明
-│
-├── monitoring/                 # 📊 监控配置
-│   ├── prometheus.yml          # Prometheus 配置
-│   └── grafana-dashboard.json  # Grafana 仪表板
-│
-├── data/                       # 💾 运行时数据
-│   ├── cuihua_quant.db         # SQLite 数据库
-│   ├── cache/                  # 缓存目录
-│   ├── exports/                # 导出文件
-│   ├── reports/                # 报告文件
-│   ├── logs/                   # 日志目录
-│   └── audit/                  # 审计日志
-│
-└── config/                     # (详见上方)
-```
+MIT License
 
 ---
 
-## 🚀 快速开始
-
-### 环境要求
-- Python 3.10+
-- Git
-
-### 安装
-
-```bash
-# 克隆仓库
-git clone https://github.com/xuefeng19988/cuihua-quant.git
-cd cuihua-quant
-
-# 安装依赖
-pip install -r requirements.txt
-
-# 可选：安装完整功能依赖
-pip install -e ".[full]"
-
-# 配置环境变量
-cp .env.example .env
-# 编辑 .env 填写你的配置
-```
-
-### Docker 部署
-
-```bash
-# 开发环境
-docker-compose up -d
-
-# 生产环境 (高可用)
-docker-compose -f docker-compose.prod.yml up -d
-```
-
-### 使用 CLI
-
-```bash
-# 同步数据
-python cli_v2.py sync --pool watchlist --days 30
-
-# 生成信号
-python cli_v2.py analyze --pool watchlist --top 10
-
-# 回测策略
-python cli_v2.py backtest --pool csi300_top --capital 100000
-
-# 运行完整流水线
-python cli_v2.py pipeline --ml
-
-# 组合再平衡
-python cli_v2.py rebalance --method risk_parity
-
-# 查看绩效报告
-python cli_v2.py report --weekly
-
-# 查看系统状态
-python cli_v2.py status
-```
-
-### 启动 Web 看板
-
-```bash
-python src/web/dashboard_v2.py
-# 访问 http://localhost:5000
-```
-
----
-
-## 📈 系统架构
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Web 界面 (Flask + Plotly)                 │
-│  仪表板 | 股票池 | 信号分析 | 回测中心 | 图表 | 组合 | 风控   │
-├─────────────────────────────────────────────────────────────┤
-│                    工作流引擎 + WebSocket                    │
-├─────────────────────────────────────────────────────────────┤
-│  数据层  │  Futu │ AKShare │ 缓存 │ 质量检查 │ 数据工具      │
-├─────────────────────────────────────────────────────────────┤
-│  分析层  │  技术指标 │ 情绪 │ ML │ 因子 │ 市场状态 │ 信号聚合 │
-├─────────────────────────────────────────────────────────────┤
-│  策略层  │  30+ 策略 │ 组合管理 │ 轮动引擎 │ 参数优化        │
-├─────────────────────────────────────────────────────────────┤
-│  执行层  │  风控 │ 仓位 │ 模拟盘 │ 再平衡 │ 成本优化 │ 路由    │
-├─────────────────────────────────────────────────────────────┤
-│  回测层  │  Backtrader │ 事件驱动 │ Walk-Forward │ 蒙特卡洛  │
-├─────────────────────────────────────────────────────────────┤
-│  监控层  │  绩效分析 │ 风险预警 │ 实盘监控 │ 告警 │ 健康检查  │
-├─────────────────────────────────────────────────────────────┤
-│  核心    │  配置 │ 异常处理 │ DI │ 接口 │ 类型 │ 日志        │
-└─────────────────────────────────────────────────────────────┘
-```
-
----
-
-## 📚 文档
-
-| 文档 | 说明 |
-|------|------|
-| [SUMMARY.md](SUMMARY.md) | 项目总结 |
-| [PLAN.md](PLAN.md) | 开发路线图 |
-| [FEATURES.md](FEATURES.md) | 功能清单 |
-| [docs/API.md](docs/API.md) | API 文档 |
-| [docs/DEPLOY.md](docs/DEPLOY.md) | 部署指南 |
-| [docs/PERFORMANCE.md](docs/PERFORMANCE.md) | 性能优化 |
-| [docs/README_EN.md](docs/README_EN.md) | English Documentation |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | 贡献指南 |
-| [examples/README.md](examples/README.md) | 示例项目 |
-
----
-
-## 🤝 贡献
-
-欢迎贡献代码、报告问题、提出建议！
-
-1. Fork 本仓库
-2. 创建功能分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 提交 Pull Request
-
-详见 [贡献指南](CONTRIBUTING.md)
-
----
-
-## 📄 许可证
-
-本项目基于 MIT 许可证开源。详见 [LICENSE](LICENSE) 文件。
-
----
-
-## 📞 联系方式
-
-- **GitHub Issues**: <https://github.com/xuefeng19988/cuihua-quant/issues>
-- **项目作者**: Snow
-- **项目启动**: 2026-04-16
-
----
-
-## ⭐ 支持项目
-
-如果这个项目对你有帮助，请给它一个 Star ⭐
-
-[![Star History Chart](https://api.star-history.com/svg?repos=xuefeng19988/cuihua-quant&type=Date)](https://star-history.com/#xuefeng19988/cuihua-quant&Date)
-
----
-
-*最后更新：2026-04-17*  
-*版本：v3.0.0*
+<div align="center">
+  <strong>🦜 翠花量化 - 让交易更智能</strong>
+</div>
