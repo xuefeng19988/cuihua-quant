@@ -25,6 +25,28 @@ class AdvancedChartGenerator:
             self.engine = get_db_engine()
         except:
             pass
+    
+    @staticmethod
+    def _load_stock_names() -> dict:
+        """加载股票代码到名称的映射"""
+        import yaml
+        names = {}
+        cfg_path = os.path.join(project_root, 'config', 'stocks.yaml')
+        try:
+            with open(cfg_path, 'r') as f:
+                cfg = yaml.safe_load(f)
+            for pool_data in cfg.get('pools', {}).values():
+                for item in pool_data.get('stocks', []):
+                    if isinstance(item, dict):
+                        code = item.get('code', '')
+                        name = item.get('name', '')
+                        if code and code not in names:
+                            names[code] = name
+                    elif isinstance(item, str) and item not in names:
+                        names[item] = ''
+        except:
+            pass
+        return names
             
     def generate_kline_with_indicators(self, code: str, days: int = 60, 
                                         indicators: List[str] = None) -> Optional[str]:
@@ -90,6 +112,11 @@ class AdvancedChartGenerator:
             df['bb_upper'] = df['bb_mid'] + 2 * std20
             df['bb_lower'] = df['bb_mid'] - 2 * std20
             
+        # Load stock name
+        stock_names = self._load_stock_names()
+        stock_name = stock_names.get(code, '')
+        title_label = f"{code} {stock_name} K线图".strip() if stock_name else f"{code} K线图"
+        
         # Create subplots
         row_count = 1
         if 'volume' in indicators:
@@ -98,71 +125,85 @@ class AdvancedChartGenerator:
             row_count += 1
         if 'rsi' in indicators:
             row_count += 1
+        
+        # Chinese subplot titles
+        subplot_titles = [title_label]
+        if 'volume' in indicators:
+            subplot_titles.append('成交量')
+        if 'macd' in indicators:
+            subplot_titles.append('MACD')
+        if 'rsi' in indicators:
+            subplot_titles.append('RSI 相对强弱指标')
             
         fig = make_subplots(
             rows=row_count, cols=1,
             shared_xaxes=True,
             vertical_spacing=0.03,
             row_heights=[0.5] + [0.5/(row_count-1)]*(row_count-1) if row_count > 1 else [1],
-            subplot_titles=[f'{code} K-Line'] + ['', '', ''][:row_count-1]
+            subplot_titles=subplot_titles[:row_count]
         )
         
-        # Candlestick
+        # Candlestick (中国股市：红涨绿跌)
         fig.add_trace(go.Candlestick(
             x=df['date'],
             open=df['open'],
             high=df['high'],
             low=df['low'],
             close=df['close'],
-            name='K-Line'
+            name='K线',
+            increasing_line_color='#ef4444',
+            decreasing_line_color='#22c55e',
+            increasing_fillcolor='#ef4444',
+            decreasing_fillcolor='#22c55e',
         ), row=1, col=1)
         
         # Moving Averages
         if 'ma' in indicators:
-            fig.add_trace(go.Scatter(x=df['date'], y=df['ma5'], name='MA5', line=dict(width=1)), row=1, col=1)
-            fig.add_trace(go.Scatter(x=df['date'], y=df['ma10'], name='MA10', line=dict(width=1)), row=1, col=1)
-            fig.add_trace(go.Scatter(x=df['date'], y=df['ma20'], name='MA20', line=dict(width=1)), row=1, col=1)
+            fig.add_trace(go.Scatter(x=df['date'], y=df['ma5'], name='MA5 均线', line=dict(width=1)), row=1, col=1)
+            fig.add_trace(go.Scatter(x=df['date'], y=df['ma10'], name='MA10 均线', line=dict(width=1)), row=1, col=1)
+            fig.add_trace(go.Scatter(x=df['date'], y=df['ma20'], name='MA20 均线', line=dict(width=1)), row=1, col=1)
             
         # Bollinger Bands
         if 'bb' in indicators:
-            fig.add_trace(go.Scatter(x=df['date'], y=df['bb_upper'], name='BB Upper', 
+            fig.add_trace(go.Scatter(x=df['date'], y=df['bb_upper'], name='布林上轨', 
                                     line=dict(width=1, dash='dash')), row=1, col=1)
-            fig.add_trace(go.Scatter(x=df['date'], y=df['bb_lower'], name='BB Lower', 
+            fig.add_trace(go.Scatter(x=df['date'], y=df['bb_lower'], name='布林下轨', 
                                     line=dict(width=1, dash='dash')), row=1, col=1)
             
         # Volume
         current_row = 2
         if 'volume' in indicators:
             colors = ['red' if row['close'] >= row['open'] else 'green' for _, row in df.iterrows()]
-            fig.add_trace(go.Bar(x=df['date'], y=df['volume'], marker_color=colors, name='Volume'), 
+            fig.add_trace(go.Bar(x=df['date'], y=df['volume'], marker_color=colors, name='成交量'), 
                          row=current_row, col=1)
             current_row += 1
             
         # MACD
         if 'macd' in indicators:
-            fig.add_trace(go.Scatter(x=df['date'], y=df['macd'], name='MACD', line=dict(width=1)), 
+            fig.add_trace(go.Scatter(x=df['date'], y=df['macd'], name='MACD 线', line=dict(width=1)), 
                          row=current_row, col=1)
-            fig.add_trace(go.Scatter(x=df['date'], y=df['macd_signal'], name='Signal', line=dict(width=1)), 
+            fig.add_trace(go.Scatter(x=df['date'], y=df['macd_signal'], name='信号线', line=dict(width=1)), 
                          row=current_row, col=1)
             colors = ['red' if v >= 0 else 'green' for v in df['macd_hist']]
-            fig.add_trace(go.Bar(x=df['date'], y=df['macd_hist'], marker_color=colors, name='Histogram'), 
+            fig.add_trace(go.Bar(x=df['date'], y=df['macd_hist'], marker_color=colors, name='MACD 柱'), 
                          row=current_row, col=1)
             current_row += 1
             
         # RSI
         if 'rsi' in indicators:
-            fig.add_trace(go.Scatter(x=df['date'], y=df['rsi'], name='RSI', line=dict(width=2)), 
+            fig.add_trace(go.Scatter(x=df['date'], y=df['rsi'], name='RSI 相对强弱', line=dict(width=2)), 
                          row=current_row, col=1)
             fig.add_hline(y=70, line_dash="dash", line_color="red", row=current_row, col=1)
             fig.add_hline(y=30, line_dash="dash", line_color="green", row=current_row, col=1)
             
         fig.update_layout(
-            title=f'{code} 技术分析图表',
+            title=f'{code} {stock_name} 技术分析图表' if stock_name else f'{code} 技术分析图表',
             xaxis_title='日期',
-            yaxis_title='价格',
+            yaxis_title='价格 (元)',
             template='plotly_dark',
             height=300 * row_count,
-            showlegend=True
+            showlegend=True,
+            legend=dict(x=0.01, y=0.99, bgcolor='rgba(0,0,0,0.5)', font=dict(color='white'))
         )
         
         return fig.to_html(full_html=False, include_plotlyjs='cdn')
@@ -194,7 +235,7 @@ class AdvancedChartGenerator:
         fig.update_layout(
             title='投资组合净值曲线',
             xaxis_title='日期',
-            yaxis_title='净值',
+            yaxis_title='组合净值 (元)',
             template='plotly_dark',
             height=400
         )
@@ -237,7 +278,7 @@ class AdvancedChartGenerator:
         fig.update_layout(
             title='投资组合回撤曲线',
             xaxis_title='日期',
-            yaxis_title='回撤',
+            yaxis_title='回撤比例',
             yaxis_tickformat='.1%',
             template='plotly_dark',
             height=300
