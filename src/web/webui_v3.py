@@ -13,6 +13,7 @@ from typing import Dict, List, Optional
 
 # Project paths
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+sys.path.insert(0, project_root)
 
 def create_webui_v3():
     """
@@ -424,7 +425,7 @@ def create_webui_v3():
         </nav>
         
         <main class="main">
-            """ + '{% block content %}{% endblock %}' + """
+            """ + '{{ content|safe }}' + """
         </main>
         
         <script>
@@ -442,67 +443,52 @@ def create_webui_v3():
     
     # ==================== PAGE TEMPLATES ====================
     
-    DASHBOARD_PAGE = """
-    {% extends "base" %}
-    {% block title %}监控看板{% endblock %}
-    {% block content %}
+    # Full page templates (no extends, all content inline)
+    
+    DASHBOARD_PAGE = """<!DOCTYPE html>
+    <html lang="zh-CN">
+    <head>
+        <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>翠花量化 - 监控看板</title>
+        <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+        <style>""" + STYLES + """</style>
+    </head>
+    <body>
+        <nav class="sidebar" id="sidebar">
+            <div class="logo">🦜 翠花量化</div>
+            <a href="/" class="nav-item active"><span>📊</span> 仪表板</a>
+            <a href="/stocks" class="nav-item"><span>💼</span> 股票池</a>
+            <a href="/analysis" class="nav-item"><span>📈</span> 信号分析</a>
+            <a href="/backtest" class="nav-item"><span>🔬</span> 回测中心</a>
+            <a href="/charts" class="nav-item"><span>📉</span> 图表分析</a>
+            <a href="/portfolio" class="nav-item"><span>🌍</span> 投资组合</a>
+            <a href="/risk" class="nav-item"><span>🛡️</span> 风险监控</a>
+            <a href="/settings" class="nav-item"><span>⚙️</span> 系统设置</a>
+        </nav>
+        <main class="main">
     <div class="header">
-        <div>
-            <h1>📊 监控看板</h1>
-            <p style="color: var(--text-secondary); margin-top: 0.5rem;">实时系统状态与交易概览</p>
-        </div>
+        <div><h1>📊 监控看板</h1>
+        <p style="color: var(--text-secondary); margin-top: 0.5rem;">实时系统状态与交易概览</p></div>
         <div class="header-actions">
             <button class="btn btn-secondary" onclick="location.reload()">🔄 刷新</button>
             <a href="/analysis" class="btn btn-primary">📈 查看信号</a>
         </div>
     </div>
-    
     <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-label">系统状态</div>
-            <div class="stat-value">{{ system_status_icon }}</div>
-            <div class="stat-change" style="color: var(--text-secondary);">{{ system_status_text }}</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">数据库记录</div>
-            <div class="stat-value">{{ db_records }}</div>
-            <div class="stat-change" style="color: var(--success);">✅ 正常</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">信号总数</div>
-            <div class="stat-value">{{ total_signals }}</div>
-            <div class="stat-change" style="color: var(--accent);">📈 持续更新</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">总盈亏</div>
-            <div class="stat-value" style="color: {{ pnl_color }};">{{ total_pnl }}</div>
-            <div class="stat-change">胜率: {{ win_rate }}</div>
-        </div>
+        <div class="stat-card"><div class="stat-label">系统状态</div><div class="stat-value">{{ system_status_icon }}</div><div class="stat-change" style="color: var(--text-secondary);">{{ system_status_text }}</div></div>
+        <div class="stat-card"><div class="stat-label">数据库记录</div><div class="stat-value">{{ db_records }}</div><div class="stat-change" style="color: var(--success);">✅ 正常</div></div>
+        <div class="stat-card"><div class="stat-label">信号总数</div><div class="stat-value">{{ total_signals }}</div><div class="stat-change" style="color: var(--accent);">📈 持续更新</div></div>
+        <div class="stat-card"><div class="stat-label">总盈亏</div><div class="stat-value" style="color: {{ pnl_color }};">{{ total_pnl }}</div><div class="stat-change">胜率: {{ win_rate }}</div></div>
     </div>
-    
-    <div class="card">
-        <div class="card-header">
-            <h3 class="card-title">🔧 系统信息</h3>
-        </div>
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr><th>项目</th><th>状态</th><th>详情</th></tr>
-                </thead>
-                <tbody>
-                    {% for item in system_info %}
-                    <tr>
-                        <td>{{ item.name }}</td>
-                        <td><span class="badge {{ item.badge }}">{{ item.status }}</span></td>
-                        <td>{{ item.details }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-    {% endblock %}
-    """
+    <div class="card"><div class="card-header"><h3 class="card-title">🔧 系统信息</h3></div>
+        <div class="table-container"><table>
+            <thead><tr><th>项目</th><th>状态</th><th>详情</th></tr></thead>
+            <tbody>{% for item in system_info %}<tr><td>{{ item.name }}</td><td><span class="badge {{ item.badge }}">{{ item.status }}</span></td><td>{{ item.details }}</td></tr>{% endfor %}</tbody>
+        </table></div></div>
+        </main>
+        <script>setTimeout(() => location.reload(), 60000);</script>
+    </body></html>"""
     
     STOCKS_PAGE = """
     {% extends "base" %}
@@ -762,7 +748,7 @@ def create_webui_v3():
              'details': disk.get('message', '')},
         ]
         
-        return render_template_string(BASE_LAYOUT,
+        return render_template_string(DASHBOARD_PAGE,
             system_status_icon='✅' if is_ok else '⚠️',
             system_status_text='系统正常运行' if is_ok else '部分功能异常',
             db_records=f"{count:,}",
@@ -808,7 +794,18 @@ def create_webui_v3():
             except:
                 stocks_data.append({'code': code, 'price': '-', 'change': 0, 'signal': '-'})
         
+        stocks_rows = ''.join(
+            f"""<tr><td><span class="badge badge-warning">{s['code']}</span></td>
+            <td>¥{s['price']}</td>
+            <td style="color: {'var(--success)' if s['change'] > 0 else 'var(--danger)'}">{s['change']:+.2f}%</td>
+            <td>{s['signal']}</td></tr>""" for s in stocks_data
+        )
+        content = f"""<div class="header"><div><h1>💼 股票池管理</h1><p style="color: var(--text-secondary); margin-top: 0.5rem;">共 {len(stocks_list)} 只股票</p></div></div>
+        <div class="card"><div class="table-container"><table>
+        <thead><tr><th>代码</th><th>最新价</th><th>涨跌幅</th><th>信号</th></tr></thead>
+        <tbody>{stocks_rows}</tbody></table></div></div>"""
         return render_template_string(BASE_LAYOUT,
+            content=content,
             stock_count=len(stocks_list),
             stocks=stocks_data,
             page='stocks'
@@ -835,7 +832,14 @@ def create_webui_v3():
                 for s in signals:
                     s['signals'] = ', '.join(s.get('signals', [])) if s.get('signals') else 'None'
         
+        signal_rows = ''.join(
+            f"""<tr><td>#{s.get('rank','')}</td><td>{s.get('code','')}</td><td>{s.get('close','')}</td><td>{s.get('combined_score','')}</td></tr>"""
+            for s in signals
+        ) if signals else ''
+        card_html = f'<div class="card"><div class="table-container"><table><thead><tr><th>排名</th><th>代码</th><th>收盘价</th><th>综合得分</th></tr></thead><tbody>{signal_rows}</tbody></table></div></div>' if signals else '<div class="card"><div class="alert alert-info">💡 暂无数据，请先同步数据</div></div>'
+        content = f"""<div class="header"><div><h1>📈 信号分析</h1><p style="color: var(--text-secondary); margin-top: 0.5rem;">基于技术指标和情绪分析的交易信号</p></div></div>{card_html}"""
         return render_template_string(BASE_LAYOUT,
+            content=content,
             signals=signals,
             page='analysis'
         )
@@ -852,7 +856,10 @@ def create_webui_v3():
             charts = AdvancedChartGenerator()
             chart_html = charts.generate_kline_with_indicators(code, days)
         
+        content = f"""<div class="header"><div><h1>📉 图表分析</h1><p style="color: var(--text-secondary); margin-top: 0.5rem;">交互式 K 线图与技术指标</p></div></div>
+        <div class="card">{'<div class="alert alert-info">📊 选择股票生成图表</div></div>' if not chart_html else chart_html}"""
         return render_template_string(BASE_LAYOUT,
+            content=content,
             chart_html=chart_html,
             page='charts'
         )
@@ -868,8 +875,19 @@ def create_webui_v3():
             {'name': '监控层', 'status': '运行中', 'badge': 'badge-success', 'desc': '报告/绩效/预警'},
             {'name': 'Web 界面', 'status': '运行中', 'badge': 'badge-success', 'desc': '8 个功能页面'},
         ]
-        
+        mod_rows = ''.join(f"""<tr><td>{m['name']}</td><td><span class="badge {m['badge']}">{m['status']}</span></td><td>{m['desc']}</td></tr>""" for m in modules)
+        content = f"""<div class="header"><div><h1>⚙️ 系统设置</h1><p style="color: var(--text-secondary); margin-top: 0.5rem;">配置管理与系统信息</p></div></div>
+        <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">系统版本</div><div class="stat-value" style="font-size:1.5rem;">v3.0.0</div></div>
+        <div class="stat-card"><div class="stat-label">模块总数</div><div class="stat-value" style="font-size:1.5rem;">155</div></div>
+        <div class="stat-card"><div class="stat-label">代码行数</div><div class="stat-value" style="font-size:1.5rem;">~29K</div></div>
+        <div class="stat-card"><div class="stat-label">文件总数</div><div class="stat-value" style="font-size:1.5rem;">155+</div></div>
+        </div>
+        <div class="card"><div class="card-header"><h3 class="card-title">📊 系统模块</h3></div>
+        <div class="table-container"><table><thead><tr><th>模块</th><th>状态</th><th>描述</th></tr></thead>
+        <tbody>{mod_rows}</tbody></table></div></div>"""
         return render_template_string(BASE_LAYOUT,
+            content=content,
             modules=modules,
             page='settings'
         )
@@ -887,4 +905,4 @@ if __name__ == "__main__":
     if app:
         print("🌐 启动翠花量化 WebUI v3: http://localhost:5000")
         print("✨ 全新设计：现代响应式界面")
-        app.run(host='0.0.0.0', port=5000, debug=True)
+        app.run(host='0.0.0.0', port=5000, debug=False)
