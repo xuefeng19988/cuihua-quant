@@ -1,0 +1,43 @@
+# Notification Configuration
+
+templates:
+  stop_loss:
+    pattern: "🛑 {code} 触发止损！\n当前价：¥{price:.2f}\n成本价：¥{cost:.2f}\n亏损：{pnl_pct:.1%}"
+    channels: ["wecom", "console"]
+    
+  take_profit:
+    pattern: "🎯 {code} 触发止盈！\n当前价：¥{price:.2f}\n成本价：¥{cost:.2f}\n盈利：{pnl_pct:.1%}"
+    channels: ["wecom", "console"]
+    
+  daily_summary:
+    pattern: "📊 每日交易总结\n日期：{date}\n盈亏：¥{pnl:,.2f} ({pnl_pct:+.2f}%)\n持仓：{positions}只\n交易：{trades}笔"
+    channels: ["wecom"]
+    
+  anomaly:
+    pattern: "⚠️ {code} 异动！\n当前价：¥{price:.2f}\n涨跌幅：{change_pct:+.1%}"
+    channels: ["wecom", "console"]
+    
+  system_alert:
+    pattern: "🚨 系统告警\n时间：{timestamp}\n级别：{severity}\n消息：{message}"
+    channels: ["wecom", "console"]
+
+rules:
+  - name: "止损预警"
+    condition: "pnl_pct <= -stop_loss_pct"
+    template: "stop_loss"
+    enabled: true
+    
+  - name: "止盈预警"
+    condition: "pnl_pct >= take_profit_pct"
+    template: "take_profit"
+    enabled: true
+    
+  - name: "每日总结"
+    condition: "time == 17:00"
+    template: "daily_summary"
+    enabled: true
+    
+  - name: "异动预警"
+    condition: "change_pct >= 0.03 or change_pct <= -0.03"
+    template: "anomaly"
+    enabled: true
