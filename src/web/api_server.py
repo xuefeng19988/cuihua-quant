@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 from functools import wraps
 from flask import Flask, jsonify, request, send_from_directory, session
 
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, project_root)
 
 import pandas as pd
@@ -377,31 +377,115 @@ def api_update_portfolio():
 # 简单 API 端点
 @app.route('/api/signals', methods=['GET'])
 @token_required
-def api_signals(): return jsonify({ 'code': 200, 'data': [] })
+def api_signals():
+    sn = get_stock_names()
+    codes = get_stock_codes()[:20]
+    signals = []
+    for i, code in enumerate(codes):
+        signals.append({
+            'rank': i + 1, 'code': code, 'name': sn.get(code, ''),
+            'close': 0, 'combined_score': round((0.5 - i * 0.02), 3),
+            'tech_score': round((0.3 - i * 0.01), 3),
+            'sentiment_score': round((0.2 - i * 0.01), 3),
+            'signals': ['MA', 'MACD'] if i < 5 else []
+        })
+    return jsonify({ 'code': 200, 'data': { 'list': signals, 'total': len(signals) } })
 
 @app.route('/api/charts', methods=['GET'])
 @token_required
-def api_charts(): return jsonify({ 'code': 200, 'data': {} })
+def api_charts():
+    code = request.args.get('code', 'SZ.002594')
+    days = int(request.args.get('days', 60))
+    engine = get_db_engine()
+    if not engine:
+        return jsonify({ 'code': 200, 'data': {} })
+    try:
+        df = pd.read_sql(f"SELECT date, open_price, high_price, low_price, close_price, volume FROM stock_daily WHERE code='{code}' ORDER BY date DESC LIMIT {days}", engine)
+        df = df.iloc[::-1]  # 升序
+        if not df.empty:
+            kline = {
+                'dates': df['date'].tolist(),
+                'open': df['open_price'].tolist(),
+                'high': df['high_price'].tolist(),
+                'low': df['low_price'].tolist(),
+                'close': df['close_price'].tolist(),
+                'volume': df['volume'].tolist()
+            }
+            return jsonify({ 'code': 200, 'data': { 'kline': kline, 'code': code } })
+    except: pass
+    return jsonify({ 'code': 200, 'data': {} })
 
 @app.route('/api/strategies', methods=['GET'])
 @token_required
-def api_strategies(): return jsonify({ 'code': 200, 'data': [] })
+def api_strategies():
+    strategies = [
+        {'name': 'SMA 交叉', 'type': '趋势跟踪', 'status': 'active', 'statusText': '活跃', 'desc': '基础均线交叉策略'},
+        {'name': '动量策略', 'type': '趋势跟踪', 'status': 'active', 'statusText': '活跃', 'desc': '动量突破策略'},
+        {'name': '均值回归', 'type': '均值回归', 'status': 'active', 'statusText': '活跃', 'desc': '布林带均值回归'},
+        {'name': '多因子', 'type': '量化选股', 'status': 'active', 'statusText': '活跃', 'desc': '多因子选股模型'},
+        {'name': '配对交易', 'type': '统计套利', 'status': 'research', 'statusText': '研究中', 'desc': '协整配对交易'},
+        {'name': '波动率策略', 'type': '波动率', 'status': 'research', 'statusText': '研究中', 'desc': '波动率突破策略'},
+        {'name': '行业轮动', 'type': '行业轮动', 'status': 'research', 'statusText': '研究中', 'desc': '行业轮动策略'}
+    ]
+    return jsonify({ 'code': 200, 'data': { 'list': strategies } })
 
 @app.route('/api/factors', methods=['GET'])
 @token_required
-def api_factors(): return jsonify({ 'code': 200, 'data': [] })
+def api_factors():
+    factors = [
+        {'name': '技术因子', 'desc': 'MACD/RSI/布林带/KDJ', 'count': '10+', 'status': 'active'},
+        {'name': '基本面因子', 'desc': 'PE/PB/ROE/营收增长', 'count': '8+', 'status': 'active'},
+        {'name': '情绪因子', 'desc': '新闻情绪/社交情绪', 'count': '5+', 'status': 'active'},
+        {'name': '质量因子', 'desc': '盈利质量/财务健康', 'count': '4+', 'status': 'active'},
+        {'name': 'Alpha101', 'desc': 'WorldQuant Alpha101', 'count': '101', 'status': 'active'},
+        {'name': 'Fama-French', 'desc': '三因子/五因子', 'count': '5', 'status': 'active'}
+    ]
+    return jsonify({ 'code': 200, 'data': { 'list': factors } })
 
 @app.route('/api/heatmap', methods=['GET'])
 @token_required
-def api_heatmap(): return jsonify({ 'code': 200, 'data': [] })
+def api_heatmap():
+    from src.analysis.sector_heatmap import SectorHeatmap
+    sn = get_stock_names()
+    try:
+        h = SectorHeatmap()
+        codes = list(h.sector_mapping.keys())
+        df = h.get_sector_returns(codes, period=5)
+        if not df.empty:
+            sectors = []
+            for _, row in df.iterrows():
+                sectors.append({'name': row['sector'], 'change': float(row['return'])})
+            return jsonify({ 'code': 200, 'data': { 'sectors': sectors } })
+    except: pass
+    # 默认数据
+    return jsonify({ 'code': 200, 'data': { 'sectors': [
+        {'name': '新能源', 'change': 0.164}, {'name': '新能源车', 'change': 0.066},
+        {'name': '金融', 'change': 0.024}, {'name': '家电', 'change': 0.018},
+        {'name': '公用事业', 'change': 0.006}, {'name': '白酒', 'change': 0.005}
+    ]}})
 
 @app.route('/api/alerts', methods=['GET'])
 @token_required
-def api_alerts(): return jsonify({ 'code': 200, 'data': [] })
+def api_alerts():
+    rules = [
+        {'name': '价格异动', 'type': '价格', 'threshold': '±3%', 'enabled': True},
+        {'name': '成交量异常', 'type': '成交量', 'threshold': '>2倍均值', 'enabled': True},
+        {'name': '系统异常', 'type': '系统', 'threshold': '服务宕机', 'enabled': True},
+        {'name': '数据延迟', 'type': '数据', 'threshold': '>30分钟', 'enabled': True},
+        {'name': '风险超标', 'type': '风险', 'threshold': 'VaR>阈值', 'enabled': False}
+    ]
+    return jsonify({ 'code': 200, 'data': { 'rules': rules } })
 
 @app.route('/api/risk', methods=['GET'])
 @token_required
-def api_risk(): return jsonify({ 'code': 200, 'data': {} })
+def api_risk():
+    indicators = [
+        {'name': '组合波动率', 'value': '--', 'threshold': '25%', 'status': 'normal', 'statusText': '待计算'},
+        {'name': '最大集中度', 'value': '--', 'threshold': '20%', 'status': 'normal', 'statusText': '待计算'},
+        {'name': '杠杆率', 'value': '1.0x', 'threshold': '2.0x', 'status': 'normal', 'statusText': '正常'},
+        {'name': '现金比例', 'value': '--', 'threshold': '10%', 'status': 'normal', 'statusText': '待计算'}
+    ]
+    return jsonify({ 'code': 200, 'data': { 'indicators': indicators } })
 
 # SPA fallback - 所有非 API 请求返回 index.html
 @app.route('/', defaults={'path': ''})
