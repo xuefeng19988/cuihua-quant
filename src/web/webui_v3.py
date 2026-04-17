@@ -378,6 +378,7 @@ def create_webui_v3():
         <a href="/events" class="nav-item {{ 'active' if page=='events' else '' }}"><span>📅</span> 事件研究</a>
         <a href="/research" class="nav-item {{ 'active' if page=='research' else '' }}"><span>📓</span> 研究笔记本</a>
         <a href="/heatmap" class="nav-item {{ 'active' if page=='heatmap' else '' }}"><span>🔥</span> 热力图</a>
+        <a href="/articles" class="nav-item {{ 'active' if page=='articles' else '' }}"><span>📰</span> 文章信息</a>
 
         <div class="nav-section">交易与风控</div>
         <a href="/alerts" class="nav-item {{ 'active' if page=='alerts' else '' }}"><span>🔔</span> 告警中心</a>
@@ -1062,6 +1063,260 @@ def create_webui_v3():
             <div class="alert alert-error">❌ 热力图加载失败: {str(e)}</div>
             """
             return render_page(content, 'heatmap')
+
+    @app.route('/articles', methods=['GET', 'POST'])
+    def articles():
+        from src.analysis.article_manager import ArticleManager, PLATFORM_NAMES
+        mgr = ArticleManager()
+        dates = mgr.get_available_dates()
+        date_range = list(dates) if dates else []
+
+        # 获取查询参数
+        query_date = request.args.get('date', '')
+        year_filter = request.args.get('year', '')
+        month_filter = request.args.get('month', '')
+        page = request.args.get('page', 1, type=int)
+        stock_only = request.args.get('stock_only', 'false') == 'true'
+        search_keyword = request.args.get('keyword', '')
+        view_mode = request.args.get('view', 'list')  # list, daily, stock-match
+        per_page = 20
+
+        # 构建年份/月份选项
+        years = sorted(set(d[:4] for d in date_range), reverse=True)
+        months = sorted(set(d[5:7] for d in date_range if d[:4] == year_filter), reverse=True) if year_filter else []
+
+        # 过滤日期
+        filtered_dates = date_range
+        if year_filter:
+            filtered_dates = [d for d in filtered_dates if d[:4] == year_filter]
+        if month_filter:
+            filtered_dates = [d for d in filtered_dates if d[5:7] == month_filter]
+
+        # 根据视图模式获取文章
+        articles_list = []
+        total = 0
+        daily_groups = {}
+        stock_match = []
+
+        if query_date:
+            # 单天视图
+            arts = mgr.get_articles_by_date(query_date, limit=1000)
+            arts = mgr.match_articles_with_stocks(arts)
+            if search_keyword:
+                arts = [a for a in arts if search_keyword.lower() in a['title'].lower()]
+            if stock_only:
+                arts = [a for a in arts if a['has_stock']]
+            total = len(arts)
+            start_idx = (page - 1) * per_page
+            articles_list = arts[start_idx:start_idx + per_page]
+        elif view_mode == 'daily':
+            # 按天分组视图
+            for d in filtered_dates:
+                arts = mgr.get_articles_by_date(d, limit=100)
+                arts = mgr.match_articles_with_stocks(arts)
+                if stock_only:
+                    arts = [a for a in arts if a['has_stock']]
+                if arts:
+                    daily_groups[d] = arts[:10]  # 每天最多10条
+        elif view_mode == 'stock-match':
+            # 股票匹配视图
+            for d in filtered_dates[-7:]:  # 最近7天
+                arts = mgr.get_articles_by_date(d, limit=200)
+                arts = mgr.match_articles_with_stocks(arts)
+                stock_arts = [a for a in arts if a['has_stock']]
+                if search_keyword:
+                    stock_arts = [a for a in stock_arts if search_keyword.lower() in a['title'].lower()]
+                stock_match.extend(stock_arts)
+            total = len(stock_match)
+            start_idx = (page - 1) * per_page
+            articles_list = stock_match[start_idx:start_idx + per_page]
+        else:
+            # 列表视图 - 日期范围
+            if filtered_dates:
+                start_date = filtered_dates[0]
+                end_date = filtered_dates[-1]
+                arts, total = mgr.get_date_range_articles(start_date, end_date, page=page, per_page=per_page, stock_only=stock_only)
+                if search_keyword:
+                    arts = [a for a in arts if search_keyword.lower() in a['title'].lower()]
+                articles_list = arts
+
+        # 计算分页
+        if total == 0 and articles_list:
+            total = len(articles_list)
+        total_pages = max(1, (total + per_page - 1) // per_page)
+        has_prev = page > 1
+        has_next = page < total_pages
+
+        # 生成统计
+        stats = {'total_dates': len(filtered_dates), 'total_articles': 0, 'stock_related': 0, 'platforms': {}}
+        if query_date:
+            summary = mgr.get_daily_summary(query_date)
+            stats = summary
+        elif filtered_dates:
+            for d in filtered_dates:
+                s = mgr.get_daily_summary(d)
+                stats['total_articles'] += s['total']
+                stats['stock_related'] += s.get('stock_related', 0)
+                for p, c in s.get('platforms', {}).items():
+                    stats['platforms'][p] = stats['platforms'].get(p, 0) + c
+
+        # 渲染文章列表行
+        def render_article_row(a):
+            relevance_badge = ''
+            if a.get('has_stock'):
+                if a.get('relevance') == 'high':
+                    relevance_badge = '<span class="badge badge-success">高匹配</span>'
+                elif a.get('relevance') == 'medium':
+                    relevance_badge = '<span class="badge badge-info">中匹配</span>'
+                else:
+                    relevance_badge = '<span class="badge badge-warning">低匹配</span>'
+            else:
+                relevance_badge = '<span class="badge badge-purple">无关</span>'
+
+            stocks_html = ''
+            if a.get('matched_stocks'):
+                stocks_html = ' '.join([f'<span class="tag">{s["code"]}</span>' for s in a['matched_stocks'][:5]])
+                if len(a['matched_stocks']) > 5:
+                    stocks_html += f'<span class="tag">+{len(a["matched_stocks"])-5}</span>'
+
+            platform_name = a.get('platform_name', a.get('platform', ''))
+            title = a.get('title', '')
+            url = a.get('url', '')
+            date = a.get('date', '')
+
+            title_html = f'<a href="{url}" target="_blank" style="color:var(--text-primary);text-decoration:none">{title}</a>' if url else title
+
+            return f"""<tr><td><span class="badge badge-warning" style="font-size:0.65rem">{date}</span></td>
+                <td><span class="tag">{platform_name}</span></td>
+                <td>{title_html}</td>
+                <td>{relevance_badge}</td>
+                <td>{stocks_html}</td></tr>"""
+
+        # 生成列表HTML
+        list_html = ''
+        if articles_list:
+            rows = [render_article_row(a) for a in articles_list]
+            list_html = make_table(['日期', '来源', '标题', '匹配度', '相关股票'], rows)
+
+            # 分页
+            pagination = []
+            if has_prev:
+                params = {'page': page - 1}
+                if query_date: params['date'] = query_date
+                if year_filter: params['year'] = year_filter
+                if month_filter: params['month'] = month_filter
+                if view_mode: params['view'] = view_mode
+                if stock_only: params['stock_only'] = 'true'
+                if search_keyword: params['keyword'] = search_keyword
+                qs = '&'.join(f'{k}={v}' for k, v in params.items())
+                pagination.append(f'<a href="/articles?{qs}" class="btn btn-secondary" style="padding:0.25rem 0.625rem;font-size:0.75rem">◀ 上一页</a>')
+
+            page_info = f'<span style="color:var(--text-secondary);font-size:0.875rem;margin:0 0.75rem">第 {page}/{total_pages} 页 (共 {total} 条)</span>'
+
+            if has_next:
+                params = {'page': page + 1}
+                if query_date: params['date'] = query_date
+                if year_filter: params['year'] = year_filter
+                if month_filter: params['month'] = month_filter
+                if view_mode: params['view'] = view_mode
+                if stock_only: params['stock_only'] = 'true'
+                if search_keyword: params['keyword'] = search_keyword
+                qs = '&'.join(f'{k}={v}' for k, v in params.items())
+                pagination.append(f'<a href="/articles?{qs}" class="btn btn-secondary" style="padding:0.25rem 0.625rem;font-size:0.75rem">下一页 ▶</a>')
+
+            pagination_html = f"""<div style="display:flex;align-items:center;justify-content:center;margin-top:1rem">{"".join(pagination)}{page_info}</div>"""
+            list_html += pagination_html
+        else:
+            list_html = '<div class="alert alert-info">💡 暂无文章数据，请选择日期查询</div>'
+
+        # 按天分组视图 HTML
+        daily_html = ''
+        if view_mode == 'daily' and daily_groups:
+            for d in sorted(daily_groups.keys(), reverse=True):
+                arts = daily_groups[d]
+                summary = mgr.get_daily_summary(d)
+                daily_html += f"""<div class="card"><div class="card-header">
+                    <h3 class="card-title">📅 {d} <span style="color:var(--text-secondary);font-size:0.875rem">({summary.get('total', 0)} 篇 | 股票相关 {summary.get('stock_related', 0)} 篇)</span></h3>
+                    <a href="/articles?date={d}" class="btn btn-secondary" style="padding:0.25rem 0.625rem;font-size:0.75rem">查看全部</a>
+                </div>"""
+                for a in arts:
+                    relevance = '🟢' if a.get('has_stock') else '⚪'
+                    title = a.get('title', '')[:80]
+                    url = a.get('url', '')
+                    title_html = f'<a href="{url}" target="_blank" style="color:var(--text-primary);text-decoration:none">{title}</a>' if url else title
+                    stocks = ', '.join([s['code'] for s in a.get('matched_stocks', [])[:3]])
+                    daily_html += f"""<div style="padding:0.5rem 0;border-bottom:1px solid var(--border);font-size:0.875rem">
+                        {relevance} <span class="tag">{a.get('platform_name', '')}</span> {title_html}
+                        {f'<div style="color:var(--text-secondary);font-size:0.75rem;margin-top:0.25rem">📎 {stocks}</div>' if stocks else ''}
+                    </div>"""
+                daily_html += '</div>'
+
+        # 平台统计 HTML
+        platform_stats = ''
+        if stats.get('platforms'):
+            sorted_platforms = sorted(stats['platforms'].items(), key=lambda x: x[1], reverse=True)
+            platform_stats = ''.join([f'<span class="tag">{PLATFORM_NAMES.get(p, p)}: {c}</span>' for p, c in sorted_platforms])
+
+        # 日期选择器
+        date_options = ''
+        for d in sorted(filtered_dates, reverse=True)[:30]:
+            sel = ' selected' if d == query_date else ''
+            date_options += f'<option value="{d}"{sel}>{d}</option>'
+
+        content = f"""
+        <div class="header">
+            <div><h1>📰 文章信息</h1><p style="color:var(--text-secondary)">新闻文章与股票相关性匹配</p></div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card"><div class="stat-label">可用日期</div><div class="stat-value">{stats.get('total_dates', 0)}</div><div class="stat-change">天</div></div>
+            <div class="stat-card"><div class="stat-label">文章总数</div><div class="stat-value">{stats.get('total_articles', 0):,}</div><div class="stat-change">{stats.get('stock_related', 0)} 篇股票相关</div></div>
+            <div class="stat-card"><div class="stat-label">今日文章</div><div class="stat-value">{stats.get('total', 0)}</div><div class="stat-change">{query_date or '最新'}</div></div>
+            <div class="stat-card"><div class="stat-label">平台数</div><div class="stat-value">{len(stats.get('platforms', {}))}</div><div class="stat-change">数据源</div></div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><h3 class="card-title">🔍 查询条件</h3></div>
+            <form method="GET" action="/articles" class="form-row">
+                <div class="form-group"><label class="form-label">年份</label>
+                    <select name="year" class="form-select" onchange="this.form.submit()">
+                        <option value="">全部</option>
+                        {''.join(f'<option value="{y}"{" selected" if y==year_filter else ""}>{y}</option>' for y in years)}
+                    </select></div>
+                <div class="form-group"><label class="form-label">月份</label>
+                    <select name="month" class="form-select" onchange="this.form.submit()">
+                        <option value="">全部</option>
+                        {''.join(f'<option value="{m}"{" selected" if m==month_filter else ""}>{m}</option>' for m in months)}
+                    </select></div>
+                <div class="form-group"><label class="form-label">指定日期</label>
+                    <select name="date" class="form-select">
+                        <option value="">全部</option>
+                        {date_options}
+                    </select></div>
+                <div class="form-group"><label class="form-label">关键词</label>
+                    <input type="text" name="keyword" class="form-input" placeholder="搜索标题..." value="{search_keyword}"></div>
+                <div class="form-group"><label class="form-label">视图</label>
+                    <select name="view" class="form-select">
+                        <option value="list" {'selected' if view_mode=='list' else ''}>列表</option>
+                        <option value="daily" {'selected' if view_mode=='daily' else ''}>按天分组</option>
+                        <option value="stock-match" {'selected' if view_mode=='stock-match' else ''}>股票匹配</option>
+                    </select></div>
+                <div class="form-group"><label class="form-label">仅股票相关</label>
+                    <select name="stock_only" class="form-select">
+                        <option value="false" {'selected' if not stock_only else ''}>否</option>
+                        <option value="true" {'selected' if stock_only else ''}>是</option>
+                    </select></div>
+                <div class="form-group"><label class="form-label">&nbsp;</label>
+                    <button type="submit" class="btn btn-primary">🔍 查询</button></div>
+            </form>
+        </div>
+
+        {platform_stats and f'<div class="card"><div class="card-header"><h3 class="card-title">📊 平台分布</h3></div><div style="display:flex;flex-wrap:wrap;gap:0.375rem">{platform_stats}</div></div>' or ''}
+
+        {daily_html if view_mode == 'daily' else f'<div class="card">{list_html}</div>'}
+        """
+
+        return render_page(content, 'articles')
 
     @app.route('/alerts')
     def alerts():
