@@ -2,38 +2,31 @@
 
 > **项目**: Cuihua Quant System  
 > **启动日期**: 2026-04-16  
-> **当前版本**: v1.3.0  
-> **状态**: ✅ Phase 1-25 全部完成
+> **当前版本**: v1.4.0  
+> **状态**: ✅ Phase 1-27 全部完成
 
 ---
 
 ## 🏗️ 已完成模块 ✅
 
-### Phase 1-7: 核心框架到生产化 (已完成) ✅
-### Phase 8-11: 实战运行到生产优化 (已完成) ✅
-### Phase 12-15: 实盘准备到平台化 (已完成) ✅
-### Phase 16-21: 代码质量到打包分发 (已完成) ✅
+### Phase 1-25: 核心框架到国际化 (已完成) ✅
+- 120+ 文件 | ~12,500 行代码
 
-### Phase 23: 数据分析与可视化 (已完成) ✅
+### Phase 26: 可视化与数据展示 (已完成) ✅
 | # | 任务 | 文件 | 状态 |
 |---|------|------|------|
-| 23.1 | 交互式图表 | src/monitor/interactive_charts.py | ✅ |
-| 23.2 | 因子分析面板 | src/analysis/factor_analysis.py | ✅ |
-| 23.3 | 策略对比面板 | src/monitor/strategy_comparison.py | ✅ |
-| 23.4 | 板块热力图 | src/analysis/sector_heatmap.py | ✅ |
+| 26.1 | Web 界面优化 | src/web/dashboard_v2.py | ✅ |
+| 26.2 | 股票维护管理 | src/data/stock_groups.py | ✅ |
+| 26.3 | 历史数据库查询 | Web 查询界面 | ✅ |
+| 26.4 | 股票信息展示 | 实时行情/技术指标 | ✅ |
+| 26.5 | 图表与图片 | src/monitor/advanced_charts.py | ✅ |
 
-### Phase 24: 社区与生态 (已完成) ✅
+### Phase 27: 用户体验增强 (已完成) ✅
 | # | 任务 | 文件 | 状态 |
 |---|------|------|------|
-| 24.2 | 示例项目文档 | examples/README.md | ✅ |
-| 24.3 | 贡献指南 | CONTRIBUTING.md | ✅ |
-
-### Phase 25: 国际化 (已完成) ✅
-| # | 任务 | 文件 | 状态 |
-|---|------|------|------|
-| 25.1 | 英文文档 | docs/README_EN.md | ✅ |
-| 25.2 | 多语言 CLI | cli_i18n.py | ✅ |
-| 25.0 | 多语言管理器 | src/core/i18n.py | ✅ |
+| 27.1 | 响应式布局 | dashboard_v2.py | ✅ |
+| 27.2 | 数据导出 | src/data/data_export.py | ✅ |
+| 27.3 | PDF 报告 | src/monitor/pdf_report.py | ✅ |
 
 ---
 
@@ -41,26 +34,33 @@
 
 | 指标 | 数据 |
 |------|------|
-| **总文件数** | 120+ |
-| **代码行数** | ~12,500 |
-| **提交次数** | 18 |
-| **模块数** | 65+ |
-| **测试数量** | 45 (100% 通过) |
-| **支持语言** | 中文、英文 |
+| **总文件数** | 125+ |
+| **代码行数** | ~15,000 |
+| **提交次数** | 20+ |
+| **模块数** | 70+ |
+| **测试数量** | 45+ |
 
 ---
 
-## 🚀 快速部署
+## 🚀 启动 Web 看板
 
-### 开发环境
 ```bash
-docker-compose up -d
+# 启动增强版 Web 看板 v2
+python src/web/dashboard_v2.py
+
+# 访问地址
+http://localhost:5000
 ```
 
-### 生产环境 (高可用)
-```bash
-docker-compose -f docker-compose.prod.yml up -d
-```
+### 功能页面
+- 📊 **仪表板**: 系统状态/交易统计
+- 💼 **股票池**: 查看所有股票
+- 📁 **分组**: 股票分组管理
+- 🔍 **查询**: 历史数据查询
+- 🎯 **筛选**: 高级筛选
+- 📈 **图表**: 交互式 K 线图
+- 📤 **导出**: 数据导出
+- 📋 **报告**: 绩效报告
 
 ---
 
@@ -68,31 +68,11 @@ docker-compose -f docker-compose.prod.yml up -d
 
 | 文档 | 说明 |
 |------|------|
-| [README.md](README.md) | 项目概述 (中文) |
-| [docs/README_EN.md](docs/README_EN.md) | Project Overview (English) |
+| [README.md](README.md) | 项目概述 |
 | [PLAN.md](PLAN.md) | 开发路线图 |
-| [PLAN_NEXT.md](PLAN_NEXT.md) | 未来计划 |
+| [FEATURES.md](FEATURES.md) | 功能清单 |
 | [docs/API.md](docs/API.md) | API 文档 |
-| [docs/DEPLOY.md](docs/DEPLOY.md) | 部署指南 |
-| [docs/PERFORMANCE.md](docs/PERFORMANCE.md) | 性能优化 |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | 贡献指南 |
-| [examples/README.md](examples/README.md) | 示例项目 |
-
----
-
-## 🎯 CLI 命令
-
-```bash
-# 中文版
-python cli_v2.py sync --lang zh
-python cli_v2.py analyze --lang zh
-python cli_v2.py status --lang zh
-
-# 英文版
-python cli_i18n.py sync --lang en
-python cli_i18n.py analyze --lang en
-python cli_i18n.py status --lang en
-```
 
 ---
 
