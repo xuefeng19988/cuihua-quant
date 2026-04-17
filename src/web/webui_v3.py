@@ -864,6 +864,64 @@ def create_webui_v3():
             page='charts'
         )
         
+    @app.route('/backtest')
+    def backtest():
+        content = """<div class="header"><div><h1>🔬 回测中心</h1><p style="color: var(--text-secondary); margin-top: 0.5rem;">策略回测与绩效分析</p></div></div>
+        <div class="card"><div class="card-header"><h3 class="card-title">📊 回测配置</h3></div>
+        <div class="form-row">
+            <div class="form-group"><label class="form-label">策略选择</label>
+            <select class="form-select"><option>SMA 交叉策略</option><option>动量策略</option><option>均值回归策略</option></select></div>
+            <div class="form-group"><label class="form-label">股票池</label>
+            <select class="form-select"><option>核心观察池</option><option>沪深300</option></select></div>
+            <div class="form-group"><label class="form-label">开始日期</label>
+            <input type="date" class="form-input" value="2024-01-01"></div>
+            <div class="form-group"><label class="form-label">结束日期</label>
+            <input type="date" class="form-input" value="2026-04-17"></div>
+            <div class="form-group"><label class="form-label">初始资金</label>
+            <input type="text" class="form-input" value="1,000,000"></div>
+            <div class="form-group"><label class="form-label">&nbsp;</label>
+            <button class="btn btn-primary">🚀 开始回测</button></div>
+        </div></div>
+        <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">总收益率</div><div class="stat-value">--</div><div class="stat-change">等待回测</div></div>
+        <div class="stat-card"><div class="stat-label">年化收益</div><div class="stat-value">--</div><div class="stat-change">等待回测</div></div>
+        <div class="stat-card"><div class="stat-label">夏普比率</div><div class="stat-value">--</div><div class="stat-change">等待回测</div></div>
+        <div class="stat-card"><div class="stat-label">最大回撤</div><div class="stat-value">--</div><div class="stat-change">等待回测</div></div>
+        </div>
+        <div class="alert alert-info">💡 配置回测参数后点击"开始回测"按钮</div>"""
+        return render_template_string(BASE_LAYOUT, content=content, page='backtest')
+
+    @app.route('/portfolio')
+    def portfolio():
+        content = """<div class="header"><div><h1>🌍 投资组合</h1><p style="color: var(--text-secondary); margin-top: 0.5rem;">组合配置与资产配置分析</p></div></div>
+        <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">总资产</div><div class="stat-value">¥0</div><div class="stat-change">暂无持仓</div></div>
+        <div class="stat-card"><div class="stat-label">可用现金</div><div class="stat-value">¥0</div><div class="stat-change">--</div></div>
+        <div class="stat-card"><div class="stat-label">持仓数量</div><div class="stat-value">0</div><div class="stat-change">--</div></div>
+        <div class="stat-card"><div class="stat-label">今日盈亏</div><div class="stat-value">¥0</div><div class="stat-change">--</div></div>
+        </div>
+        <div class="card"><div class="card-header"><h3 class="card-title">📋 持仓明细</h3></div>
+        <div class="table-container"><table><thead><tr><th>代码</th><th>名称</th><th>持仓量</th><th>成本价</th><th>现价</th><th>盈亏</th><th>占比</th></tr></thead>
+        <tbody><tr><td colspan="7" style="text-align:center;color:var(--text-secondary);">暂无持仓</td></tr></tbody></table></div></div>"""
+        return render_template_string(BASE_LAYOUT, content=content, page='portfolio')
+
+    @app.route('/risk')
+    def risk():
+        content = """<div class="header"><div><h1>🛡️ 风险监控</h1><p style="color: var(--text-secondary); margin-top: 0.5rem;">实时风险指标与预警</p></div></div>
+        <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">VaR (95%)</div><div class="stat-value">--</div><div class="stat-change">等待计算</div></div>
+        <div class="stat-card"><div class="stat-label">CVaR (95%)</div><div class="stat-value">--</div><div class="stat-change">等待计算</div></div>
+        <div class="stat-card"><div class="stat-label">最大回撤</div><div class="stat-value">--</div><div class="stat-change">--</div></div>
+        <div class="stat-card"><div class="stat-label">波动率</div><div class="stat-value">--</div><div class="stat-change">--</div></div>
+        </div>
+        <div class="card"><div class="card-header"><h3 class="card-title">📊 风险指标</h3></div>
+        <div class="table-container"><table><thead><tr><th>指标</th><th>当前值</th><th>阈值</th><th>状态</th></tr></thead>
+        <tbody><tr><td>组合波动率</td><td>--</td><td>25%</td><td><span class="badge badge-warning">待计算</span></td></tr>
+        <tr><td>最大集中度</td><td>--</td><td>20%</td><td><span class="badge badge-warning">待计算</span></td></tr>
+        <tr><td>杠杆率</td><td>1.0x</td><td>2.0x</td><td><span class="badge badge-success">正常</span></td></tr>
+        <tr><td>现金比例</td><td>--</td><td>10%</td><td><span class="badge badge-warning">待计算</span></td></tr></tbody></table></div></div>"""
+        return render_template_string(BASE_LAYOUT, content=content, page='risk')
+
     @app.route('/settings')
     def settings():
         modules = [
