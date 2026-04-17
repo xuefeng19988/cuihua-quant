@@ -57,6 +57,51 @@ def create_webui_v3():
     app.config['SECRET_KEY'] = AUTH_CONFIG.get('secret_key', 'cuihua-quant-secret')
 
     # ==================== CSS STYLES ====================
+    # Theme color palettes
+    THEMES = {
+        'dark': {
+            '--bg-primary': '#0f0f23', '--bg-secondary': '#1a1a3e',
+            '--bg-card': '#252550', '--bg-hover': '#2d2d6e',
+            '--text-primary': '#e0e0ff', '--text-secondary': '#8888aa',
+            '--accent': '#6366f1', '--accent-hover': '#818cf8',
+            '--success': '#22c55e', '--warning': '#f59e0b',
+            '--danger': '#ef4444', '--info': '#3b82f6',
+            '--border': 'rgba(255,255,255,0.1)', '--shadow': '0 4px 12px rgba(0,0,0,0.3)',
+        },
+        'openclaw': {
+            '--bg-primary': '#1a1510', '--bg-secondary': '#2a2018',
+            '--bg-card': '#3a2d20', '--bg-hover': '#4a3a28',
+            '--text-primary': '#f0e6d8', '--text-secondary': '#a89880',
+            '--accent': '#e87830', '--accent-hover': '#f09050',
+            '--success': '#4caf50', '--warning': '#ff9800',
+            '--danger': '#f44336', '--info': '#2196f3',
+            '--border': 'rgba(255,255,255,0.08)', '--shadow': '0 4px 12px rgba(0,0,0,0.4)',
+        },
+        'light': {
+            '--bg-primary': '#f5f5f5', '--bg-secondary': '#ffffff',
+            '--bg-card': '#ffffff', '--bg-hover': '#f0f0f0',
+            '--text-primary': '#1a1a2e', '--text-secondary': '#6b7280',
+            '--accent': '#6366f1', '--accent-hover': '#818cf8',
+            '--success': '#16a34a', '--warning': '#d97706',
+            '--danger': '#dc2626', '--info': '#2563eb',
+            '--border': 'rgba(0,0,0,0.1)', '--shadow': '0 4px 12px rgba(0,0,0,0.1)',
+        },
+    }
+
+    def get_theme_css(theme_name='dark'):
+        """Generate CSS variables for the given theme"""
+        if theme_name == 'dark':
+            return ''  # Default theme, no override needed
+        colors = THEMES.get(theme_name, THEMES['dark'])
+        vars_css = '\n'.join(f'        {k}: {v};' for k, v in colors.items())
+        return f"""
+    /* Theme: {theme_name} */
+    :root {{
+{vars_css}
+        --radius: 12px;
+    }}\n"""
+
+    # ==================== CSS STYLES ====================
     STYLES = """
     :root {
         --bg-primary: #0f0f23;
@@ -564,8 +609,9 @@ def create_webui_v3():
     </nav>
     """
 
-    def get_base_template(page, user=None):
+    def get_base_template(page, user=None, theme='dark'):
         sidebar_html = build_sidebar(page, user)
+        theme_css = get_theme_css(theme)
         return """<!DOCTYPE html>
     <html lang="zh-CN">
     <head>
@@ -574,7 +620,7 @@ def create_webui_v3():
         <title>翠花量化</title>
         <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-        <style>""" + STYLES + """</style>
+        <style>""" + theme_css + STYLES + """</style>
     </head>
     <body>
     """ + sidebar_html + """
@@ -630,7 +676,8 @@ def create_webui_v3():
         """渲染页面"""
         from flask import render_template_string
         user = user or get_user_info()
-        base_html = get_base_template(page_name, user)
+        theme = user.get('theme', 'dark') if user else 'dark'
+        base_html = get_base_template(page_name, user, theme)
         return render_template_string(base_html, content=content, page=page_name)
 
     def login_required(f):
@@ -2093,6 +2140,7 @@ def create_webui_v3():
                     <div class="form-group"><label class="form-label">主题</label>
                         <select name="theme" class="form-select">
                             <option value="dark" {'selected' if current_theme=='dark' else ''}>🌙 深色模式</option>
+                            <option value="openclaw" {'selected' if current_theme=='openclaw' else ''}>🐾 OpenClaw 风格</option>
                             <option value="light" {'selected' if current_theme=='light' else ''}>☀️ 浅色模式</option>
                             <option value="auto" {'selected' if current_theme=='auto' else ''}>💻 跟随系统</option>
                         </select></div>
