@@ -9,7 +9,7 @@
         </el-select></el-form-item>
         <el-form-item label="开始"><el-date-picker v-model="form.start" type="date" value-format="yyyy-MM-dd" /></el-form-item>
         <el-form-item label="结束"><el-date-picker v-model="form.end" type="date" value-format="yyyy-MM-dd" /></el-form-item>
-        <el-form-item label="资金"><el-input-number v-model="form.capital" :step="100000" /></el-form-item>
+        <el-form-item label="资金"><el-input-number v-model="form.capital" :step="100000" :min="100000" /></el-form-item>
         <el-form-item><el-button type="primary" @click="runBacktest" :loading="loading">🚀 开始回测</el-button></el-form-item>
       </el-form>
     </el-card>
@@ -23,7 +23,7 @@
 
     <el-card v-if="result">
       <div slot="header"><span>📈 收益曲线</span></div>
-      <div ref="chart" style="width:100%;height:400px;"></div>
+      <div ref="chart" style="width:100%;height:400px;" v-loading="loading"></div>
     </el-card>
   </div>
 </template>
@@ -35,37 +35,38 @@ export default {
   data() {
     return {
       form: { strategy: 'sma', start: '2024-01-01', end: '2026-04-18', capital: 1000000 },
-      loading: false, result: null, metrics: []
+      loading: false, result: null, metrics: [], chart: null
     }
   },
   methods: {
     runBacktest() {
       this.loading = true
-      // Simulate backtest result
-      setTimeout(() => {
+      fetch('/api/backtest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(this.form)
+      })
+      .then(r => r.json())
+      .then(d => {
         this.loading = false
-        this.result = { total_return: 23.5, annual: 11.2, sharpe: 1.35, max_dd: -8.2, win_rate: 58.3, profit_factor: 1.68 }
-        this.metrics = [
-          { label: '总收益率', value: '+23.5%', color: '#67C23A' },
-          { label: '年化收益', value: '+11.2%', color: '#67C23A' },
-          { label: '夏普比率', value: '1.35', color: '#409EFF' },
-          { label: '最大回撤', value: '-8.2%', color: '#F56C6C' },
-          { label: '胜率', value: '58.3%', color: '#409EFF' },
-          { label: '盈亏比', value: '1.68', color: '#67C23A' }
-        ]
-        this.renderChart()
-      }, 1500)
+        if (d.code === 200) {
+          this.result = d.data
+          this.metrics = [
+            { label: '总收益率', value: '+' + d.data.total_return + '%', color: d.data.total_return >= 0 ? '#67C23A' : '#F56C6C' },
+            { label: '年化收益', value: '+' + d.data.annual_return + '%', color: d.data.annual_return >= 0 ? '#67C23A' : '#F56C6C' },
+            { label: '夏普比率', value: d.data.sharpe, color: '#409EFF' },
+            { label: '最大回撤', value: d.data.max_drawdown + '%', color: '#F56C6C' },
+            { label: '胜率', value: d.data.win_rate + '%', color: '#67C23A' },
+            { label: '盈亏比', value: d.data.profit_factor, color: '#67C23A' }
+          ]
+          this.renderChart(d.data.equity_curve, d.data.dates)
+        }
+      })
+      .catch(() => { this.loading = false })
     },
-    renderChart() {
-      const chart = echarts.init(this.$refs.chart)
-      const dates = [], values = []
-      let v = 100
-      for (let i = 0; i < 250; i++) {
-        dates.push(`2025-${String(Math.floor(i/22)+1).padStart(2,'0')}-${String(i%22+1).padStart(2,'0')}`)
-        v += (Math.random() - 0.45) * 2
-        values.push(v.toFixed(2))
-      }
-      chart.setOption({
+    renderChart(values, dates) {
+      if (!this.chart) this.chart = echarts.init(this.$refs.chart)
+      this.chart.setOption({
         tooltip: { trigger: 'axis' },
         xAxis: { data: dates },
         yAxis: { scale: true },
