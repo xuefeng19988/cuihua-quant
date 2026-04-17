@@ -544,16 +544,68 @@ def create_webui_v3():
         """
         return render_page(content, 'dashboard')
 
-    @app.route('/stocks')
+    @app.route('/stocks', methods=['GET', 'POST'])
     def stocks():
+        import yaml
+        cfg_path = os.path.join(project_root, 'config', 'stocks.yaml')
+
+        # 处理新增/删除
+        msg = ''
+        if request.method == 'POST':
+            action = request.form.get('action')
+            if action == 'add':
+                new_code = request.form.get('new_code', '').strip()
+                new_name = request.form.get('new_name', '').strip()
+                if new_code:
+                    try:
+                        with open(cfg_path, 'r') as f:
+                            cfg = yaml.safe_load(f) or {}
+                        pool = cfg.get('pools', {}).get('watchlist', {}).get('stocks', [])
+                        existing = [item.get('code', item) if isinstance(item, dict) else item for item in pool]
+                        if new_code not in existing:
+                            pool.append({'code': new_code, 'name': new_name})
+                            cfg['pools']['watchlist']['stocks'] = pool
+                            with open(cfg_path, 'w') as f:
+                                yaml.dump(cfg, f, allow_unicode=True, default_flow_style=False)
+                            msg = f'✅ 已添加 {new_code} {new_name}'
+                        else:
+                            msg = f'⚠️ {new_code} 已存在'
+                    except Exception as e:
+                        msg = f'❌ 添加失败: {str(e)}'
+            elif action == 'delete':
+                del_code = request.form.get('del_code', '').strip()
+                if del_code:
+                    try:
+                        with open(cfg_path, 'r') as f:
+                            cfg = yaml.safe_load(f) or {}
+                        pool = cfg.get('pools', {}).get('watchlist', {}).get('stocks', [])
+                        pool = [item for item in pool if (item.get('code', item) if isinstance(item, dict) else item) != del_code]
+                        cfg['pools']['watchlist']['stocks'] = pool
+                        with open(cfg_path, 'w') as f:
+                            yaml.dump(cfg, f, allow_unicode=True, default_flow_style=False)
+                        msg = f'✅ 已删除 {del_code}'
+                    except Exception as e:
+                        msg = f'❌ 删除失败: {str(e)}'
+
+        # 重新加载
         stock_names = get_stock_names()
         codes = get_stock_codes()
+
+        # 分页
+        page = request.args.get('page', 1, type=int)
+        per_page = 10
+        total = len(codes)
+        total_pages = max(1, (total + per_page - 1) // per_page)
+        page = min(page, total_pages)
+        start_idx = (page - 1) * per_page
+        end_idx = start_idx + per_page
+        page_codes = codes[start_idx:end_idx]
 
         stocks_data = []
         try:
             from src.data.database import get_db_engine
             engine = get_db_engine()
-            for code in codes:
+            for code in page_codes:
                 try:
                     df = pd.read_sql(
                         f"SELECT close_price FROM stock_daily WHERE code='{code}' ORDER BY date DESC LIMIT 2",
@@ -575,32 +627,65 @@ def create_webui_v3():
                 except:
                     stocks_data.append({'code': code, 'name': stock_names.get(code, ''), 'price': '-', 'change': 0})
         except:
-            for code in codes:
+            for code in page_codes:
                 stocks_data.append({'code': code, 'name': stock_names.get(code, ''), 'price': '-', 'change': 0})
 
+        # 构建表格行
         rows = []
         for s in stocks_data:
             color = 'var(--success)' if s['change'] > 0 else ('var(--danger)' if s['change'] < 0 else 'var(--text-primary)')
+            del_btn = f'''<form method="POST" style="display:inline"><input type="hidden" name="action" value="delete"><input type="hidden" name="del_code" value="{s["code"]}"><button type="submit" class="btn btn-danger" style="padding:0.25rem 0.5rem;font-size:0.75rem" onclick="return confirm('确定删除 {s["code"]} {s["name"]}?')">🗑️</button></form>'''
             rows.append([
                 f'<span class="badge badge-warning">{s["code"]}</span>',
                 s['name'],
                 f"¥{s['price']}",
                 f'<span style="color:{color}">{s["change"]:+.2f}%</span>',
-                f'<a href="/charts?code={s["code"]}" class="btn btn-secondary" style="padding:0.25rem 0.5rem;font-size:0.75rem">📉 图表</a>'
+                f'<a href="/charts?code={s["code"]}" class="btn btn-secondary" style="padding:0.25rem 0.5rem;font-size:0.75rem">📉</a> {del_btn}'
             ])
+
+        # 分页导航
+        has_prev = page > 1
+        has_next = page < total_pages
+        pagination = []
+        if has_prev:
+            pagination.append(f'<a href="/stocks?page={page-1}" class="btn btn-secondary" style="padding:0.25rem 0.625rem;font-size:0.75rem">◀ 上一页</a>')
+        page_info = f'<span style="color:var(--text-secondary);font-size:0.875rem;margin:0 0.75rem">第 {page}/{total_pages} 页 (共 {total} 只)</span>'
+        if has_next:
+            pagination.append(f'<a href="/stocks?page={page+1}" class="btn btn-secondary" style="padding:0.25rem 0.625rem;font-size:0.75rem">下一页 ▶</a>')
+        pagination_html = f"""<div style="display:flex;align-items:center;justify-content:center;margin-top:1rem">{''.join(pagination)}{page_info}</div>"""
+
+        msg_html = f'<div class="alert alert-success">{msg}</div>' if msg else ''
 
         content = f"""
         <div class="header">
-            <div><h1>💼 股票池管理</h1><p style="color:var(--text-secondary)">共 {len(codes)} 只股票</p></div>
+            <div><h1>💼 股票池管理</h1><p style="color:var(--text-secondary)">共 {total} 只股票 | 第 {page}/{total_pages} 页</p></div>
             <div class="header-actions">
                 <a href="/analysis" class="btn btn-primary">📈 生成信号</a>
             </div>
         </div>
+
+        {msg_html}
+
         <div class="card">
+            <div class="card-header"><h3 class="card-title">➕ 新增股票</h3></div>
+            <form method="POST" class="form-row" style="align-items:end">
+                <div class="form-group"><label class="form-label">股票代码</label>
+                    <input type="text" name="new_code" class="form-input" placeholder="如: HK.09988" required></div>
+                <div class="form-group"><label class="form-label">股票名称</label>
+                    <input type="text" name="new_name" class="form-input" placeholder="如: 阿里巴巴"></div>
+                <div class="form-group"><label class="form-label">&nbsp;</label>
+                    <button type="submit" name="action" value="add" class="btn btn-success">➕ 添加</button></div>
+            </form>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><h3 class="card-title">📋 股票列表</h3></div>
             {make_table(['代码', '名称', '最新价', '涨跌幅', '操作'], rows)}
+            {pagination_html}
         </div>
         """
         return render_page(content, 'stocks')
+
 
     @app.route('/analysis', methods=['GET', 'POST'])
     def analysis():
