@@ -560,12 +560,18 @@ def create_webui_v3():
                 font-size: 1rem;
                 font-weight: 600;
                 cursor: pointer;
-                transition: all 0.2s;
-                margin-top: 0.5rem;
+                transition: all 0.3s;
+                margin-top: 0.75rem;
+                letter-spacing: 0.25em;
             }
-            .login-btn:hover {
-                transform: translateY(-1px);
-                box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+            .login-btn:hover:not(:disabled) {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+            }
+            .login-btn:disabled {
+                opacity: 0.35;
+                cursor: not-allowed;
+                background: linear-gradient(135deg, #3a3a5e, #4a4a6e);
             }
             .error-msg {
                 background: rgba(239, 68, 68, 0.15);
@@ -621,10 +627,31 @@ def create_webui_v3():
                 background: linear-gradient(135deg, #6366f1, #a855f7);
                 cursor: grab; display: flex; align-items: center;
                 justify-content: center; font-size: 1.125rem; z-index: 1;
+                box-shadow: 0 2px 8px rgba(99,102,241,0.4);
                 transition: none;
             }
             .captcha-slider-bar:active { cursor: grabbing; }
-            .captcha-slider-bar.success { background: #22c55e; }
+            .captcha-slider-bar.success { background: #22c55e; box-shadow: 0 2px 8px rgba(34,197,94,0.4); }
+            .captcha-slider-bar.fail { background: #ef4444; box-shadow: 0 2px 8px rgba(239,68,68,0.4); }
+            .captcha-slider-track {
+                position: absolute; top: 2px; left: 2px; height: 36px;
+                border-radius: 18px; background: rgba(99,102,241,0.15);
+                transition: width 0.05s;
+            }
+            @keyframes shake {
+                0%, 100% { transform: translateX(0); }
+                20% { transform: translateX(-8px); }
+                40% { transform: translateX(8px); }
+                60% { transform: translateX(-4px); }
+                80% { transform: translateX(4px); }
+            }
+            .captcha-box.shake { animation: shake 0.4s ease; }
+            @keyframes pulse {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.6; }
+            }
+            .captcha-trigger { animation: pulse 2s infinite; }
+            .captcha-trigger.verified { animation: none; }
             .captcha-close {
                 position: absolute; top: 8px; right: 8px;
                 background: rgba(255,255,255,0.1); border: none;
@@ -649,7 +676,7 @@ def create_webui_v3():
                     <p>Cuihua Quant System</p>
                 </div>
                 {{ error_msg }}
-                <form method="POST">
+                <form method="POST" id="loginForm">
                     <div class="form-group">
                         <label class="form-label">用户名</label>
                         <input type="text" name="username" class="form-input" placeholder="请输入用户名" required autofocus>
@@ -658,19 +685,17 @@ def create_webui_v3():
                         <label class="form-label">密码</label>
                         <input type="password" name="password" class="form-input" placeholder="请输入密码" required>
                     </div>
+                    <div class="captcha-wrap">
+                        <div class="captcha-trigger" id="captchaTrigger" onclick="openCaptcha()">
+                            <span>🛡️</span><span id="captchaText">点击完成安全验证</span>
+                        </div>
+                    </div>
                     <div class="form-group" style="display:flex;align-items:center;gap:0.5rem">
                         <input type="checkbox" id="remember_me" name="remember_me" style="width:16px;height:16px;accent-color:#6366f1">
-                        <label for="remember_me" style="font-size:0.875rem;color:#8888aa;cursor:select;user-select:none">记住我 (30天免登录)</label>
+                        <label for="remember_me" style="font-size:0.875rem;color:#8888aa;cursor:pointer;user-select:none">记住我 (30天免登录)</label>
                     </div>
-                    <button type="submit" class="login-btn">登 录</button>
-                </form>
-                <div class="captcha-wrap">
-                    <div class="captcha-trigger" id="captchaTrigger" onclick="openCaptcha()">
-                        <span>🛡️</span><span>点击完成安全验证</span>
-                    </div>
-                </div>
-                <button type="submit" class="login-btn" id="loginBtn" disabled style="opacity:0.4;cursor:not-allowed">请完成验证</button>
-                <input type="hidden" name="captcha_verified" id="captchaVerified" value="">
+                    <button type="submit" class="login-btn" id="loginBtn" disabled>请完成验证</button>
+                    <input type="hidden" name="captcha_verified" id="captchaVerified" value="">
                 </form>
                 <div class="footer">Cuihua Quant v3.1.0 &copy; 2026</div>
             </div>
@@ -678,14 +703,15 @@ def create_webui_v3():
 
         <!-- Captcha Overlay -->
         <div class="captcha-overlay" id="captchaOverlay">
-            <div class="captcha-box">
+            <div class="captcha-box" id="captchaBox">
                 <div class="captcha-canvas-wrap">
                     <canvas id="captchaCanvas" width="280" height="155"></canvas>
                     <button class="captcha-refresh" onclick="initCaptcha()" title="刷新">🔄</button>
                     <button class="captcha-close" onclick="closeCaptcha()">✕</button>
                 </div>
                 <div class="captcha-slider">
-                    <div class="captcha-slider-text">向右拖动滑块完成验证</div>
+                    <div class="captcha-slider-track" id="captchaTrack"></div>
+                    <div class="captcha-slider-text" id="captchaSliderText">向右拖动滑块完成验证</div>
                     <div class="captcha-slider-bar" id="captchaBar">→</div>
                 </div>
             </div>
@@ -696,10 +722,15 @@ def create_webui_v3():
             var canvas = document.getElementById('captchaCanvas');
             var ctx = canvas ? canvas.getContext('2d') : null;
             var W = 280, H = 155, L = 42, R = 10;
-            var targetX, verified = false;
-            var bar, startX;
+            var targetX, targetY, verified = false;
+            var bar, track, startX;
 
             function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+
+            // Generate gradient colors for background
+            function randomColor() {
+                return 'hsl(' + rand(180, 320) + ', ' + rand(40, 70) + '%, ' + rand(35, 60) + '%)';
+            }
 
             window.openCaptcha = function() {
                 document.getElementById('captchaOverlay').classList.add('show');
@@ -713,52 +744,94 @@ def create_webui_v3():
             window.initCaptcha = function() {
                 if (!ctx) return;
                 bar = document.getElementById('captchaBar');
+                track = document.getElementById('captchaTrack');
                 bar.style.left = '2px';
                 bar.className = 'captcha-slider-bar';
                 bar.innerHTML = '→';
+                track.style.width = '0px';
                 verified = false;
                 targetX = rand(80, W - L - 30);
+                targetY = rand(30, H - L - 20);
+                document.getElementById('captchaBox').classList.remove('shake');
 
-                // Draw background
-                ctx.clearRect(0, 0, W, H);
-                ctx.fillStyle = '#2d2d6e';
-                ctx.fillRect(0, 0, W, H);
+                // Draw beautiful gradient background
+                drawBackground();
 
-                // Draw random shapes as background
-                for (var i = 0; i < 8; i++) {
-                    ctx.beginPath();
-                    ctx.arc(rand(20, W-20), rand(20, H-20), rand(10, 40), 0, Math.PI * 2);
-                    ctx.fillStyle = 'hsla(' + rand(200, 300) + ', 60%, 50%, 0.15)';
-                    ctx.fill();
-                }
-
-                // Draw target slot
-                drawPuzzle(ctx, targetX, 40, 'rgba(0,0,0,0.4)');
+                // Draw target slot (dark silhouette)
+                drawPuzzle(ctx, targetX, targetY, 'rgba(0,0,0,0.5)', 'rgba(255,255,255,0.1)');
             };
 
-            function drawPuzzle(c, x, y, color) {
+            function drawBackground() {
+                // Base gradient
+                var grd = ctx.createLinearGradient(0, 0, W, H);
+                grd.addColorStop(0, '#2a2060');
+                grd.addColorStop(0.5, '#3a2870');
+                grd.addColorStop(1, '#202050');
+                ctx.fillStyle = grd;
+                ctx.fillRect(0, 0, W, H);
+
+                // Layered circles for visual richness
+                var colors = [randomColor(), randomColor(), randomColor(), randomColor(), randomColor()];
+                for (var i = 0; i < 12; i++) {
+                    ctx.beginPath();
+                    ctx.arc(rand(10, W-10), rand(10, H-10), rand(8, 50), 0, Math.PI * 2);
+                    ctx.fillStyle = colors[i % 5];
+                    ctx.globalAlpha = 0.25 + Math.random() * 0.15;
+                    ctx.fill();
+                }
+                ctx.globalAlpha = 1.0;
+
+                // Grid pattern
+                ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+                ctx.lineWidth = 1;
+                for (var x = 0; x < W; x += 20) {
+                    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+                }
+                for (var y = 0; y < H; y += 20) {
+                    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+                }
+
+                // Stars
+                ctx.fillStyle = 'rgba(255,255,255,0.3)';
+                for (var i = 0; i < 15; i++) {
+                    ctx.beginPath();
+                    ctx.arc(rand(5, W-5), rand(5, H-5), rand(0.5, 1.5), 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            function drawPuzzle(c, x, y, fillColor, strokeColor) {
                 c.beginPath();
                 c.moveTo(x, y);
                 c.lineTo(x + L * 2/3, y);
-                c.arc(x + L * 2/3, y - R, R, 0, Math.PI, true);
+                c.arc(x + L * 2/3, y - R + 2, R, 0, Math.PI, true);
                 c.lineTo(x + L, y);
                 c.lineTo(x + L, y + L * 2/3);
-                c.arc(x + L + R, y + L * 2/3, R, 0, Math.PI * 1.5, false);
+                c.arc(x + L + R - 2, y + L * 2/3, R, 0, Math.PI * 1.5, false);
                 c.lineTo(x + L, y + L);
                 c.lineTo(x, y + L);
                 c.arc(x, y + L * 2/3, R, 0, Math.PI * 1.5, true);
                 c.lineTo(x, y);
                 c.closePath();
-                c.fillStyle = color;
-                c.fill();
+                if (fillColor) { c.fillStyle = fillColor; c.fill(); }
+                if (strokeColor) { c.strokeStyle = strokeColor; c.lineWidth = 2; c.stroke(); }
+            }
+
+            function drawPiece(c, x, y) {
+                // Draw the floating puzzle piece
+                c.save();
+                c.shadowColor = 'rgba(99,102,241,0.6)';
+                c.shadowBlur = 12;
+                drawPuzzle(c, x, y, 'rgba(99,102,241,0.85)', 'rgba(160,160,255,0.5)');
+                c.restore();
             }
 
             // Drag events
-            var sliderBar = null;
+            var dragging = false;
             function onDown(e) {
                 if (verified) return;
                 e.preventDefault();
-                sliderBar = document.getElementById('captchaBar');
+                dragging = true;
                 startX = (e.touches ? e.touches[0].clientX : e.clientX);
                 document.addEventListener('mousemove', onMove);
                 document.addEventListener('mouseup', onUp);
@@ -767,64 +840,86 @@ def create_webui_v3():
             }
 
             function onMove(e) {
-                if (!sliderBar || verified) return;
+                if (!dragging || verified) return;
                 e.preventDefault();
                 var cx = (e.touches ? e.touches[0].clientX : e.clientX);
                 var dx = cx - startX;
                 dx = Math.max(0, Math.min(dx, W - 38));
-                sliderBar.style.left = (dx + 2) + 'px';
+                bar.style.left = (dx + 2) + 'px';
+                track.style.width = (dx + 20) + 'px';
+
+                // Redraw canvas with puzzle piece moving
+                drawBackground();
+                // Target slot
+                drawPuzzle(ctx, targetX, targetY, 'rgba(0,0,0,0.5)', 'rgba(255,255,255,0.1)');
+                // Moving piece
+                drawPiece(ctx, dx, targetY);
             }
 
             function onUp() {
-                if (!sliderBar) return;
+                if (!dragging) return;
+                dragging = false;
                 document.removeEventListener('mousemove', onMove);
                 document.removeEventListener('mouseup', onUp);
                 document.removeEventListener('touchmove', onMove);
                 document.removeEventListener('touchend', onUp);
 
-                var left = parseInt(sliderBar.style.left) - 2;
+                var left = parseInt(bar.style.left) - 2;
                 var diff = Math.abs(left - targetX);
 
                 if (diff <= 8) {
                     // Success
                     verified = true;
-                    sliderBar.innerHTML = '✓';
-                    sliderBar.className = 'captcha-slider-bar success';
+                    bar.innerHTML = '✓';
+                    bar.className = 'captcha-slider-bar success';
+                    track.style.background = 'rgba(34,197,94,0.2)';
 
-                    // Redraw success on canvas
-                    ctx.clearRect(0, 0, W, H);
-                    ctx.fillStyle = '#1a3a2a';
-                    ctx.fillRect(0, 0, W, H);
+                    // Draw success
+                    drawBackground();
+                    drawPuzzle(ctx, targetX, targetY, 'rgba(34,197,94,0.5)', 'rgba(34,197,94,0.8)');
                     ctx.fillStyle = '#22c55e';
-                    ctx.font = 'bold 48px sans-serif';
+                    ctx.font = 'bold 24px sans-serif';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
-                    ctx.fillText('✓', W/2, H/2);
+                    ctx.fillText('✓', targetX + L/2, targetY + L/2);
+
+                    document.getElementById('captchaSliderText').textContent = '验证成功！';
 
                     setTimeout(function() {
                         closeCaptcha();
                         var trigger = document.getElementById('captchaTrigger');
                         trigger.className = 'captcha-trigger verified';
                         trigger.innerHTML = '<span>🛡️</span><span>验证通过</span>';
+                        document.getElementById('captchaText').textContent = '验证通过';
                         var btn = document.getElementById('loginBtn');
                         btn.disabled = false;
-                        btn.style.opacity = '1';
-                        btn.style.cursor = 'pointer';
                         btn.textContent = '登 录';
                         document.getElementById('captchaVerified').value = '1';
-                    }, 500);
+                    }, 600);
                 } else {
-                    // Fail - reset
-                    sliderBar.style.transition = 'left 0.3s';
-                    sliderBar.style.left = '2px';
+                    // Fail - shake animation
+                    bar.className = 'captcha-slider-bar fail';
+                    bar.innerHTML = '✕';
+                    document.getElementById('captchaBox').classList.add('shake');
+                    document.getElementById('captchaSliderText').textContent = '验证失败，请重试';
+
                     setTimeout(function() {
-                        sliderBar.style.transition = 'none';
-                    }, 300);
-                    // Randomize target
-                    targetX = rand(80, W - L - 30);
-                    initCaptcha();
+                        document.getElementById('captchaBox').classList.remove('shake');
+                        bar.className = 'captcha-slider-bar';
+                        bar.style.transition = 'left 0.3s ease';
+                        bar.style.left = '2px';
+                        bar.innerHTML = '→';
+                        track.style.width = '0px';
+                        track.style.background = '';
+                        document.getElementById('captchaSliderText').textContent = '向右拖动滑块完成验证';
+                        setTimeout(function() {
+                            bar.style.transition = 'none';
+                            targetX = rand(80, W - L - 30);
+                            targetY = rand(30, H - L - 20);
+                            initCaptcha();
+                        }, 350);
+                    }, 800);
                 }
-                sliderBar = null;
             }
 
             if (document.getElementById('captchaBar')) {
