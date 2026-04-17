@@ -7,25 +7,54 @@ import os
 import sys
 import json
 import yaml
+import hashlib
 import pandas as pd
 from datetime import datetime
 from typing import Dict, List, Optional
+from functools import wraps
 
 # Project paths
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 sys.path.insert(0, project_root)
 
+# 加载认证配置
+AUTH_CONFIG = {}
+_auth_path = os.path.join(project_root, 'config', 'auth.yaml')
+if os.path.exists(_auth_path):
+    with open(_auth_path, 'r') as _f:
+        AUTH_CONFIG = yaml.safe_load(_f).get('auth', {})
+
+def _load_auth():
+    """重新加载认证配置"""
+    global AUTH_CONFIG
+    if os.path.exists(_auth_path):
+        with open(_auth_path, 'r') as _f:
+            AUTH_CONFIG = yaml.safe_load(_f).get('auth', {})
+
+def _hash_pwd(pw):
+    return hashlib.sha256(pw.encode()).hexdigest()
+
+def check_auth(username, password):
+    """验证用户名密码"""
+    admin = AUTH_CONFIG.get('admin', {})
+    return (username == admin.get('username', 'admin') and
+            password == admin.get('password', 'admin123'))
+
+def get_user_info():
+    """获取当前用户信息"""
+    return AUTH_CONFIG.get('admin', {})
+
 
 def create_webui_v3():
     """创建全功能 WebUI v3"""
     try:
-        from flask import Flask, jsonify, render_template_string, request, redirect, url_for
+        from flask import Flask, jsonify, render_template_string, request, redirect, url_for, session
     except ImportError:
         print("⚠️ Flask not installed. Run: pip install flask")
         return None
 
     app = Flask(__name__)
-    app.config['SECRET_KEY'] = 'cuihua-quant-secret'
+    app.config['SECRET_KEY'] = AUTH_CONFIG.get('secret_key', 'cuihua-quant-secret')
 
     # ==================== CSS STYLES ====================
     STYLES = """
@@ -358,8 +387,134 @@ def create_webui_v3():
     ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
     """
 
+    # ==================== LOGIN PAGE ====================
+    LOGIN_PAGE = """
+    <!DOCTYPE html>
+    <html lang="zh-CN">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>翠花量化 - 登录</title>
+        <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #252550 100%);
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #e0e0ff;
+            }
+            .login-container {
+                width: 100%;
+                max-width: 420px;
+                padding: 2rem;
+            }
+            .login-card {
+                background: rgba(37, 37, 80, 0.9);
+                border-radius: 16px;
+                padding: 2.5rem 2rem;
+                border: 1px solid rgba(255,255,255,0.1);
+                box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+                backdrop-filter: blur(10px);
+            }
+            .login-logo {
+                text-align: center;
+                margin-bottom: 2rem;
+            }
+            .login-logo .icon { font-size: 3rem; margin-bottom: 0.5rem; }
+            .login-logo h1 {
+                font-size: 1.5rem;
+                font-weight: 700;
+                background: linear-gradient(135deg, #6366f1, #a855f7);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+            }
+            .login-logo p { color: #8888aa; font-size: 0.875rem; margin-top: 0.25rem; }
+            .form-group { margin-bottom: 1.25rem; }
+            .form-label {
+                display: block;
+                font-size: 0.875rem;
+                color: #8888aa;
+                margin-bottom: 0.5rem;
+            }
+            .form-input {
+                width: 100%;
+                padding: 0.75rem 1rem;
+                background: rgba(26, 26, 62, 0.8);
+                border: 1px solid rgba(255,255,255,0.1);
+                border-radius: 10px;
+                color: #e0e0ff;
+                font-size: 0.9375rem;
+                transition: border-color 0.2s;
+            }
+            .form-input:focus {
+                outline: none;
+                border-color: #6366f1;
+            }
+            .login-btn {
+                width: 100%;
+                padding: 0.875rem;
+                background: linear-gradient(135deg, #6366f1, #a855f7);
+                border: none;
+                border-radius: 10px;
+                color: white;
+                font-size: 1rem;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.2s;
+                margin-top: 0.5rem;
+            }
+            .login-btn:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+            }
+            .error-msg {
+                background: rgba(239, 68, 68, 0.15);
+                border-left: 3px solid #ef4444;
+                padding: 0.75rem 1rem;
+                border-radius: 8px;
+                margin-bottom: 1.25rem;
+                font-size: 0.875rem;
+                color: #fca5a5;
+            }
+            .footer { text-align: center; margin-top: 2rem; color: #8888aa; font-size: 0.75rem; }
+        </style>
+    </head>
+    <body>
+        <div class="login-container">
+            <div class="login-card">
+                <div class="login-logo">
+                    <div class="icon">🦜</div>
+                    <h1>翠花量化</h1>
+                    <p>Cuihua Quant System</p>
+                </div>
+                {error_msg}
+                <form method="POST">
+                    <div class="form-group">
+                        <label class="form-label">用户名</label>
+                        <input type="text" name="username" class="form-input" placeholder="请输入用户名" required autofocus>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">密码</label>
+                        <input type="password" name="password" class="form-input" placeholder="请输入密码" required>
+                    </div>
+                    <button type="submit" class="login-btn">登 录</button>
+                </form>
+                <div class="footer">Cuihua Quant v3.1.0 &copy; 2026</div>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
     # ==================== SIDEBAR ====================
-    SIDEBAR = """
+    def build_sidebar(page, user=None):
+        user = user or {'username': 'admin', 'nickname': '管理员', 'avatar': '🦜'}
+        avatar = user.get('avatar', '🦜')
+        nickname = user.get('nickname', user.get('username', 'admin'))
+        return f"""
     <nav class="sidebar" id="sidebar">
         <div class="logo">🦜 翠花量化</div>
 
@@ -393,10 +548,25 @@ def create_webui_v3():
         <a href="/paramopt" class="nav-item {{ 'active' if page=='paramopt' else '' }}"><span>⚡</span> 参数优化</a>
         <a href="/reports" class="nav-item {{ 'active' if page=='reports' else '' }}"><span>📑</span> 自动报告</a>
         <a href="/settings" class="nav-item {{ 'active' if page=='settings' else '' }}"><span>⚙️</span> 系统设置</a>
+
+        <div style="border-top: 1px solid var(--border); margin: 0.75rem 0; padding-top: 0.75rem;">
+            <a href="/profile" class="nav-item {{ 'active' if page=='profile' else '' }}"><span>👤</span> 个人信息</a>
+            <a href="/logout" class="nav-item" style="color: var(--danger);"><span>🚪</span> 退出登录</a>
+        </div>
+
+        <div style="padding: 0.75rem; margin-top: 0.5rem; background: rgba(0,0,0,0.2); border-radius: var(--radius); display: flex; align-items: center; gap: 0.5rem;">
+            <span style="font-size: 1.25rem;">{avatar}</span>
+            <div>
+                <div style="font-size: 0.875rem; font-weight: 600;">{nickname}</div>
+                <div style="font-size: 0.7rem; color: var(--text-secondary);">管理员</div>
+            </div>
+        </div>
     </nav>
     """
 
-    BASE_TEMPLATE = """<!DOCTYPE html>
+    def get_base_template(page, user=None):
+        sidebar_html = build_sidebar(page, user)
+        return """<!DOCTYPE html>
     <html lang="zh-CN">
     <head>
         <meta charset="UTF-8">
@@ -407,7 +577,7 @@ def create_webui_v3():
         <style>""" + STYLES + """</style>
     </head>
     <body>
-    """ + SIDEBAR + """
+    """ + sidebar_html + """
         <main class="main">
         {{ content|safe }}
         </main>
@@ -456,10 +626,23 @@ def create_webui_v3():
             pass
         return codes
 
-    def render_page(content, page_name):
+    def render_page(content, page_name, user=None):
         """渲染页面"""
         from flask import render_template_string
-        return render_template_string(BASE_TEMPLATE, content=content, page=page_name)
+        user = user or get_user_info()
+        base_html = get_base_template(page_name, user)
+        return render_template_string(base_html, content=content, page=page_name)
+
+    def login_required(f):
+        """登录认证装饰器"""
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if not AUTH_CONFIG.get('enabled', True):
+                return f(*args, **kwargs)
+            if 'logged_in' not in session or not session.get('logged_in'):
+                return redirect(url_for('login'))
+            return f(*args, **kwargs)
+        return decorated_function
 
     def make_table(headers, rows):
         """生成 HTML 表格"""
@@ -469,7 +652,117 @@ def create_webui_v3():
 
     # ==================== ROUTES ====================
 
+    @app.route('/login', methods=['GET', 'POST'])
+    def login():
+        if request.method == 'POST':
+            username = request.form.get('username', '').strip()
+            password = request.form.get('password', '').strip()
+            if check_auth(username, password):
+                session['logged_in'] = True
+                session['username'] = username
+                session.permanent = True
+                return redirect(url_for('dashboard'))
+            else:
+                error_msg = '<div class="error-msg">❌ 用户名或密码错误</div>'
+                return render_template_string(LOGIN_PAGE, error_msg=error_msg)
+        return render_template_string(LOGIN_PAGE, error_msg='')
+
+    @app.route('/logout')
+    def logout():
+        session.clear()
+        return redirect(url_for('login'))
+
+    @app.route('/profile', methods=['GET', 'POST'])
+    @login_required
+    def profile():
+        user = get_user_info()
+        msg = ''
+        if request.method == 'POST':
+            action = request.form.get('action')
+            if action == 'update_profile':
+                try:
+                    new_nickname = request.form.get('nickname', '').strip()
+                    new_email = request.form.get('email', '').strip()
+                    new_avatar = request.form.get('avatar', '').strip()
+                    if os.path.exists(_auth_path):
+                        with open(_auth_path, 'r') as f:
+                            cfg = yaml.safe_load(f) or {}
+                        if new_nickname:
+                            cfg['auth']['admin']['nickname'] = new_nickname
+                        if new_email:
+                            cfg['auth']['admin']['email'] = new_email
+                        if new_avatar:
+                            cfg['auth']['admin']['avatar'] = new_avatar
+                        with open(_auth_path, 'w') as f:
+                            yaml.dump(cfg, f, allow_unicode=True, default_flow_style=False)
+                        _load_auth()
+                        msg = '<div class="alert alert-success">✅ 个人信息已更新</div>'
+                except Exception as e:
+                    msg = f'<div class="alert alert-error">❌ 更新失败: {str(e)}</div>'
+            elif action == 'change_password':
+                try:
+                    old_pwd = request.form.get('old_password', '').strip()
+                    new_pwd = request.form.get('new_password', '').strip()
+                    confirm_pwd = request.form.get('confirm_password', '').strip()
+                    admin = AUTH_CONFIG.get('admin', {})
+                    if old_pwd != admin.get('password', ''):
+                        msg = '<div class="alert alert-error">❌ 原密码错误</div>'
+                    elif new_pwd != confirm_pwd:
+                        msg = '<div class="alert alert-error">❌ 两次输入的新密码不一致</div>'
+                    elif len(new_pwd) < 6:
+                        msg = '<div class="alert alert-error">❌ 密码长度不能少于6位</div>'
+                    else:
+                        if os.path.exists(_auth_path):
+                            with open(_auth_path, 'r') as f:
+                                cfg = yaml.safe_load(f) or {}
+                            cfg['auth']['admin']['password'] = new_pwd
+                            with open(_auth_path, 'w') as f:
+                                yaml.dump(cfg, f, allow_unicode=True, default_flow_style=False)
+                            _load_auth()
+                            msg = '<div class="alert alert-success">✅ 密码已修改</div>'
+                except Exception as e:
+                    msg = f'<div class="alert alert-error">❌ 修改失败: {str(e)}</div>'
+
+        content = f"""
+        <div class="header">
+            <div><h1>👤 个人信息</h1><p style="color:var(--text-secondary)">修改个人资料和密码</p></div>
+        </div>
+        {msg}
+        <div class="grid-2">
+            <div class="card">
+                <div class="card-header"><h3 class="card-title">📝 基本信息</h3></div>
+                <form method="POST">
+                    <input type="hidden" name="action" value="update_profile">
+                    <div class="form-group"><label class="form-label">头像</label>
+                        <input type="text" name="avatar" class="form-input" value="{user.get('avatar', '🦜')}" placeholder="emoji 如 🦜"></div>
+                    <div class="form-group"><label class="form-label">昵称</label>
+                        <input type="text" name="nickname" class="form-input" value="{user.get('nickname', '')}"></div>
+                    <div class="form-group"><label class="form-label">邮箱</label>
+                        <input type="email" name="email" class="form-input" value="{user.get('email', '')}"></div>
+                    <div class="form-group"><label class="form-label">用户名</label>
+                        <input type="text" class="form-input" value="{user.get('username', '')}" disabled style="opacity:0.5"></div>
+                    <button type="submit" class="btn btn-primary">💾 保存修改</button>
+                </form>
+            </div>
+            <div class="card">
+                <div class="card-header"><h3 class="card-title">🔒 修改密码</h3></div>
+                <form method="POST">
+                    <input type="hidden" name="action" value="change_password">
+                    <div class="form-group"><label class="form-label">原密码</label>
+                        <input type="password" name="old_password" class="form-input" required></div>
+                    <div class="form-group"><label class="form-label">新密码</label>
+                        <input type="password" name="new_password" class="form-input" required minlength="6"></div>
+                    <div class="form-group"><label class="form-label">确认新密码</label>
+                        <input type="password" name="confirm_password" class="form-input" required minlength="6"></div>
+                    <button type="submit" class="btn btn-primary">🔑 修改密码</button>
+                </form>
+            </div>
+        </div>
+        """
+        return render_page(content, 'profile', user=user)
+
     @app.route('/')
+    @login_required
     def dashboard():
         try:
             from src.monitor.system_monitor import SystemMonitor
@@ -583,9 +876,11 @@ def create_webui_v3():
             </div>
         </div>
         """
-        return render_page(content, 'dashboard')
+        user = get_user_info()
+        return render_page(content, 'dashboard', user=user)
 
     @app.route('/stocks', methods=['GET', 'POST'])
+    @login_required
     def stocks():
         import yaml
         cfg_path = os.path.join(project_root, 'config', 'stocks.yaml')
@@ -737,10 +1032,12 @@ def create_webui_v3():
             {pagination_html}
         </div>
         """
-        return render_page(content, 'stocks')
+        user = get_user_info()
+        return render_page(content, 'stocks', user=user)
 
 
     @app.route('/analysis', methods=['GET', 'POST'])
+    @login_required
     def analysis():
         stock_names = get_stock_names()
         codes = get_stock_codes()[:20]
@@ -788,9 +1085,11 @@ def create_webui_v3():
         </div>
         <div class="card">{table_html}</div>
         """
-        return render_page(content, 'analysis')
+        user = get_user_info()
+        return render_page(content, 'analysis', user=user)
 
     @app.route('/backtest')
+    @login_required
     def backtest():
         strategies = [
             ('SMA 交叉', '均线交叉策略'),
@@ -837,9 +1136,11 @@ def create_webui_v3():
             </p>
         </div>
         """
-        return render_page(content, 'backtest')
+        user = get_user_info()
+        return render_page(content, 'backtest', user=user)
 
     @app.route('/charts', methods=['GET', 'POST'])
+    @login_required
     def charts():
         stock_names = get_stock_names()
         codes = get_stock_codes()
@@ -875,9 +1176,11 @@ def create_webui_v3():
             {chart_html if chart_html else '<div class="alert alert-info">📊 选择股票后点击"生成图表"</div>'}
         </div>
         """
-        return render_page(content, 'charts')
+        user = get_user_info()
+        return render_page(content, 'charts', user=user)
 
     @app.route('/portfolio')
+    @login_required
     def portfolio():
         content = f"""
         <div class="header">
@@ -908,9 +1211,11 @@ def create_webui_v3():
             </div>
         </div>
         """
-        return render_page(content, 'portfolio')
+        user = get_user_info()
+        return render_page(content, 'portfolio', user=user)
 
     @app.route('/risk')
+    @login_required
     def risk():
         content = f"""
         <div class="header">
@@ -948,9 +1253,11 @@ def create_webui_v3():
             </div>
         </div>
         """
-        return render_page(content, 'risk')
+        user = get_user_info()
+        return render_page(content, 'risk', user=user)
 
     @app.route('/strategies')
+    @login_required
     def strategies():
         strategies = [
             ('SMA 交叉', 'sma_cross', '趋势跟踪', '<span class="badge badge-success">活跃</span>', '基础均线交叉策略'),
@@ -1003,9 +1310,11 @@ def create_webui_v3():
             </div>
         </div>
         """
-        return render_page(content, 'strategies')
+        user = get_user_info()
+        return render_page(content, 'strategies', user=user)
 
     @app.route('/factors')
+    @login_required
     def factors():
         factors = [
             ('技术因子', 'MACD/RSI/布林带/KDJ', '10+', '<span class="badge badge-success">可用</span>'),
@@ -1058,9 +1367,11 @@ def create_webui_v3():
             </div>
         </div>
         """
-        return render_page(content, 'factors')
+        user = get_user_info()
+        return render_page(content, 'factors', user=user)
 
     @app.route('/events')
+    @login_required
     def events():
         content = f"""
         <div class="header">
@@ -1096,9 +1407,11 @@ def create_webui_v3():
             </div>
         </div>
         """
-        return render_page(content, 'events')
+        user = get_user_info()
+        return render_page(content, 'events', user=user)
 
     @app.route('/research')
+    @login_required
     def research():
         content = f"""
         <div class="header">
@@ -1153,9 +1466,11 @@ def create_webui_v3():
         </div>
         <div class="alert alert-info">💡 研究笔记本提供交互式研究环境，支持因子挖掘、ML 训练、市场状态分析等</div>
         """
-        return render_page(content, 'research')
+        user = get_user_info()
+        return render_page(content, 'research', user=user)
 
     @app.route('/heatmap')
+    @login_required
     def heatmap():
         try:
             from src.analysis.sector_heatmap import SectorHeatmap
@@ -1192,7 +1507,6 @@ def create_webui_v3():
             </div>
             <div class="alert alert-info">💡 数据基于近 5 个交易日个股收益，按板块均值聚合</div>
             """
-            return render_page(content, 'heatmap')
         except Exception as e:
             content = f"""
             <div class="header">
@@ -1200,9 +1514,11 @@ def create_webui_v3():
             </div>
             <div class="alert alert-error">❌ 热力图加载失败: {str(e)}</div>
             """
-            return render_page(content, 'heatmap')
+        user = get_user_info()
+        return render_page(content, 'heatmap', user=user)
 
     @app.route('/articles', methods=['GET', 'POST'])
+    @login_required
     def articles():
         from src.analysis.article_manager import ArticleManager, PLATFORM_NAMES
         mgr = ArticleManager()
@@ -1454,9 +1770,11 @@ def create_webui_v3():
         {daily_html if view_mode == 'daily' else f'<div class="card">{list_html}</div>'}
         """
 
-        return render_page(content, 'articles')
+        user = get_user_info()
+        return render_page(content, 'articles', user=user)
 
     @app.route('/alerts')
+    @login_required
     def alerts():
         content = f"""
         <div class="header">
@@ -1497,9 +1815,11 @@ def create_webui_v3():
             </div>
         </div>
         """
-        return render_page(content, 'alerts')
+        user = get_user_info()
+        return render_page(content, 'alerts', user=user)
 
     @app.route('/paper')
+    @login_required
     def paper():
         content = f"""
         <div class="header">
@@ -1535,9 +1855,11 @@ def create_webui_v3():
             </div>
         </div>
         """
-        return render_page(content, 'paper')
+        user = get_user_info()
+        return render_page(content, 'paper', user=user)
 
     @app.route('/stoploss')
+    @login_required
     def stoploss():
         content = f"""
         <div class="header">
@@ -1555,9 +1877,11 @@ def create_webui_v3():
         </div>
         <div class="alert alert-info">💡 支持 <span class="tag">stop_loss</span> 模块，多种止损策略可组合使用</div>
         """
-        return render_page(content, 'stoploss')
+        user = get_user_info()
+        return render_page(content, 'stoploss', user=user)
 
     @app.route('/stress')
+    @login_required
     def stress():
         content = f"""
         <div class="header">
@@ -1575,9 +1899,11 @@ def create_webui_v3():
         </div>
         <div class="alert alert-info">💡 支持 <span class="tag">stress_testing</span> 模块，历史场景 + 蒙特卡洛 + 敏感性分析</div>
         """
-        return render_page(content, 'stress')
+        user = get_user_info()
+        return render_page(content, 'stress', user=user)
 
     @app.route('/compliance')
+    @login_required
     def compliance():
         content = f"""
         <div class="header">
@@ -1601,9 +1927,11 @@ def create_webui_v3():
         </div>
         <div class="alert alert-info">💡 支持 <span class="tag">compliance_checker</span> 模块，20+ 合规规则全面覆盖</div>
         """
-        return render_page(content, 'compliance')
+        user = get_user_info()
+        return render_page(content, 'compliance', user=user)
 
     @app.route('/performance')
+    @login_required
     def performance():
         content = f"""
         <div class="header">
@@ -1636,9 +1964,11 @@ def create_webui_v3():
             </div>
         </div>
         """
-        return render_page(content, 'performance')
+        user = get_user_info()
+        return render_page(content, 'performance', user=user)
 
     @app.route('/behavior')
+    @login_required
     def behavior():
         content = f"""
         <div class="header">
@@ -1656,9 +1986,11 @@ def create_webui_v3():
         </div>
         <div class="alert alert-info">💡 支持 <span class="tag">behavior_analysis</span> 模块，分析交易行为偏差与心理因素</div>
         """
-        return render_page(content, 'behavior')
+        user = get_user_info()
+        return render_page(content, 'behavior', user=user)
 
     @app.route('/paramopt')
+    @login_required
     def paramopt():
         content = f"""
         <div class="header">
@@ -1675,9 +2007,11 @@ def create_webui_v3():
         </div>
         <div class="alert alert-info">💡 支持 <span class="tag">param_optimizer</span> <span class="tag">auto_tuner</span> 模块</div>
         """
-        return render_page(content, 'paramopt')
+        user = get_user_info()
+        return render_page(content, 'paramopt', user=user)
 
     @app.route('/reports')
+    @login_required
     def reports():
         content = f"""
         <div class="header">
@@ -1701,10 +2035,35 @@ def create_webui_v3():
         </div>
         <div class="alert alert-info">💡 支持 <span class="tag">pdf_report</span> <span class="tag">report_generator</span> 模块</div>
         """
-        return render_page(content, 'reports')
+        user = get_user_info()
+        return render_page(content, 'reports', user=user)
 
-    @app.route('/settings')
+    @app.route('/settings', methods=['GET', 'POST'])
+    @login_required
     def settings():
+        user = get_user_info()
+        msg = ''
+        if request.method == 'POST':
+            action = request.form.get('action')
+            if action == 'update_theme':
+                theme = request.form.get('theme', 'dark')
+                lang = request.form.get('language', 'zh')
+                try:
+                    if os.path.exists(_auth_path):
+                        with open(_auth_path, 'r') as f:
+                            cfg = yaml.safe_load(f) or {}
+                        cfg['auth']['admin']['theme'] = theme
+                        cfg['auth']['admin']['language'] = lang
+                        with open(_auth_path, 'w') as f:
+                            yaml.dump(cfg, f, allow_unicode=True, default_flow_style=False)
+                        _load_auth()
+                        msg = '<div class="alert alert-success">✅ 主题和语言设置已保存</div>'
+                except Exception as e:
+                    msg = f'<div class="alert alert-error">❌ 保存失败: {str(e)}</div>'
+
+        current_theme = user.get('theme', 'dark')
+        current_lang = user.get('language', 'zh')
+
         modules = [
             ('数据层', 'Futu/AKShare 双源', '✅ 运行中', 'badge-success'),
             ('分析层', '技术/情绪/ML/因子', '✅ 运行中', 'badge-success'),
@@ -1713,7 +2072,7 @@ def create_webui_v3():
             ('回测层', 'Backtrader/事件驱动', '✅ 运行中', 'badge-success'),
             ('监控层', '报告/绩效/预警', '✅ 运行中', 'badge-success'),
             ('风控层', '止损/对冲/压力', '✅ 运行中', 'badge-success'),
-            ('Web 界面', '20+ 功能页面', '✅ 运行中', 'badge-success'),
+            ('Web 界面', '25+ 功能页面', '✅ 运行中', 'badge-success'),
         ]
 
         rows = []
@@ -1722,24 +2081,61 @@ def create_webui_v3():
 
         content = f"""
         <div class="header">
-            <div><h1>⚙️ 系统设置</h1><p style="color:var(--text-secondary)">配置管理与系统信息</p></div>
+            <div><h1>⚙️ 系统设置</h1><p style="color:var(--text-secondary)">个性化设置与系统信息</p></div>
         </div>
-        <div class="stats-grid">
-            <div class="stat-card"><div class="stat-label">系统版本</div><div class="stat-value" style="font-size:1.5rem">v3.1.0</div></div>
-            <div class="stat-card"><div class="stat-label">Python 文件</div><div class="stat-value" style="font-size:1.5rem">155</div></div>
-            <div class="stat-card"><div class="stat-label">代码行数</div><div class="stat-value" style="font-size:1.5rem">~29K</div></div>
-            <div class="stat-card"><div class="stat-label">功能页面</div><div class="stat-value" style="font-size:1.5rem">20+</div></div>
+        {msg}
+
+        <div class="grid-2">
+            <div class="card">
+                <div class="card-header"><h3 class="card-title">🎨 主题皮肤</h3></div>
+                <form method="POST">
+                    <input type="hidden" name="action" value="update_theme">
+                    <div class="form-group"><label class="form-label">主题</label>
+                        <select name="theme" class="form-select">
+                            <option value="dark" {'selected' if current_theme=='dark' else ''}>🌙 深色模式</option>
+                            <option value="light" {'selected' if current_theme=='light' else ''}>☀️ 浅色模式</option>
+                            <option value="auto" {'selected' if current_theme=='auto' else ''}>💻 跟随系统</option>
+                        </select></div>
+                    <div class="form-group"><label class="form-label">语言</label>
+                        <select name="language" class="form-select">
+                            <option value="zh" {'selected' if current_lang=='zh' else ''}>🇨🇳 简体中文</option>
+                            <option value="en" {'selected' if current_lang=='en' else ''}>🇺🇸 English</option>
+                        </select></div>
+                    <button type="submit" class="btn btn-primary">💾 保存设置</button>
+                </form>
+            </div>
+            <div class="card">
+                <div class="card-header"><h3 class="card-title">👤 个人信息</h3></div>
+                <div class="table-container"><table>
+                    <thead><tr><th>项目</th><th>值</th></tr></thead>
+                    <tbody>
+                        <tr><td>头像</td><td style="font-size:1.5rem">{user.get('avatar', '🦜')}</td></tr>
+                        <tr><td>昵称</td><td>{user.get('nickname', '')}</td></tr>
+                        <tr><td>用户名</td><td>{user.get('username', '')}</td></tr>
+                        <tr><td>邮箱</td><td>{user.get('email', '')}</td></tr>
+                    </tbody>
+                </table></div>
+                <a href="/profile" class="btn btn-secondary" style="margin-top:1rem">📝 修改信息</a>
+            </div>
         </div>
+
         <div class="card">
-            <div class="card-header"><h3 class="card-title">📊 系统模块</h3></div>
+            <div class="card-header"><h3 class="card-title">📊 系统信息</h3></div>
+            <div class="stats-grid">
+                <div class="stat-card"><div class="stat-label">系统版本</div><div class="stat-value" style="font-size:1.5rem">v3.1.0</div></div>
+                <div class="stat-card"><div class="stat-label">Python 文件</div><div class="stat-value" style="font-size:1.5rem">155</div></div>
+                <div class="stat-card"><div class="stat-label">代码行数</div><div class="stat-value" style="font-size:1.5rem">~29K</div></div>
+                <div class="stat-card"><div class="stat-label">功能页面</div><div class="stat-value" style="font-size:1.5rem">25+</div></div>
+            </div>
             {make_table(['模块', '描述', '状态'], rows)}
         </div>
         """
-        return render_page(content, 'settings')
+        return render_page(content, 'settings', user=user)
 
     # ==================== API ENDPOINTS ====================
 
     @app.route('/api/status')
+    @login_required
     def api_status():
         try:
             from src.monitor.system_monitor import SystemMonitor
@@ -1748,12 +2144,14 @@ def create_webui_v3():
             return jsonify({'status': 'ok', 'version': 'v3.1.0'})
 
     @app.route('/api/stocks')
+    @login_required
     def api_stocks():
         stock_names = get_stock_names()
         codes = get_stock_codes()
         return jsonify({'stocks': [{'code': c, 'name': stock_names.get(c, '')} for c in codes]})
 
     @app.route('/api/strategies')
+    @login_required
     def api_strategies():
         strategies = [
             {'name': 'SMA 交叉', 'type': '趋势跟踪', 'status': 'active'},

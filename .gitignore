@@ -44,3 +44,4 @@ data/logs/
 .coverage
 htmlcov/
 PLAN_LOCAL.md
+config/auth.yaml
