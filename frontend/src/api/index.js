@@ -67,3 +67,11 @@ export function getRisk() {
 export function getArticles(params) {
   return request({ url: '/articles', method: 'get', params })
 }
+
+export function getBehavior(params) {
+  return request({ url: '/behavior', method: 'get', params })
+}
+
+export function getEvents(params) {
+  return request({ url: '/events', method: 'get', params })
+}
