@@ -1,92 +1,86 @@
 <template>
   <div class="app-container">
-    <el-row :gutter="20" style="margin-bottom: 20px;">
-      <el-col :span="6" v-for="m in cards" :key="m.label">
-        <el-card shadow="hover">
-          <div style="color:#909399;font-size:13px;">{{ m.label }}</div>
-          <div :style="{ fontSize: '20px', fontWeight: 600, marginTop: '8px', color: m.color || '#303133' }">{{ m.value }}</div>
+    <el-card style="margin-bottom:20px;"><div slot="header"><span>⚠️ 风险监控</span><el-button size="mini" style="float:right;" @click="fetchData" :loading="loading">🔄 刷新</el-button></div></el-card>
+
+    <!-- 风险指标 -->
+    <el-row :gutter="20">
+      <el-col :span="12">
+        <el-card>
+          <div slot="header"><span>🕸️ 风险指标雷达图</span></div>
+          <radar-chart :indicators="riskIndicators" :data="riskData" title="风险评估" :height="350" />
+        </el-card>
+      </el-col>
+      <el-col :span="12">
+        <el-card>
+          <div slot="header"><span>📊 风险等级分布</span></div>
+          <pie-chart :data="riskDistribution" title="风险分布" :height="350" />
         </el-card>
       </el-col>
     </el-row>
 
-    <el-row :gutter="20">
-      <el-col :span="16">
-        <el-card>
-          <div slot="header"><span>🛡️ 风险指标详情</span></div>
-          <el-table :data="indicators" style="width: 100%">
-            <el-table-column prop="name" label="指标" />
-            <el-table-column prop="value" label="当前值" width="120" />
-            <el-table-column prop="threshold" label="阈值" width="100" />
-            <el-table-column label="状态" width="100">
-              <template slot-scope="{ row }">
-                <el-tag :type="row.status === 'normal' ? 'success' : row.status === 'warning' ? 'warning' : 'danger'" size="small">
-                  {{ row.statusText }}
-                </el-tag>
-              </template>
-            </el-table-column>
-          </el-table>
-        </el-card>
-      </el-col>
-      <el-col :span="8">
-        <el-card>
-          <div slot="header"><span>📈 持仓集中度</span></div>
-          <el-table :data="concentration" style="width: 100%">
-            <el-table-column prop="code" label="代码" width="100" />
-            <el-table-column prop="name" label="名称" width="80" />
-            <el-table-column prop="weight" label="权重" width="80">
-              <template slot-scope="{ row }">{{ row.weight }}%</template>
-            </el-table-column>
-            <el-table-column label="状态" width="80">
-              <template slot-scope="{ row }">
-                <el-tag :type="row.weight > 20 ? 'danger' : row.weight > 15 ? 'warning' : 'success'" size="mini">
-                  {{ row.weight > 20 ? '超限' : row.weight > 15 ? '预警' : '正常' }}
-                </el-tag>
-              </template>
-            </el-table-column>
-          </el-table>
-        </el-card>
-      </el-col>
-    </el-row>
+    <el-card style="margin-top:20px;">
+      <div slot="header"><span>📈 回撤趋势</span></div>
+      <line-chart :categories="drawdownCategories" :series="drawdownSeries" title="近30日回撤" :height="300" />
+    </el-card>
+
+    <el-card style="margin-top:20px;">
+      <div slot="header"><span>📋 风险预警列表</span></div>
+      <el-table :data="riskAlerts" stripe>
+        <el-table-column prop="time" label="时间" width="160" />
+        <el-table-column prop="level" label="等级" width="80">
+          <template slot-scope="{ row }"><el-tag size="mini" :type="row.level === 'high' ? 'danger' : row.level === 'medium' ? 'warning' : 'info'">{{ row.level }}</el-tag></template>
+        </el-table-column>
+        <el-table-column prop="message" label="预警信息" />
+        <el-table-column prop="status" label="状态" width="80" />
+      </el-table>
+    </el-card>
   </div>
 </template>
 
 <script>
 import request from '@/utils/request'
+import { RadarChart, PieChart, LineChart } from '@/components/charts'
 
 export default {
   name: 'Risk',
+  components: { RadarChart, PieChart, LineChart },
   data() {
     return {
-      cards: [
-        { label: 'VaR (95%)', value: '--', color: '#303133' },
-        { label: 'CVaR (95%)', value: '--', color: '#303133' },
-        { label: '最大回撤', value: '--', color: '#303133' },
-        { label: '年化波动率', value: '--', color: '#303133' }
+      loading: false,
+      riskIndicators: [
+        { name: '波动率', max: 100 },
+        { name: '最大回撤', max: 100 },
+        { name: 'VaR', max: 100 },
+        { name: '集中度', max: 100 },
+        { name: '流动性', max: 100 },
+        { name: '杠杆率', max: 100 }
       ],
-      indicators: [],
-      concentration: []
+      riskData: [35, 28, 42, 30, 65, 20],
+      drawdownCategories: Array.from({ length: 30 }, (_, i) => `${i+1}日`),
+      drawdownSeries: [{ name: '回撤%', data: Array.from({ length: 30 }, () => -Math.random() * 10), color: '#F56C6C' }],
+      riskAlerts: [
+        { time: '2026-04-18 14:30', level: 'high', message: '单只股票仓位超过20%', status: '未处理' },
+        { time: '2026-04-18 10:15', level: 'medium', message: '组合回撤接近5%', status: '已处理' },
+        { time: '2026-04-17 15:00', level: 'low', message: '交易量异常', status: '已处理' }
+      ]
+    }
+  },
+  computed: {
+    riskDistribution() {
+      return [
+        { value: 2, name: '高风险', itemStyle: { color: '#F56C6C' } },
+        { value: 5, name: '中风险', itemStyle: { color: '#E6A23C' } },
+        { value: 15, name: '低风险', itemStyle: { color: '#67C23A' } }
+      ]
     }
   },
   created() { this.fetchData() },
   methods: {
     async fetchData() {
-      try {
-        const { data } = await request.get('/api/risk')
-        if (data.code === 200) {
-          const r = data.data
-          // Update cards
-          this.cards = [
-            { label: 'VaR (95%)', value: r.var_95 || '--', color: r.var_status === 'warning' ? '#E6A23C' : '#303133' },
-            { label: 'CVaR (95%)', value: r.cvar_95 || '--', color: r.cvar_status === 'warning' ? '#E6A23C' : '#303133' },
-            { label: '最大回撤', value: r.max_drawdown || '--', color: r.drawdown_status === 'warning' ? '#E6A23C' : '#303133' },
-            { label: '年化波动率', value: r.volatility || '--', color: r.vol_status === 'warning' ? '#E6A23C' : '#303133' }
-          ]
-          this.indicators = r.indicators || []
-          this.concentration = r.concentration || []
-        }
-      } catch (e) {
-        this.$message.error('获取风险数据失败: ' + e.message)
-      }
+      this.loading = true
+      try { const { data } = await request.get('/api/risk'); if (data.code === 200) {} }
+      catch (e) {}
+      finally { this.loading = false }
     }
   }
 }

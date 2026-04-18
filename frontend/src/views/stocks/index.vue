@@ -23,8 +23,31 @@
       </el-form>
     </el-card>
 
+    <!-- 图表区 -->
+    <el-row :gutter="20" style="margin-bottom:20px;">
+      <el-col :span="8">
+        <el-card>
+          <div slot="header"><span>📊 涨跌分布</span></div>
+          <pie-chart :data="changeDistribution" title="涨/平/跌" :height="250" />
+        </el-card>
+      </el-col>
+      <el-col :span="8">
+        <el-card>
+          <div slot="header"><span>🥧 行业占比</span></div>
+          <pie-chart :data="industryDistribution" title="行业分布" :height="250" />
+        </el-card>
+      </el-col>
+      <el-col :span="8">
+        <el-card>
+          <div slot="header"><span>📈 成交量 Top10</span></div>
+          <bar-chart :data="topVolumeData" :categories="topVolumeCategories" title="成交量排行" :height="250" :horizontal="true" />
+        </el-card>
+      </el-col>
+    </el-row>
+
+    <!-- 股票表格 -->
     <el-card>
-      <el-table :data="filtered" style="width: 100%" v-loading="loading">
+      <el-table :data="filtered" style="width: 100%" v-loading="loading" stripe>
         <el-table-column prop="code" label="代码" width="120" />
         <el-table-column prop="name" label="名称" width="100" />
         <el-table-column prop="price" label="最新价" width="90" />
@@ -74,8 +97,11 @@
 
 <script>
 import request from '@/utils/request'
+import { PieChart, BarChart } from '@/components/charts'
+
 export default {
   name: 'Stocks',
+  components: { PieChart, BarChart },
   data() {
     return {
       stocks: [],
@@ -94,6 +120,35 @@ export default {
       importCsv: ''
     }
   },
+  computed: {
+    changeDistribution() {
+      const up = this.stocks.filter(s => s.change > 0).length
+      const down = this.stocks.filter(s => s.change < 0).length
+      const flat = this.stocks.length - up - down
+      return [
+        { value: up, name: '上涨', itemStyle: { color: '#26a69a' } },
+        { value: flat, name: '平盘', itemStyle: { color: '#909399' } },
+        { value: down, name: '下跌', itemStyle: { color: '#ef5350' } }
+      ]
+    },
+    industryDistribution() {
+      const industries = {}
+      this.stocks.forEach(s => {
+        const ind = s.industry || '其他'
+        industries[ind] = (industries[ind] || 0) + 1
+      })
+      const colors = ['#409EFF', '#67C23A', '#E6A23C', '#F56C6C', '#909399', '#ffeb3b', '#ff9800']
+      return Object.entries(industries).map(([name, value], i) => ({
+        name, value, itemStyle: { color: colors[i % colors.length] }
+      }))
+    },
+    topVolumeData() {
+      return [...this.stocks].sort((a, b) => (b.volume || 0) - (a.volume || 0)).slice(0, 10).map(s => s.volume || 0)
+    },
+    topVolumeCategories() {
+      return [...this.stocks].sort((a, b) => (b.volume || 0) - (a.volume || 0)).slice(0, 10).map(s => s.name)
+    }
+  },
   created() { this.fetchData(); this.fetchGroups() },
   methods: {
     async fetchData() {
@@ -101,18 +156,19 @@ export default {
       try {
         const { data } = await request.get('/api/stocks', { params: { page: this.page } })
         if (data.code === 200) {
-          this.stocks = (data.data.list || []).map(s => ({ ...s, groups: ['watchlist'] }))
+          this.stocks = (data.data.list || []).map(s => ({ ...s, groups: ['watchlist'], industry: this.getIndustry(s.code) }))
           this.total = data.data.total || 0
           this.filterStocks()
         }
       } catch (e) { this.$message.error('获取股票数据失败') }
       finally { this.loading = false }
     },
+    getIndustry(code) {
+      const map = { 'SH.600519': '白酒', 'SZ.000858': '白酒', 'SZ.300750': '新能源', 'SZ.002594': '新能源', 'SH.601318': '金融', 'SH.600036': '金融', 'SZ.002415': '科技', 'SZ.002230': '科技' }
+      return map[code] || '其他'
+    },
     async fetchGroups() {
-      try {
-        const { data } = await request.get('/api/stock-groups')
-        if (data.code === 200) this.groups = data.data.groups || {}
-      } catch (e) {}
+      try { const { data } = await request.get('/api/stock-groups'); if (data.code === 200) this.groups = data.data.groups || {} } catch (e) {}
     },
     filterStocks() {
       let list = this.stocks
@@ -128,20 +184,13 @@ export default {
     async addStock() {
       if (!this.newStock.code) return this.$message.warning('请输入股票代码')
       this.adding = true
-      try {
-        await request.post('/api/stocks', this.newStock)
-        this.$message.success('添加成功')
-        this.addDialogVisible = false
-        this.fetchData()
-      } catch (e) { this.$message.error('添加失败') }
+      try { await request.post('/api/stocks', this.newStock); this.$message.success('添加成功'); this.addDialogVisible = false; this.fetchData() }
+      catch (e) { this.$message.error('添加失败') }
       finally { this.adding = false }
     },
     async deleteStock(code) {
-      try {
-        await request.delete(`/api/stocks/${code}`)
-        this.$message.success('已删除')
-        this.fetchData()
-      } catch (e) { this.$message.error('删除失败') }
+      try { await request.delete(`/api/stocks/${code}`); this.$message.success('已删除'); this.fetchData() }
+      catch (e) { this.$message.error('删除失败') }
     },
     showImportDialog() { this.importCsv = ''; this.importDialogVisible = true },
     async importStocks() {
@@ -149,11 +198,7 @@ export default {
       this.importing = true
       try {
         const { data } = await request.post('/api/stock-import', { csv: this.importCsv })
-        if (data.code === 200) {
-          this.$message.success(`导入成功: ${data.data.imported}只, 跳过${data.data.skipped}只`)
-          this.importDialogVisible = false
-          this.fetchData()
-        }
+        if (data.code === 200) { this.$message.success(`导入成功: ${data.data.imported}只, 跳过${data.data.skipped}只`); this.importDialogVisible = false; this.fetchData() }
       } catch (e) { this.$message.error('导入失败') }
       finally { this.importing = false }
     },
