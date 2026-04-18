@@ -1,0 +1,47 @@
+// 前端构建优化配置
+module.exports = {
+  // 生产环境关闭 source map
+  productionSourceMap: false,
+  
+  // 代码分割优化
+  configureWebpack: {
+    performance: {
+      hints: false
+    },
+    optimization: {
+      splitChunks: {
+        chunks: 'all',
+        cacheGroups: {
+          vendor: {
+            test: /[\\/]node_modules[\\/]/,
+            name: 'vendor',
+            chunks: 'all',
+            priority: 10
+          },
+          echarts: {
+            test: /[\\/]node_modules[\\/]echarts[\\/]/,
+            name: 'echarts',
+            chunks: 'all',
+            priority: 20
+          },
+          lightweight: {
+            test: /[\\/]node_modules[\\/]lightweight-charts[\\/]/,
+            name: 'lightweight-charts',
+            chunks: 'all',
+            priority: 20
+          }
+        }
+      }
+    }
+  },
+  
+  // Gzip 压缩
+  chainWebpack: config => {
+    config.plugin('compression-webpack-plugin')
+      .use(require('compression-webpack-plugin'), [{
+        test: /\.(js|css|html|svg)$/,
+        threshold: 10240,
+        minRatio: 0.8
+      }])
+  }
+}

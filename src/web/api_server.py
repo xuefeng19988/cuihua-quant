@@ -552,6 +552,12 @@ def serve_vue(path):
 app.register_blueprint(auth_bp)
 app.register_blueprint(reports_bp)
 app.register_blueprint(viz_bp)
+app.register_blueprint(optimizer_bp)
+# 注册错误处理器
+from src.web.modules.error_handler import ErrorHandler
+ErrorHandler.register(app)
+
+# 注: cache 和 rate_limit 可作为装饰器直接使用
 
 if __name__ == '__main__':
     sn = get_stock_names()  # 加载股票名称
@@ -3364,4 +3370,151 @@ def api_categories():
 from src.web.modules.auth import auth_bp
 from src.web.modules.reports import reports_bp
 from src.web.modules.visualization import viz_bp
+from src.web.modules.optimizer import optimizer_bp
+from src.web.modules.cache import cache, cached
+from src.web.modules.rate_limiter import rate_limit
 
+
+# ========== 缓存装饰器 (应用于高频查询API) ==========
+from functools import wraps
+import time
+
+_api_cache = {}
+_api_cache_ttl = {}
+
+def cache_api(ttl=300):
+    """API缓存装饰器"""
+    def decorator(f):
+        @wraps(f)
+        def decorated(*args, **kwargs):
+            key = f"{f.__name__}:{str(request.args)}"
+            now = time.time()
+            if key in _api_cache and key in _api_cache_ttl:
+                if now < _api_cache_ttl[key]:
+                    return _api_cache[key]
+            result = f(*args, **kwargs)
+            _api_cache[key] = result
+            _api_cache_ttl[key] = now + ttl
+            return result
+        return decorated
+    return decorator
+
+# 应用缓存到高频查询API
+api_stocks = cache_api(60)(api_stocks)
+api_heatmap = cache_api(120)(api_heatmap)
+api_fund_flow = cache_api(90)(api_fund_flow)
+api_sector_rotation = cache_api(90)(api_sector_rotation)
+api_market_sentiment = cache_api(60)(api_market_sentiment)
+
+# ========== 安全中间件 ==========
+@app.before_request
+def security_check():
+    """请求安全检查"""
+    # SQL注入检测
+    sql_patterns = ['SELECT ', 'INSERT ', 'UPDATE ', 'DELETE ', 'DROP ', 'UNION ', '--', ';']
+    for param in list(request.args.values()) + list(request.form.values()):
+        if isinstance(param, str):
+            upper = param.upper()
+            if any(p in upper for p in sql_patterns):
+                return jsonify({'code': 400, 'message': '非法请求'}), 400
+
+# ========== 性能监控 ==========
+_request_times = {}
+
+@app.before_request
+def before_request_timer():
+    request._start_time = time.time()
+
+@app.after_request
+def after_request_timer(response):
+    if hasattr(request, '_start_time'):
+        elapsed = (time.time() - request._start_time) * 1000
+        endpoint = request.endpoint or 'unknown'
+        if endpoint not in _request_times:
+            _request_times[endpoint] = {'count': 0, 'total': 0, 'max': 0}
+        _request_times[endpoint]['count'] += 1
+        _request_times[endpoint]['total'] += elapsed
+        _request_times[endpoint]['max'] = max(_request_times[endpoint]['max'], elapsed)
+        response.headers['X-Response-Time'] = f'{elapsed:.2f}ms'
+    return response
+
+@app.route('/api/system/stats', methods=['GET'])
+@token_required
+def api_system_stats():
+    """系统统计信息"""
+    stats = {}
+    for endpoint, data in _request_times.items():
+        stats[endpoint] = {
+            **data,
+            'avg': round(data['total'] / data['count'], 2) if data['count'] > 0 else 0
+        }
+    
+    return jsonify({
+        'code': 200,
+        'data': {
+            'api_performance': stats,
+            'cache_entries': len(_api_cache),
+            'uptime': '运行中'
+        }
+    })
+
+@app.route('/api/system/cache/clear', methods=['POST'])
+@token_required
+def api_clear_cache():
+    """清空API缓存"""
+    _api_cache.clear()
+    _api_cache_ttl.clear()
+    return jsonify({'code': 200, 'message': '缓存已清空', 'cleared': len(_api_cache)})
+
+# ========== 响应压缩 ==========
+from flask import make_response
+import gzip
+import io
+
+@app.after_request
+def compress_response(response):
+    """响应压缩 (Gzip)"""
+    accept_encoding = request.headers.get('Accept-Encoding', '')
+    if 'gzip' not in accept_encoding.lower():
+        return response
+    
+    if (response.content_type and 'text' in response.content_type.lower()) or \
+       (response.content_type and 'json' in response.content_type.lower()):
+        if len(response.data) > 1024:
+            gzip_buffer = io.BytesIO()
+            with gzip.GzipFile(mode='wb', fileobj=gzip_buffer) as gzip_file:
+                gzip_file.write(response.data)
+            response.data = gzip_buffer.getvalue()
+            response.headers['Content-Encoding'] = 'gzip'
+            response.headers['Vary'] = 'Accept-Encoding'
+            response.headers['Content-Length'] = len(response.data)
+    
+    return response
+
+# ========== 数据库连接池配置 ==========
+# SQLAlchemy 已自动管理连接池，以下配置优化连接池参数
+# 在 database.py 中已配置:
+#   pool_size=10, max_overflow=20, pool_recycle=3600
+
+# ========== API 自动文档 ==========
+@app.route('/api/docs', methods=['GET'])
+def api_docs():
+    """API 文档"""
+    rules = []
+    for rule in app.url_map.iter_rules():
+        if '/api/' in rule.rule:
+            rules.append({
+                'endpoint': rule.rule,
+                'methods': sorted([m for m in rule.methods if m not in ['HEAD', 'OPTIONS']]),
+                'description': rule.endpoint
+            })
+    
+    return jsonify({
+        'code': 200,
+        'data': {
+            'name': '翠花量化系统 API',
+            'version': '5.1.0',
+            'total_endpoints': len(rules),
+            'endpoints': rules
+        }
+    })
