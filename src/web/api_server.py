@@ -1457,21 +1457,7 @@ def api_notifications():
     return jsonify({'code': 200, 'data': {'notifications': notifs, 'unread': unread}})
 
 
-@app.route('/api/cache/stats', methods=['GET'])
-@token_required
-def api_cache_stats():
-    """查询缓存统计 (Phase 135)"""
-    return jsonify({
-        'code': 200,
-        'data': {
-            'enabled': True,
-            'hit_rate': 78.5,
-            'total_requests': 15420,
-            'cache_hits': 12104,
-            'cache_size': '45.2MB',
-            'avg_response_time': '120ms'
-        }
-    })
+
 
 
 # ========== Phase 137+: 更多新功能 ==========
@@ -2164,20 +2150,7 @@ def api_logs():
     })
 
 
-@app.route('/api/docker/status', methods=['GET'])
-@token_required
-def api_docker_status():
-    """Docker状态 (Phase 161)"""
-    return jsonify({
-        'code': 200,
-        'data': {
-            'running': True,
-            'containers': [
-                {'name': 'cuihua-web', 'status': 'running', 'port': 5000},
-                {'name': 'cuihua-db', 'status': 'running', 'port': 5432}
-            ]
-        }
-    })
+
 
 
 # ========== Phase 168: 笔记系统 (数据库存储) ==========
