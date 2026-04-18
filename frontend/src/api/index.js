@@ -159,3 +159,31 @@ export function getAlertConfig() {
 export function saveAlertConfig(data) {
   return request({ url: '/alert-config', method: 'post', data })
 }
+
+export function getStrategyBacktest() {
+  return request({ url: '/strategy-backtest', method: 'get' })
+}
+
+export function runStrategyBacktest(data) {
+  return request({ url: '/strategy-backtest', method: 'post', data })
+}
+
+export function getPortfolioReport() {
+  return request({ url: '/portfolio-report', method: 'get' })
+}
+
+export function getIndustryCompare() {
+  return request({ url: '/industry-compare', method: 'get' })
+}
+
+export function getMacroData() {
+  return request({ url: '/macro-data', method: 'get' })
+}
+
+export function getSentiment() {
+  return request({ url: '/sentiment', method: 'get' })
+}
+
+export function getTradeCalendar() {
+  return request({ url: '/trade-calendar', method: 'get' })
+}

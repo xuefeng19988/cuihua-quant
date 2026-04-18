@@ -46,6 +46,12 @@ export const constantRoutes = [
   { path: '/fund-flow', component: Layout, children: [{ path: '', name: 'FundFlow', component: () => import('@/views/fund-flow/index'), meta: { title: '资金流向', icon: 'el-icon-money' } }] },
   { path: '/financial-data', component: Layout, children: [{ path: '', name: 'FinancialData', component: () => import('@/views/financial-data/index'), meta: { title: '财务数据', icon: 'el-icon-document' } }] },
   { path: '/trade-simulator', component: Layout, children: [{ path: '', name: 'TradeSimulator', component: () => import('@/views/trade-simulator/index'), meta: { title: '模拟交易', icon: 'el-icon-s-order' } }] },
+  { path: '/strategy-backtest', component: Layout, children: [{ path: '', name: 'StrategyBacktest', component: () => import('@/views/strategy-backtest/index'), meta: { title: '策略回测', icon: 'el-icon-s-claim' } }] },
+  { path: '/portfolio-report', component: Layout, children: [{ path: '', name: 'PortfolioReport', component: () => import('@/views/portfolio-report/index'), meta: { title: '持仓报告', icon: 'el-icon-s-management' } }] },
+  { path: '/industry-compare', component: Layout, children: [{ path: '', name: 'IndustryCompare', component: () => import('@/views/industry-compare/index'), meta: { title: '行业对比', icon: 'el-icon-s-data' } }] },
+  { path: '/macro-data', component: Layout, children: [{ path: '', name: 'MacroData', component: () => import('@/views/macro-data/index'), meta: { title: '宏观数据', icon: 'el-icon-s-marketing' } }] },
+  { path: '/sentiment', component: Layout, children: [{ path: '', name: 'Sentiment', component: () => import('@/views/sentiment/index'), meta: { title: '市场情绪', icon: 'el-icon-s-custom' } }] },
+  { path: '/trade-calendar', component: Layout, children: [{ path: '', name: 'TradeCalendar', component: () => import('@/views/trade-calendar/index'), meta: { title: '交易日历', icon: 'el-icon-date' } }] },
   { path: '/settings', component: Layout, children: [{ path: '', name: 'Settings', component: () => import('@/views/settings/index'), meta: { title: '系统设置', icon: 'el-icon-s-tools' } }] },
   { path: '*', redirect: '/404', hidden: true }
 ]
