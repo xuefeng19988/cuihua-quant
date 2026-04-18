@@ -1,6 +1,6 @@
 <template>
   <div class="app-container">
-    <el-card style="margin-bottom: 20px;">
+    <el-card style="margin-bottom:20px;">
       <div slot="header">
         <span>⭐ 自选股</span>
         <div style="float:right;display:flex;gap:8px;align-items:center;">
@@ -19,7 +19,7 @@
       </el-form>
     </el-card>
 
-    <!-- 行情概览 -->
+    <!-- 组合概览 -->
     <el-row :gutter="16" style="margin-bottom:20px;">
       <el-col :span="6"><el-card shadow="hover" style="text-align:center;"><div style="color:#909399;font-size:12px;">自选总数</div><div style="font-size:24px;font-weight:600;">{{ watchlist.length }}</div></el-card></el-col>
       <el-col :span="6"><el-card shadow="hover" style="text-align:center;"><div style="color:#909399;font-size:12px;">上涨</div><div style="font-size:24px;font-weight:600;color:#26a69a;">{{ upCount }}</div></el-card></el-col>
@@ -27,31 +27,8 @@
       <el-col :span="6"><el-card shadow="hover" style="text-align:center;"><div style="color:#909399;font-size:12px;">平均涨跌幅</div><div style="font-size:24px;font-weight:600;" :style="{color: avgChange >= 0 ? '#26a69a' : '#ef5350'}">{{ avgChange >= 0 ? '+' : '' }}{{ avgChange }}%</div></el-card></el-col>
     </el-row>
 
-    <!-- 卡片视图 -->
-    <el-row :gutter="16" v-if="viewMode === 'card'">
-      <el-col :span="6" v-for="stock in filteredWatchlist" :key="stock.code" style="margin-bottom:16px;">
-        <el-card shadow="hover" class="stock-card" @click.native="goToDetail(stock)">
-          <div class="card-header">
-            <div>
-              <h4 class="stock-name">{{ stock.name }}</h4>
-              <span class="stock-code">{{ stock.code }}</span>
-            </div>
-            <el-tag size="mini" :type="stock.group === '核心' ? 'danger' : stock.group === '港股' ? 'warning' : 'info'">{{ stock.group || '默认' }}</el-tag>
-          </div>
-          <div class="card-price" :class="stock.change >= 0 ? 'up' : 'down'">
-            <div class="price-value">{{ stock.price || '-' }}</div>
-            <div class="price-change">{{ stock.change >= 0 ? '+' : '' }}{{ stock.change }}%</div>
-          </div>
-          <div class="card-footer">
-            <span>量: {{ (stock.volume/10000).toFixed(0) }}万</span>
-            <span>额: {{ (stock.amount/100000000).toFixed(2) }}亿</span>
-          </div>
-        </el-card>
-      </el-col>
-    </el-row>
-
     <!-- 表格视图 -->
-    <el-card v-else>
+    <el-card v-if="viewMode === 'table'">
       <el-table :data="filteredWatchlist" style="width:100%" v-loading="loading" stripe @row-click="goToDetail">
         <el-table-column prop="code" label="代码" width="110" />
         <el-table-column prop="name" label="名称" width="100" />
@@ -59,11 +36,8 @@
         <el-table-column prop="change" label="涨跌幅" width="90">
           <template slot-scope="{ row }"><span :style="{ color: row.change > 0 ? '#26a69a' : row.change < 0 ? '#ef5350' : '#909399', fontWeight: 600 }">{{ row.change > 0 ? '+' : '' }}{{ row.change }}%</span></template>
         </el-table-column>
-        <el-table-column label="涨跌额" width="90">
-          <template slot-scope="{ row }"><span :style="{color: row.change > 0 ? '#26a69a' : '#ef5350'}">{{ row.changeAmount?.toFixed(2) || '-' }}</span></template>
-        </el-table-column>
+        <el-table-column label="涨跌额" width="90"><template slot-scope="{ row }"><span :style="{color: row.changeAmount >= 0 ? '#26a69a' : '#ef5350'}">{{ row.changeAmount >= 0 ? '+' : '' }}{{ row.changeAmount?.toFixed(2) || '-' }}</span></template></el-table-column>
         <el-table-column prop="volume" label="成交量" width="100"><template slot-scope="{ row }">{{ (row.volume/10000).toFixed(0) }}万</template></el-table-column>
-        <el-table-column prop="amount" label="成交额" width="100"><template slot-scope="{ row }">{{ (row.amount/100000000).toFixed(2) }}亿</template></el-table-column>
         <el-table-column prop="group" label="分组" width="80"><template slot-scope="{ row }"><el-tag size="mini" :type="row.group === '核心' ? 'danger' : 'info'">{{ row.group || '默认' }}</el-tag></template></el-table-column>
         <el-table-column label="操作" width="120" fixed="right">
           <template slot-scope="{ row }">
@@ -73,6 +47,26 @@
         </el-table-column>
       </el-table>
     </el-card>
+
+    <!-- 卡片视图 -->
+    <el-row :gutter="16" v-else>
+      <el-col :span="6" v-for="stock in filteredWatchlist" :key="stock.code" style="margin-bottom:16px;">
+        <el-card shadow="hover" class="stock-card" @click.native="goToDetail(stock)">
+          <div class="card-header">
+            <div><h4 class="stock-name">{{ stock.name }}</h4><span class="stock-code">{{ stock.code }}</span></div>
+            <el-tag size="mini" :type="stock.group === '核心' ? 'danger' : stock.group === '港股' ? 'warning' : 'info'">{{ stock.group || '默认' }}</el-tag>
+          </div>
+          <div class="card-price" :class="stock.change >= 0 ? 'up' : 'down'">
+            <div class="price-value">{{ stock.price || '-' }}</div>
+            <div class="price-change">{{ stock.change >= 0 ? '+' : '' }}{{ stock.change }}%</div>
+          </div>
+          <div class="card-footer">
+            <span>量: {{ (stock.volume/10000).toFixed(0) }}万</span>
+            <el-button size="mini" type="danger" icon="el-icon-delete" circle @click.stop="removeStock(stock)"></el-button>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
 
     <!-- 添加对话框 -->
     <el-dialog title="添加自选股" :visible.sync="addDialogVisible" width="400px">
@@ -92,20 +86,13 @@ export default {
   name: 'Watchlist',
   data() {
     return {
-      watchlist: [
-        { code: 'SH.600519', name: '贵州茅台', price: 1720.50, change: 2.35, changeAmount: 39.50, volume: 1250000, amount: 2150000000, group: '核心' },
-        { code: 'SZ.002594', name: '比亚迪', price: 295.80, change: -1.25, changeAmount: -3.75, volume: 2850000, amount: 843000000, group: '核心' },
-        { code: 'SH.601318', name: '中国平安', price: 50.20, change: 0.85, changeAmount: 0.42, volume: 3200000, amount: 160600000, group: '核心' },
-        { code: 'SZ.300750', name: '宁德时代', price: 215.60, change: 3.15, changeAmount: 6.59, volume: 1850000, amount: 398900000, group: '观察' },
-        { code: 'HK.00700', name: '腾讯控股', price: 320.40, change: -0.75, changeAmount: -2.42, volume: 980000, amount: 314000000, group: '港股' },
-        { code: 'HK.09988', name: '阿里巴巴', price: 85.60, change: 1.85, changeAmount: 1.56, volume: 1250000, amount: 107000000, group: '港股' }
-      ],
+      watchlist: [],
       filterGroup: '',
       sortBy: 'change',
       viewMode: 'card',
       loading: false,
-      addDialogVisible: false,
       adding: false,
+      addDialogVisible: false,
       newStock: { code: '', name: '', group: '观察' },
       groups: ['核心', '观察', '港股']
     }
@@ -123,10 +110,9 @@ export default {
     downCount() { return this.watchlist.filter(s => s.change < 0).length },
     avgChange() { return this.watchlist.length > 0 ? (this.watchlist.reduce((sum, s) => sum + s.change, 0) / this.watchlist.length).toFixed(2) : 0 }
   },
+  created() { this.fetchData() },
   methods: {
-    filterWatchlist() {},
-    sortWatchlist() {},
-    async refresh() {
+    async fetchData() {
       this.loading = true
       try {
         const { data } = await request.get('/api/watchlist')
@@ -134,13 +120,15 @@ export default {
       } catch (e) { this.$message.error('刷新失败') }
       finally { this.loading = false }
     },
+    filterWatchlist() {},
+    sortWatchlist() {},
     showAddDialog() { this.newStock = { code: '', name: '', group: '观察' }; this.addDialogVisible = true },
     async addStock() {
       if (!this.newStock.code) return this.$message.warning('请输入代码')
       try {
         await request.post('/api/watchlist', this.newStock)
         this.$message.success('添加成功')
-        this.watchlist.push({ ...this.newStock, price: 0, change: 0, volume: 0, amount: 0 })
+        this.watchlist.push({ ...this.newStock, price: 0, change: 0, volume: 0 })
         this.addDialogVisible = false
       } catch (e) { this.$message.error('添加失败') }
     },
@@ -160,7 +148,8 @@ export default {
       link.download = `watchlist_${new Date().toISOString().slice(0,10)}.csv`
       link.click()
       this.$message.success(`已导出 ${this.watchlist.length} 只自选股`)
-    }
+    },
+    async refresh() { this.fetchData() }
   }
 }
 </script>
@@ -170,8 +159,7 @@ export default {
 .el-card { background: #1a1a2e !important; border: 1px solid #2a2a3e !important; }
 .el-card__header { border-bottom: 1px solid #2a2a3e !important; }
 
-/* 股票卡片 */
-.stock-card { cursor: pointer; transition: transform 0.2s; background: #1a1a2e !important; border: 1px solid #2a2a3e !important; }
+.stock-card { cursor: pointer; transition: transform 0.2s; }
 .stock-card:hover { transform: translateY(-4px); }
 
 .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }

@@ -83,3 +83,8 @@ export const constantRoutes = [
 ]
 
 export default new Router({ mode: 'history', scrollBehavior: () => ({ y: 0 }), routes: constantRoutes })
+
+// Phase 266: 知识库管理
+constantRoutes.push(
+  { path: '/knowledge-base', component: Layout, children: [{ path: '', name: 'KnowledgeBase', component: () => import('@/views/knowledge-base/index'), meta: { title: '知识库', icon: 'el-icon-notebook-2' } }] }
+)
