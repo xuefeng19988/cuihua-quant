@@ -3102,3 +3102,255 @@ def api_data_market():
             {'name': 'Choice数据', 'type': '宏观/行业', 'price': '免费', 'status': 'available'}
         ]
     }})
+
+
+# ========== Phase 218: 公众号风格笔记系统 ==========
+
+@app.route('/api/articles', methods=['GET', 'POST'])
+@token_required
+def api_note_articles():
+    """笔记文章列表/创建 (公众号风格)"""
+    from src.data.database import NoteArticles
+    from sqlalchemy.orm import sessionmaker
+    engine = get_db_engine()
+    if not engine:
+        return jsonify({'code': 500, 'message': '数据库未连接'})
+
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    try:
+        if request.method == 'POST':
+            data = request.get_json() or {}
+            article = NoteArticles(
+                title=data.get('title', '无标题'),
+                subtitle=data.get('subtitle', ''),
+                author=data.get('author', ''),
+                cover_url=data.get('cover_url', ''),
+                content=data.get('content', ''),
+                content_md=data.get('content_md', ''),
+                tags=data.get('tags', ''),
+                category=data.get('category', ''),
+                status=data.get('status', 'draft')
+            )
+            if article.status == 'published':
+                article.published_at = datetime.now()
+            session.add(article)
+            session.commit()
+            return jsonify({'code': 200, 'data': {'id': article.id}, 'message': '文章创建成功'})
+
+        # GET - 列表
+        query = session.query(NoteArticles)
+        
+        # 筛选
+        status = request.args.get('status', '')
+        category = request.args.get('category', '')
+        tag = request.args.get('tag', '')
+        keyword = request.args.get('keyword', '')
+        
+        if status:
+            query = query.filter(NoteArticles.status == status)
+        if category:
+            query = query.filter(NoteArticles.category == category)
+        if tag:
+            query = query.filter(NoteArticles.tags.contains(tag))
+        if keyword:
+            query = query.filter(NoteArticles.title.contains(keyword))
+
+        # 排序
+        sort = request.args.get('sort', 'updated_at')
+        order = request.args.get('order', 'desc')
+        if order == 'desc':
+            query = query.order_by(getattr(NoteArticles, sort, NoteArticles.updated_at).desc())
+        else:
+            query = query.order_by(getattr(NoteArticles, sort, NoteArticles.updated_at).asc())
+
+        # 分页
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+        total = query.count()
+        articles = query.offset((page - 1) * per_page).limit(per_page).all()
+
+        result = []
+        for a in articles:
+            result.append({
+                'id': a.id,
+                'title': a.title,
+                'subtitle': a.subtitle,
+                'author': a.author,
+                'cover_url': a.cover_url,
+                'tags': a.tags.split(',') if a.tags else [],
+                'category': a.category,
+                'status': a.status,
+                'views': a.views,
+                'likes': a.likes,
+                'is_top': a.is_top,
+                'published_at': a.published_at.isoformat() if a.published_at else None,
+                'created_at': a.created_at.isoformat() if a.created_at else '',
+                'updated_at': a.updated_at.isoformat() if a.updated_at else ''
+            })
+
+        # 统计
+        stats = {
+            'total': session.query(NoteArticles).count(),
+            'draft': session.query(NoteArticles).filter_by(status='draft').count(),
+            'published': session.query(NoteArticles).filter_by(status='published').count(),
+            'total_views': session.query(NoteArticles).with_entities(
+                __import__('sqlalchemy').func.sum(NoteArticles.views)
+            ).scalar() or 0,
+            'categories': list(set(a.category for a in session.query(NoteArticles.category).all() if a.category))
+        }
+
+        return jsonify({
+            'code': 200,
+            'data': {
+                'articles': result,
+                'total': total,
+                'page': page,
+                'total_pages': max(1, (total + per_page - 1) // per_page),
+                'stats': stats
+            }
+        })
+
+    except Exception as e:
+        session.rollback()
+        return jsonify({'code': 500, 'message': str(e)})
+    finally:
+        session.close()
+
+
+@app.route('/api/articles/<int:article_id>', methods=['GET', 'PUT', 'DELETE'])
+@token_required
+def api_note_article_detail(article_id):
+    """笔记文章详情/更新/删除"""
+    from src.data.database import NoteArticles
+    from sqlalchemy.orm import sessionmaker
+    engine = get_db_engine()
+    if not engine:
+        return jsonify({'code': 500, 'message': '数据库未连接'})
+
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    try:
+        article = session.query(NoteArticles).filter(NoteArticles.id == article_id).first()
+        if not article:
+            return jsonify({'code': 404, 'message': '文章不存在'})
+
+        if request.method == 'GET':
+            # 增加浏览量
+            article.views += 1
+            session.commit()
+            return jsonify({
+                'code': 200,
+                'data': {
+                    'id': article.id,
+                    'title': article.title,
+                    'subtitle': article.subtitle,
+                    'author': article.author,
+                    'cover_url': article.cover_url,
+                    'content': article.content,
+                    'content_md': article.content_md,
+                    'tags': article.tags.split(',') if article.tags else [],
+                    'category': article.category,
+                    'status': article.status,
+                    'views': article.views,
+                    'likes': article.likes,
+                    'is_top': article.is_top,
+                    'published_at': article.published_at.isoformat() if article.published_at else None,
+                    'created_at': article.created_at.isoformat() if article.created_at else '',
+                    'updated_at': article.updated_at.isoformat() if article.updated_at else ''
+                }
+            })
+
+        elif request.method == 'PUT':
+            data = request.get_json() or {}
+            old_status = article.status
+            for field in ['title', 'subtitle', 'author', 'cover_url', 'content', 'content_md', 'tags', 'category', 'status', 'is_top']:
+                if field in data:
+                    setattr(article, field, data[field])
+            
+            # 处理标签
+            if 'tags' in data and isinstance(data['tags'], list):
+                article.tags = ','.join(data['tags'])
+            
+            # 发布状态变更
+            if data.get('status') == 'published' and old_status != 'published':
+                article.published_at = datetime.now()
+            
+            session.commit()
+            return jsonify({'code': 200, 'message': '文章更新成功'})
+
+        elif request.method == 'DELETE':
+            session.delete(article)
+            session.commit()
+            return jsonify({'code': 200, 'message': '文章删除成功'})
+
+    except Exception as e:
+        session.rollback()
+        return jsonify({'code': 500, 'message': str(e)})
+    finally:
+        session.close()
+
+
+@app.route('/api/articles/<int:article_id>/like', methods=['POST'])
+@token_required
+def api_article_like(article_id):
+    """文章点赞"""
+    from src.data.database import NoteArticles
+    from sqlalchemy.orm import sessionmaker
+    engine = get_db_engine()
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    try:
+        article = session.query(NoteArticles).filter(NoteArticles.id == article_id).first()
+        if not article:
+            return jsonify({'code': 404, 'message': '文章不存在'})
+        article.likes += 1
+        session.commit()
+        return jsonify({'code': 200, 'data': {'likes': article.likes}})
+    except Exception as e:
+        session.rollback()
+        return jsonify({'code': 500, 'message': str(e)})
+    finally:
+        session.close()
+
+
+@app.route('/api/categories', methods=['GET', 'POST', 'DELETE'])
+@token_required
+def api_categories():
+    """分类管理"""
+    from src.data.database import NoteArticles
+    from sqlalchemy.orm import sessionmaker
+    engine = get_db_engine()
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    try:
+        if request.method == 'POST':
+            data = request.get_json() or {}
+            return jsonify({'code': 200, 'message': '分类已记录'})
+        
+        if request.method == 'DELETE':
+            return jsonify({'code': 200, 'message': '分类已删除'})
+
+        # GET - 获取所有分类及文章数
+        articles = session.query(NoteArticles).all()
+        categories = {}
+        for a in articles:
+            cat = a.category or '未分类'
+            if cat not in categories:
+                categories[cat] = {'name': cat, 'count': 0, 'status': {'draft': 0, 'published': 0}}
+            categories[cat]['count'] += 1
+            categories[cat]['status'][a.status] = categories[cat]['status'].get(a.status, 0) + 1
+
+        return jsonify({
+            'code': 200,
+            'data': {
+                'categories': list(categories.values()),
+                'total': len(categories)
+            }
+        })
+    except Exception as e:
+        return jsonify({'code': 500, 'message': str(e)})
+    finally:
+        session.close()

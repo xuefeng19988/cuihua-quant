@@ -87,3 +87,28 @@ def init_db():
     engine = get_db_engine()
     Base.metadata.create_all(engine)
     print("✅ 数据库表初始化成功 (包含 notes 表)")
+
+
+class NoteArticles(Base):
+    """
+    Table: note_articles
+    公众号风格笔记文章表 (Phase 218)
+    """
+    __tablename__ = 'note_articles'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True, comment="文章ID")
+    title = Column(String(300), nullable=False, comment="文章标题")
+    subtitle = Column(String(200), default='', comment="副标题/摘要")
+    author = Column(String(100), default='', comment="作者")
+    cover_url = Column(String(500), default='', comment="封面图URL")
+    content = Column(Text, comment="文章内容 (HTML)")
+    content_md = Column(Text, comment="文章内容 (Markdown)")
+    tags = Column(String(500), default='', comment="标签 (逗号分隔)")
+    category = Column(String(100), default='', comment="分类")
+    status = Column(String(20), default='draft', comment="状态: draft/published/archived")
+    views = Column(Integer, default=0, comment="浏览次数")
+    likes = Column(Integer, default=0, comment="点赞数")
+    is_top = Column(Integer, default=0, comment="是否置顶 0/1")
+    published_at = Column(DateTime, nullable=True, comment="发布时间")
+    created_at = Column(DateTime, default=datetime.now, comment="创建时间")
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now, comment="更新时间")
