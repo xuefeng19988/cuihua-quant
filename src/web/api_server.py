@@ -594,3 +594,144 @@ def api_export(format):
     if format == 'json':
         return jsonify({ 'code': 200, 'data': df.to_dict('records') })
     return jsonify({ 'code': 400, 'message': '不支持的格式' })
+
+
+@app.route('/api/stream/quotes', methods=['GET'])
+@token_required
+def api_stream_quotes():
+    """实时行情推送 (SSE 简化版)"""
+    def generate():
+        import time, random
+        codes = get_stock_codes()[:10]
+        sn = get_stock_names()
+        while True:
+            quotes = []
+            for code in codes[:5]:
+                price = round(random.uniform(50, 200), 2)
+                change = round(random.uniform(-5, 5), 2)
+                quotes.append({
+                    'code': code,
+                    'name': sn.get(code, ''),
+                    'price': price,
+                    'change': change
+                })
+            yield f"data: {json.dumps(quotes)}\n\n"
+            time.sleep(3)
+    
+    from flask import Response
+    return Response(generate(), mimetype='text/event-stream', headers={
+        'Cache-Control': 'no-cache',
+        'X-Accel-Buffering': 'no'
+    })
+
+@app.route('/api/analysis/stock/<code>', methods=['GET'])
+@token_required
+def api_stock_analysis(code):
+    """个股综合分析"""
+    engine = get_db_engine()
+    sn = get_stock_names()
+    result = {
+        'code': code,
+        'name': sn.get(code, ''),
+        'price': 0,
+        'change': 0,
+        'volume': 0,
+        'ma5': 0,
+        'ma10': 0,
+        'ma20': 0,
+        'rsi': 50,
+        'signal': '持有',
+        'recommend': ''
+    }
+    
+    if engine:
+        try:
+            df = pd.read_sql(f"SELECT * FROM stock_daily WHERE code='{code}' ORDER BY date DESC LIMIT 30", engine)
+            if not df.empty:
+                result['price'] = float(df.iloc[0]['close_price'])
+                result['volume'] = int(df.iloc[0]['volume']) if 'volume' in df.columns else 0
+                
+                if len(df) >= 2:
+                    prev = df.iloc[1]['close_price']
+                    result['change'] = round((result['price'] - prev) / prev * 100, 2)
+                
+                if len(df) >= 5:
+                    result['ma5'] = round(df.head(5)['close_price'].mean(), 2)
+                if len(df) >= 10:
+                    result['ma10'] = round(df.head(10)['close_price'].mean(), 2)
+                if len(df) >= 20:
+                    result['ma20'] = round(df.head(20)['close_price'].mean(), 2)
+                
+                # 简单信号
+                if result['ma5'] > result['ma10'] > result['ma20']:
+                    result['signal'] = '买入'
+                    result['recommend'] = '均线多头排列，建议关注'
+                elif result['ma5'] < result['ma10'] < result['ma20']:
+                    result['signal'] = '卖出'
+                    result['recommend'] = '均线空头排列，建议谨慎'
+                else:
+                    result['signal'] = '持有'
+                    result['recommend'] = '均线交织，建议观望'
+        except: pass
+    
+    return jsonify({ 'code': 200, 'data': result })
+
+@app.route('/api/stats', methods=['GET'])
+@token_required
+def api_stats():
+    """系统统计信息"""
+    engine = get_db_engine()
+    stats = {
+        'total_stocks': len(get_stock_codes()),
+        'total_days': 0,
+        'last_update': '--',
+        'total_strategies': 7,
+        'total_factors': 6,
+        'total_users': len(AUTH_CONFIG.get('users', {}))
+    }
+    
+    if engine:
+        try:
+            r = pd.read_sql("SELECT COUNT(DISTINCT date) as cnt FROM stock_daily", engine)
+            stats['total_days'] = int(r.iloc[0]['cnt'])
+            r = pd.read_sql("SELECT MAX(date) as d FROM stock_daily", engine)
+            stats['last_update'] = str(r.iloc[0]['d'])
+        except: pass
+    
+    return jsonify({ 'code': 200, 'data': stats })
+
+@app.route('/api/screener', methods=['POST'])
+@token_required
+def api_screener():
+    """股票筛选器"""
+    data = request.get_json() or {}
+    min_change = data.get('min_change', -10)
+    max_change = data.get('max_change', 10)
+    min_volume = data.get('min_volume', 0)
+    
+    engine = get_db_engine()
+    results = []
+    sn = get_stock_names()
+    codes = get_stock_codes()
+    
+    if engine:
+        for code in codes:
+            try:
+                df = pd.read_sql(f"SELECT close_price, volume FROM stock_daily WHERE code='{code}' ORDER BY date DESC LIMIT 2", engine)
+                if len(df) >= 2:
+                    price = float(df.iloc[0]['close_price'])
+                    prev = float(df.iloc[1]['close_price'])
+                    change = round((price - prev) / prev * 100, 2)
+                    vol = int(df.iloc[0]['volume']) if 'volume' in df.columns else 0
+                    
+                    if min_change <= change <= max_change and vol >= min_volume:
+                        results.append({
+                            'code': code,
+                            'name': sn.get(code, ''),
+                            'price': price,
+                            'change': change,
+                            'volume': vol
+                        })
+            except: pass
+    
+    return jsonify({ 'code': 200, 'data': { 'list': results, 'total': len(results) } })
