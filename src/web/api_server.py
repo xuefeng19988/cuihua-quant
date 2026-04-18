@@ -2180,113 +2180,156 @@ def api_docker_status():
     })
 
 
-# ========== Phase 168: 笔记系统 ==========
+# ========== Phase 168: 笔记系统 (数据库存储) ==========
 
 @app.route('/api/notes', methods=['GET', 'POST'])
 @token_required
 def api_notes():
-    """笔记列表/创建"""
-    import json
-    notes_path = os.path.join(project_root, 'data', 'notes.json')
+    """笔记列表/创建 (数据库存储)"""
+    from src.data.database import get_db_engine, Notes
+    from sqlalchemy import create_engine, or_
+    from sqlalchemy.orm import sessionmaker
 
-    def load_notes():
-        if os.path.exists(notes_path):
-            with open(notes_path, 'r') as f:
-                return json.load(f)
-        return {'notes': []}
+    engine = get_db_engine()
+    if not engine:
+        return jsonify({'code': 500, 'message': '数据库未连接'})
 
-    def save_notes(data):
-        os.makedirs(os.path.dirname(notes_path), exist_ok=True)
-        with open(notes_path, 'w') as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+    Session = sessionmaker(bind=engine)
+    session = Session()
 
-    if request.method == 'POST':
-        data = request.get_json() or {}
-        notes_data = load_notes()
-        new_note = {
-            'id': len(notes_data['notes']) + 1,
-            'title': data.get('title', '无标题'),
-            'date': datetime.now().strftime('%Y-%m-%d %H:%M'),
-            'source': data.get('source', ''),
-            'content': data.get('content', ''),
-            'tags': data.get('tags', []),
-            'created_at': datetime.now().isoformat(),
-            'updated_at': datetime.now().isoformat()
-        }
-        notes_data['notes'].insert(0, new_note)
-        save_notes(notes_data)
-        return jsonify({'code': 200, 'data': new_note, 'message': '笔记创建成功'})
+    try:
+        if request.method == 'POST':
+            data = request.get_json() or {}
+            new_note = Notes(
+                title=data.get('title', '无标题'),
+                source=data.get('source', ''),
+                content=data.get('content', ''),
+                tags=','.join(data.get('tags', []))
+            )
+            session.add(new_note)
+            session.commit()
 
-    # GET
-    notes_data = load_notes()
-    notes = notes_data['notes']
+            return jsonify({
+                'code': 200,
+                'data': {
+                    'id': new_note.id,
+                    'title': new_note.title,
+                    'source': new_note.source,
+                    'date': new_note.created_at.strftime('%Y-%m-%d %H:%M') if new_note.created_at else '',
+                    'content': new_note.content,
+                    'tags': new_note.tags.split(',') if new_note.tags else [],
+                    'created_at': new_note.created_at.isoformat() if new_note.created_at else '',
+                    'updated_at': new_note.updated_at.isoformat() if new_note.updated_at else ''
+                },
+                'message': '笔记创建成功'
+            })
 
-    # 过滤
-    keyword = request.args.get('keyword', '')
-    tag = request.args.get('tag', '')
-    if keyword:
-        notes = [n for n in notes if keyword.lower() in n.get('title', '').lower() or keyword.lower() in n.get('content', '').lower()]
-    if tag:
-        notes = [n for n in notes if tag in n.get('tags', [])]
+        # GET - 列表
+        query = session.query(Notes)
 
-    # 分页
-    page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 10, type=int)
-    total = len(notes)
-    start = (page - 1) * per_page
-    paged = notes[start:start + per_page]
+        # 过滤
+        keyword = request.args.get('keyword', '')
+        tag = request.args.get('tag', '')
+        if keyword:
+            query = query.filter(or_(
+                Notes.title.contains(keyword),
+                Notes.content.contains(keyword)
+            ))
+        if tag:
+            query = query.filter(Notes.tags.contains(tag))
 
-    return jsonify({
-        'code': 200,
-        'data': {
-            'notes': paged,
-            'total': total,
-            'page': page,
-            'total_pages': max(1, (total + per_page - 1) // per_page)
-        }
-    })
+        # 总数
+        total = query.count()
+
+        # 分页
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+        notes = query.order_by(Notes.created_at.desc()).offset((page - 1) * per_page).limit(per_page).all()
+
+        result = []
+        for n in notes:
+            result.append({
+                'id': n.id,
+                'title': n.title,
+                'source': n.source,
+                'date': n.created_at.strftime('%Y-%m-%d %H:%M') if n.created_at else '',
+                'content': n.content,
+                'tags': n.tags.split(',') if n.tags else [],
+                'created_at': n.created_at.isoformat() if n.created_at else '',
+                'updated_at': n.updated_at.isoformat() if n.updated_at else ''
+            })
+
+        return jsonify({
+            'code': 200,
+            'data': {
+                'notes': result,
+                'total': total,
+                'page': page,
+                'total_pages': max(1, (total + per_page - 1) // per_page)
+            }
+        })
+
+    except Exception as e:
+        session.rollback()
+        return jsonify({'code': 500, 'message': str(e)})
+    finally:
+        session.close()
 
 
 @app.route('/api/notes/<int:note_id>', methods=['GET', 'PUT', 'DELETE'])
 @token_required
 def api_note_detail(note_id):
-    """笔记详情/更新/删除"""
-    import json
-    notes_path = os.path.join(project_root, 'data', 'notes.json')
+    """笔记详情/更新/删除 (数据库存储)"""
+    from src.data.database import get_db_engine, Notes
+    from sqlalchemy.orm import sessionmaker
 
-    def load_notes():
-        if os.path.exists(notes_path):
-            with open(notes_path, 'r') as f:
-                return json.load(f)
-        return {'notes': []}
+    engine = get_db_engine()
+    if not engine:
+        return jsonify({'code': 500, 'message': '数据库未连接'})
 
-    def save_notes(data):
-        with open(notes_path, 'w') as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+    Session = sessionmaker(bind=engine)
+    session = Session()
 
-    notes_data = load_notes()
-    note = next((n for n in notes_data['notes'] if n['id'] == note_id), None)
+    try:
+        note = session.query(Notes).filter(Notes.id == note_id).first()
+        if not note:
+            return jsonify({'code': 404, 'message': '笔记不存在'})
 
-    if not note:
-        return jsonify({'code': 404, 'message': '笔记不存在'})
+        if request.method == 'GET':
+            return jsonify({
+                'code': 200,
+                'data': {
+                    'id': note.id,
+                    'title': note.title,
+                    'source': note.source,
+                    'date': note.created_at.strftime('%Y-%m-%d %H:%M') if note.created_at else '',
+                    'content': note.content,
+                    'tags': note.tags.split(',') if note.tags else [],
+                    'created_at': note.created_at.isoformat() if note.created_at else '',
+                    'updated_at': note.updated_at.isoformat() if note.updated_at else ''
+                }
+            })
 
-    if request.method == 'GET':
-        return jsonify({'code': 200, 'data': note})
+        elif request.method == 'PUT':
+            data = request.get_json() or {}
+            note.title = data.get('title', note.title)
+            note.source = data.get('source', note.source)
+            note.content = data.get('content', note.content)
+            note.tags = ','.join(data.get('tags', note.tags.split(',') if note.tags else []))
+            note.updated_at = datetime.now()
+            session.commit()
+            return jsonify({'code': 200, 'message': '笔记更新成功'})
 
-    elif request.method == 'PUT':
-        data = request.get_json() or {}
-        note['title'] = data.get('title', note['title'])
-        note['source'] = data.get('source', note.get('source', ''))
-        note['content'] = data.get('content', note.get('content', ''))
-        note['tags'] = data.get('tags', note.get('tags', []))
-        note['updated_at'] = datetime.now().isoformat()
-        save_notes(notes_data)
-        return jsonify({'code': 200, 'message': '笔记更新成功'})
+        elif request.method == 'DELETE':
+            session.delete(note)
+            session.commit()
+            return jsonify({'code': 200, 'message': '笔记删除成功'})
 
-    elif request.method == 'DELETE':
-        notes_data['notes'] = [n for n in notes_data['notes'] if n['id'] != note_id]
-        save_notes(notes_data)
-        return jsonify({'code': 200, 'message': '笔记删除成功'})
+    except Exception as e:
+        session.rollback()
+        return jsonify({'code': 500, 'message': str(e)})
+    finally:
+        session.close()
 
 
 @app.route('/api/notes/upload', methods=['POST'])
@@ -2317,14 +2360,25 @@ def api_notes_upload():
 @app.route('/api/notes/tags', methods=['GET'])
 @token_required
 def api_notes_tags():
-    """获取所有标签"""
-    import json
-    notes_path = os.path.join(project_root, 'data', 'notes.json')
-    if os.path.exists(notes_path):
-        with open(notes_path, 'r') as f:
-            notes_data = json.load(f)
+    """获取所有标签 (数据库查询)"""
+    from src.data.database import get_db_engine, Notes
+    from sqlalchemy.orm import sessionmaker
+
+    engine = get_db_engine()
+    if not engine:
+        return jsonify({'code': 500, 'message': '数据库未连接'})
+
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    try:
+        notes = session.query(Notes.tags).all()
         tags = set()
-        for n in notes_data.get('notes', []):
-            tags.update(n.get('tags', []))
+        for n in notes:
+            if n.tags:
+                tags.update(n.tags.split(','))
         return jsonify({'code': 200, 'data': {'tags': sorted(list(tags))}})
-    return jsonify({'code': 200, 'data': {'tags': []}})
+    except Exception as e:
+        return jsonify({'code': 500, 'message': str(e)})
+    finally:
+        session.close()

@@ -6,7 +6,7 @@ Defines the ORM models and database connection.
 import os
 import yaml
 from datetime import datetime
-from sqlalchemy import create_engine, Column, String, Float, Date, DateTime
+from sqlalchemy import create_engine, Column, String, Float, Date, DateTime, Integer, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
@@ -15,6 +15,22 @@ from dotenv import load_dotenv
 load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), '.env'))
 
 Base = declarative_base()
+
+class Notes(Base):
+    """
+    Table: notes
+    Stores user notes with rich text content.
+    """
+    __tablename__ = 'notes'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True, comment="笔记ID")
+    title = Column(String(200), nullable=False, comment="笔记标题")
+    source = Column(String(100), default='', comment="来源")
+    content = Column(Text, comment="笔记内容 (HTML)")
+    tags = Column(String(500), default='', comment="标签 (逗号分隔)")
+    created_at = Column(DateTime, default=datetime.now, comment="创建时间")
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now, comment="更新时间")
+
 
 class StockDaily(Base):
     """
@@ -70,3 +86,4 @@ def init_db():
     """Create all tables."""
     engine = get_db_engine()
     Base.metadata.create_all(engine)
+    print("✅ 数据库表初始化成功 (包含 notes 表)")
