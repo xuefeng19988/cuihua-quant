@@ -1,0 +1,121 @@
+/* 打印优化样式 - Phase 224 */
+
+@media print {
+  /* 隐藏不需要的元素 */
+  .el-button,
+  .el-pagination,
+  .el-dialog,
+  .el-message,
+  .el-loading-mask,
+  .sidebar-container,
+  .header-container,
+  .el-dropdown,
+  .no-print {
+    display: none !important;
+  }
+
+  /* 卡片样式优化 */
+  .el-card {
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .el-card__header {
+    background: #f5f7fa !important;
+    border-bottom: 1px solid #ddd !important;
+  }
+
+  /* 表格优化 */
+  .el-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  .el-table th,
+  .el-table td {
+    border: 1px solid #ddd !important;
+    padding: 8px !important;
+  }
+
+  .el-table th {
+    background: #f5f7fa !important;
+  }
+
+  /* 图表优化 */
+  .echarts-container {
+    max-width: 100% !important;
+    page-break-inside: avoid;
+  }
+
+  /* 颜色优化 */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* 链接样式 */
+  a {
+    text-decoration: none !important;
+    color: #333 !important;
+  }
+
+  a[href]:after {
+    content: none !important;
+  }
+
+  /* 页面设置 */
+  @page {
+    margin: 2cm;
+    size: A4;
+  }
+
+  /* 标题优化 */
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  /* 图片优化 */
+  img {
+    max-width: 100% !important;
+    page-break-inside: avoid;
+  }
+
+  /* 背景优化 */
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 12pt !important;
+    line-height: 1.5 !important;
+  }
+
+  .app-container {
+    padding: 0 !important;
+    max-width: none !important;
+  }
+
+  .el-main {
+    padding: 0 !important;
+  }
+}
+
+/* 打印按钮样式 */
+.print-button {
+  @media print {
+    display: none !important;
+  }
+}
+
+/* 打印预览优化 */
+@media screen and (min-width: 1920px) {
+  .print-preview {
+    max-width: 210mm;
+    margin: 0 auto;
+    padding: 20mm;
+    background: white;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  }
+}

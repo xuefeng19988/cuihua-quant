@@ -548,6 +548,11 @@ def serve_vue(path):
         return send_from_directory(app.static_folder, 'index.html')
     return jsonify({ 'code': 200, 'message': '前端未构建，请运行 cd frontend && npm run build' })
 
+# 注册模块蓝图
+app.register_blueprint(auth_bp)
+app.register_blueprint(reports_bp)
+app.register_blueprint(viz_bp)
+
 if __name__ == '__main__':
     sn = get_stock_names()  # 加载股票名称
     print("🦜 翠花量化 API Server 启动中...")
@@ -3354,3 +3359,9 @@ def api_categories():
         return jsonify({'code': 500, 'message': str(e)})
     finally:
         session.close()
+
+# 导入新模块
+from src.web.modules.auth import auth_bp
+from src.web.modules.reports import reports_bp
+from src.web.modules.visualization import viz_bp
+
