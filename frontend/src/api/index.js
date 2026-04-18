@@ -75,3 +75,19 @@ export function getBehavior(params) {
 export function getEvents(params) {
   return request({ url: '/events', method: 'get', params })
 }
+
+export function getStockGroups(params) {
+  return request({ url: '/stock-groups', method: 'get', params })
+}
+
+export function createStockGroup(data) {
+  return request({ url: '/stock-groups', method: 'post', data })
+}
+
+export function updateStockGroup(data) {
+  return request({ url: '/stock-groups', method: 'put', data })
+}
+
+export function deleteStockGroup(data) {
+  return request({ url: '/stock-groups', method: 'delete', data })
+}

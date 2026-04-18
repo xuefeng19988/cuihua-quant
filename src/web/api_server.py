@@ -619,6 +619,76 @@ def api_watchlist():
                 json.dump(wl, f, ensure_ascii=False, indent=2)
         return jsonify({ 'code': 200, 'message': '已删除' })
 
+
+@app.route('/api/stock-groups', methods=['GET', 'POST', 'PUT', 'DELETE'])
+@token_required
+def api_stock_groups():
+    """股票分组管理 (Phase 126)"""
+    import json
+    groups_path = os.path.join(project_root, 'config', 'stock_groups.json')
+
+    def load_groups():
+        if os.path.exists(groups_path):
+            with open(groups_path, 'r') as f:
+                return json.load(f)
+        return {'groups': {}}
+
+    def save_groups(data):
+        with open(groups_path, 'w') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+
+    if request.method == 'GET':
+        data = load_groups()
+        # 添加stocks.yaml中的默认池
+        cfg_path = os.path.join(project_root, 'config', 'stocks.yaml')
+        if os.path.exists(cfg_path):
+            with open(cfg_path, 'r') as f:
+                cfg = yaml.safe_load(f) or {}
+            for pool_key, pool_data in cfg.get('pools', {}).items():
+                if pool_key not in data['groups']:
+                    data['groups'][pool_key] = {
+                        'name': pool_data.get('name', pool_key),
+                        'stocks': [item.get('code', item) if isinstance(item, dict) else item for item in pool_data.get('stocks', [])]
+                    }
+        return jsonify({ 'code': 200, 'data': data })
+
+    elif request.method == 'POST':
+        data = request.get_json() or {}
+        group_id = data.get('id', '')
+        group_name = data.get('name', '')
+        if not group_id or not group_name:
+            return jsonify({ 'code': 400, 'message': '分组ID和名称不能为空' })
+        groups = load_groups()
+        groups['groups'][group_id] = {'name': group_name, 'stocks': []}
+        save_groups(groups)
+        return jsonify({ 'code': 200, 'message': '分组创建成功' })
+
+    elif request.method == 'PUT':
+        data = request.get_json() or {}
+        group_id = data.get('id', '')
+        action = data.get('action', '')  # add_stock / remove_stock
+        stock_code = data.get('code', '')
+        groups = load_groups()
+        if group_id not in groups['groups']:
+            return jsonify({ 'code': 404, 'message': '分组不存在' })
+        if action == 'add_stock' and stock_code:
+            if stock_code not in groups['groups'][group_id]['stocks']:
+                groups['groups'][group_id]['stocks'].append(stock_code)
+        elif action == 'remove_stock' and stock_code:
+            groups['groups'][group_id]['stocks'] = [s for s in groups['groups'][group_id]['stocks'] if s != stock_code]
+        save_groups(groups)
+        return jsonify({ 'code': 200, 'message': '操作成功' })
+
+    elif request.method == 'DELETE':
+        data = request.get_json() or {}
+        group_id = data.get('id', '')
+        groups = load_groups()
+        if group_id in groups['groups']:
+            del groups['groups'][group_id]
+            save_groups(groups)
+        return jsonify({ 'code': 200, 'message': '分组已删除' })
+
+
 @app.route('/api/export/<format>', methods=['GET'])
 @token_required
 def api_export(format):
