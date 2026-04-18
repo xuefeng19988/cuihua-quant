@@ -7,60 +7,42 @@
     <!-- 核心指标 -->
     <el-row :gutter="20">
       <el-col :span="6" v-for="m in metrics" :key="m.label">
-        <el-card shadow="hover">
-          <div style="color:#909399;font-size:13px;">{{ m.label }}</div>
-          <div style="font-size:20px;font-weight:600;margin-top:8px;" :style="{color:m.color}">{{ m.value }}</div>
-        </el-card>
+        <el-card shadow="hover"><div style="color:#909399;font-size:13px;">{{ m.label }}</div><div style="font-size:20px;font-weight:600;margin-top:8px;" :style="{color:m.color}">{{ m.value }}</div></el-card>
       </el-col>
     </el-row>
 
     <!-- 图表区 -->
     <el-row :gutter="20" style="margin-top:20px;">
+      <el-col :span="12"><el-card><div slot="header"><span>📈 收益曲线</span></div><div id="equity-chart" style="width:100%;height:280px;"></div></el-card></el-col>
+      <el-col :span="12"><el-card><div slot="header"><span>📉 回撤曲线</span></div><div id="drawdown-chart" style="width:100%;height:280px;"></div></el-card></el-col>
+    </el-row>
+
+    <el-row :gutter="20" style="margin-top:20px;">
       <el-col :span="12">
         <el-card>
-          <div slot="header"><span>📈 收益曲线</span></div>
-          <div id="equity-chart" style="width:100%;height:300px;"></div>
+          <div slot="header"><span>📅 收益日历热力图</span></div>
+          <heatmap-chart :data="calendarHeatmapData" :x-axis="calendarXAxis" :y-axis="calendarYAxis" title="每日收益热力图" :height="280" />
         </el-card>
       </el-col>
       <el-col :span="12">
         <el-card>
-          <div slot="header"><span>📉 回撤曲线</span></div>
-          <div id="drawdown-chart" style="width:100%;height:300px;"></div>
+          <div slot="header"><span>📊 收益分布直方图</span></div>
+          <bar-chart :data="returnDistributionData" :categories="returnDistributionCategories" title="日收益率分布" :height="280" />
         </el-card>
       </el-col>
     </el-row>
 
     <el-row :gutter="20" style="margin-top:20px;">
-      <el-col :span="8">
-        <el-card>
-          <div slot="header"><span>📊 盈亏分布</span></div>
-          <pie-chart :data="winLossData" title="盈利 vs 亏损" :height="250" />
-        </el-card>
-      </el-col>
-      <el-col :span="8">
-        <el-card>
-          <div slot="header"><span>📈 胜率趋势</span></div>
-          <line-chart :categories="winRateCategories" :series="winRateSeries" title="月度胜率" :height="250" />
-        </el-card>
-      </el-col>
-      <el-col :span="8">
-        <el-card>
-          <div slot="header"><span>📊 夏普比率趋势</span></div>
-          <line-chart :categories="sharpeCategories" :series="sharpeSeries" title="滚动夏普" :height="250" />
-        </el-card>
-      </el-col>
+      <el-col :span="8"><el-card><div slot="header"><span>🥧 盈亏分布</span></div><pie-chart :data="winLossData" title="盈利 vs 亏损" :height="250" /></el-card></el-col>
+      <el-col :span="8"><el-card><div slot="header"><span>📈 胜率趋势</span></div><line-chart :categories="winRateCategories" :series="winRateSeries" title="月度胜率" :height="250" /></el-card></el-col>
+      <el-col :span="8"><el-card><div slot="header"><span>📊 夏普比率趋势</span></div><line-chart :categories="sharpeCategories" :series="sharpeSeries" title="滚动夏普" :height="250" /></el-card></el-col>
     </el-row>
 
     <!-- 月度收益 -->
-    <el-card style="margin-top:20px;">
-      <div slot="header"><span>📅 月度收益</span></div>
+    <el-card style="margin-top:20px;"><div slot="header"><span>📅 月度收益</span></div>
       <el-table :data="monthly" v-loading="loading" stripe>
         <el-table-column prop="month" label="月份" width="100" />
-        <el-table-column prop="return_pct" label="收益率">
-          <template slot-scope="{ row }">
-            <span :style="{color: row.return_pct > 0 ? '#67C23A' : '#F56C6C', fontWeight:600}">{{ row.return_pct > 0 ? '+' : '' }}{{ row.return_pct }}%</span>
-          </template>
-        </el-table-column>
+        <el-table-column prop="return_pct" label="收益率"><template slot-scope="{ row }"><span :style="{color: row.return_pct > 0 ? '#67C23A' : '#F56C6C', fontWeight:600}">{{ row.return_pct > 0 ? '+' : '' }}{{ row.return_pct }}%</span></template></el-table-column>
         <el-table-column prop="benchmark" label="基准" width="80" />
         <el-table-column prop="alpha" label="Alpha" width="80" />
       </el-table>
@@ -71,11 +53,11 @@
 <script>
 import request from '@/utils/request'
 import * as echarts from 'echarts'
-import { PieChart, LineChart } from '@/components/charts'
+import { PieChart, LineChart, BarChart, HeatmapChart } from '@/components/charts'
 
 export default {
   name: 'Performance',
-  components: { PieChart, LineChart },
+  components: { PieChart, LineChart, BarChart, HeatmapChart },
   data() {
     return {
       metrics: [
@@ -84,24 +66,31 @@ export default {
         { label: '夏普比率', value: '--', color: '#303133' },
         { label: '最大回撤', value: '--', color: '#303133' }
       ],
-      monthly: [],
-      loading: false,
-      equityChart: null,
-      drawdownChart: null,
-      curveDays: 90,
-      // 图表数据
+      monthly: [], loading: false,
+      equityChart: null, drawdownChart: null, curveDays: 90,
       winRateCategories: ['1月', '2月', '3月', '4月', '5月', '6月'],
       winRateSeries: [{ name: '胜率', data: [62, 58, 65, 70, 68, 62.5], color: '#409EFF' }],
       sharpeCategories: ['1月', '2月', '3月', '4月', '5月', '6月'],
-      sharpeSeries: [{ name: '夏普', data: [1.2, 1.35, 1.28, 1.42, 1.38, 1.35], color: '#67C23A' }]
+      sharpeSeries: [{ name: '夏普', data: [1.2, 1.35, 1.28, 1.42, 1.38, 1.35], color: '#67C23A' }],
+      // 日历热力图数据
+      calendarXAxis: Array.from({length: 31}, (_, i) => `${i+1}日`),
+      calendarYAxis: ['1月', '2月', '3月', '4月', '5月', '6月'],
+      // 收益分布数据
+      returnDistributionCategories: ['-5%', '-4%', '-3%', '-2%', '-1%', '0%', '1%', '2%', '3%', '4%', '5%'],
+      returnDistributionData: [2, 5, 8, 15, 25, 30, 28, 18, 10, 5, 2]
     }
   },
   computed: {
-    winLossData() {
-      return [
-        { value: 62, name: '盈利交易' },
-        { value: 38, name: '亏损交易' }
-      ]
+    winLossData() { return [{ value: 62, name: '盈利交易' }, { value: 38, name: '亏损交易' }] },
+    calendarHeatmapData() {
+      // 生成模拟的日历热力图数据
+      const data = []
+      for (let month = 0; month < 6; month++) {
+        for (let day = 0; day < 31; day++) {
+          data.push([day, month, (Math.random() - 0.45) * 5])
+        }
+      }
+      return data
     }
   },
   created() { this.fetchData() },
@@ -116,10 +105,7 @@ export default {
     if (this.drawdownChart) this.drawdownChart.dispose()
   },
   methods: {
-    handleResize() {
-      this.equityChart?.resize()
-      this.drawdownChart?.resize()
-    },
+    handleResize() { this.equityChart?.resize(); this.drawdownChart?.resize() },
     async fetchData() {
       this.loading = true
       try {

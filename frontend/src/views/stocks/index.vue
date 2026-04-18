@@ -45,6 +45,22 @@
       </el-col>
     </el-row>
 
+    <!-- 高级图表 -->
+    <el-row :gutter="20" style="margin-bottom:20px;">
+      <el-col :span="12">
+        <el-card>
+          <div slot="header"><span>🔗 股票相关性热力图</span></div>
+          <heatmap-chart :data="correlationData" :x-axis="correlationXAxis" :y-axis="correlationYAxis" title="相关系数矩阵" :height="300" />
+        </el-card>
+      </el-col>
+      <el-col :span="12">
+        <el-card>
+          <div slot="header"><span>📈 估值对比 (PE vs PB)</span></div>
+          <scatter-plot :data="valuationScatterData" :x-axis-name="PE" :y-axis-name="PB" title="估值散点图" :height="300" />
+        </el-card>
+      </el-col>
+    </el-row>
+
     <!-- 股票表格 -->
     <el-card>
       <el-table :data="filtered" style="width: 100%" v-loading="loading" stripe>
@@ -97,11 +113,11 @@
 
 <script>
 import request from '@/utils/request'
-import { PieChart, BarChart } from '@/components/charts'
+import { PieChart, BarChart, HeatmapChart, ScatterPlot } from '@/components/charts'
 
 export default {
   name: 'Stocks',
-  components: { PieChart, BarChart },
+  components: { PieChart, BarChart, HeatmapChart, ScatterPlot },
   data() {
     return {
       stocks: [],
@@ -147,6 +163,33 @@ export default {
     },
     topVolumeCategories() {
       return [...this.stocks].sort((a, b) => (b.volume || 0) - (a.volume || 0)).slice(0, 10).map(s => s.name)
+    },
+    // 相关性热力图数据
+    correlationXAxis() {
+      return this.stocks.slice(0, 8).map(s => s.name)
+    },
+    correlationYAxis() {
+      return this.stocks.slice(0, 8).map(s => s.name)
+    },
+    correlationData() {
+      const n = Math.min(this.stocks.length, 8)
+      const data = []
+      for (let i = 0; i < n; i++) {
+        for (let j = 0; j < n; j++) {
+          const corr = i === j ? 1 : (Math.random() * 1.4 - 0.2)
+          data.push([j, i, parseFloat(corr.toFixed(2))])
+        }
+      }
+      return data
+    },
+    // 估值散点图数据
+    valuationScatterData() {
+      return this.stocks.slice(0, 10).map((s, i) => [
+        (Math.random() * 30 + 10).toFixed(1),  // PE
+        (Math.random() * 8 + 1).toFixed(1),     // PB
+        Math.floor(Math.random() * 100 + 50),   // size
+        s.name
+      ])
     }
   },
   created() { this.fetchData(); this.fetchGroups() },
