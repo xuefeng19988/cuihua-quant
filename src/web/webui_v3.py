@@ -2738,6 +2738,74 @@ def create_webui_v3():
         ]
         return jsonify({'strategies': strategies})
 
+    @app.route('/api/articles')
+    @login_required
+    def api_articles():
+        """文章信息 REST API - Phase 111"""
+        from src.analysis.article_manager import ArticleManager
+        try:
+            mgr = ArticleManager()
+            dates = mgr.get_available_dates()
+
+            query_date = request.args.get('date', '')
+            keyword = request.args.get('keyword', '')
+            page = request.args.get('page', 1, type=int)
+            per_page = request.args.get('per_page', 20, type=int)
+            stock_only = request.args.get('stock_only', 'false').lower() == 'true'
+
+            # 获取文章列表
+            if query_date:
+                articles = mgr.get_articles_by_date(query_date, limit=1000)
+                articles = mgr.match_articles_with_stocks(articles)
+                if stock_only:
+                    articles = [a for a in articles if a['has_stock']]
+            elif dates:
+                # 默认返回最新日期的文章
+                latest_date = dates[-1]
+                articles, total = mgr.get_date_range_articles(
+                    latest_date, latest_date, page=1, per_page=1000, stock_only=stock_only
+                )
+                articles = mgr.match_articles_with_stocks(articles)
+            else:
+                articles = []
+
+            # 关键词过滤
+            if keyword:
+                articles = [a for a in articles if keyword.lower() in a.get('title', '').lower()]
+
+            total = len(articles)
+            # 分页
+            start = (page - 1) * per_page
+            end = start + per_page
+            paged = articles[start:end]
+
+            # 转换格式给前端
+            result = []
+            for a in paged:
+                result.append({
+                    'id': a.get('id', ''),
+                    'date': a.get('date', query_date or (dates[-1] if dates else '')),
+                    'platform': a.get('platform_name', a.get('platform', '')),
+                    'title': a.get('title', ''),
+                    'url': a.get('url', ''),
+                    'rank': a.get('rank', 0),
+                    'stocks': [s['code'] for s in a.get('matched_stocks', [])],
+                    'has_stock': a.get('has_stock', False),
+                    'relevance': a.get('relevance', 'low'),
+                })
+
+            return jsonify({
+                'code': 200,
+                'data': result,
+                'total': total,
+                'page': page,
+                'per_page': per_page,
+                'total_pages': max(1, (total + per_page - 1) // per_page),
+                'available_dates': dates[-30:] if dates else [],  # 最近30天
+            })
+        except Exception as e:
+            return jsonify({'code': 500, 'message': str(e)}), 500
+
     return app
 
 

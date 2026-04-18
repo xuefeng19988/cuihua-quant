@@ -63,3 +63,7 @@ export function getAlerts() {
 export function getRisk() {
   return request({ url: '/risk', method: 'get' })
 }
+
+export function getArticles(params) {
+  return request({ url: '/articles', method: 'get', params })
+}
