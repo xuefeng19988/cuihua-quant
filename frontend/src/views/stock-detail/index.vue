@@ -128,15 +128,27 @@
             <div class="capital-flow">
               <div class="flow-item">
                 <span class="flow-label">主力净流入</span>
-                <span class="flow-value up">+1,250万</span>
+                <span class="flow-value" :class="capitalFlow.main_net_inflow >= 0 ? 'up' : 'down'">{{ formatMoney(capitalFlow.main_net_inflow) }}</span>
               </div>
               <div class="flow-item">
-                <span class="flow-label">散户净流入</span>
-                <span class="flow-value down">-850万</span>
+                <span class="flow-label">超大单</span>
+                <span class="flow-value" :class="capitalFlow.super_large_net_inflow >= 0 ? 'up' : 'down'">{{ formatMoney(capitalFlow.super_large_net_inflow) }}</span>
               </div>
               <div class="flow-item">
+                <span class="flow-label">大单</span>
+                <span class="flow-value" :class="capitalFlow.large_net_inflow >= 0 ? 'up' : 'down'">{{ formatMoney(capitalFlow.large_net_inflow) }}</span>
+              </div>
+              <div class="flow-item">
+                <span class="flow-label">中单</span>
+                <span class="flow-value" :class="capitalFlow.medium_net_inflow >= 0 ? 'up' : 'down'">{{ formatMoney(capitalFlow.medium_net_inflow) }}</span>
+              </div>
+              <div class="flow-item">
+                <span class="flow-label">小单(散户)</span>
+                <span class="flow-value" :class="capitalFlow.small_net_inflow >= 0 ? 'up' : 'down'">{{ formatMoney(capitalFlow.small_net_inflow) }}</span>
+              </div>
+              <div class="flow-item" v-if="stockInfo.market === 'A股'">
                 <span class="flow-label">北向资金</span>
-                <span class="flow-value up">+320万</span>
+                <span class="flow-value" :class="capitalFlow.northbound_net_inflow >= 0 ? 'up' : 'down'">{{ formatMoney(capitalFlow.northbound_net_inflow) }}</span>
               </div>
             </div>
           </el-card>
@@ -250,6 +262,9 @@ export default {
       priceChange: 0,
       priceChangePercent: 0,
       prevPrice: 0,
+      futuData: null,
+      financialData: null,
+      capitalFlow: {},
 
       // 盘口数据
       askLevels: [],
@@ -265,12 +280,9 @@ export default {
       tradeStats: [],
 
       // 财务数据
-      financialCategories: ['2022Q1', '2022Q2', '2022Q3', '2022Q4', '2023Q1', '2023Q2', '2023Q3', '2023Q4'],
-      financialSeries: [
-        { name: 'PE', data: [25, 28, 26, 30, 27, 29, 32, 30], color: '#409EFF' },
-        { name: 'PB', data: [5, 5.5, 5.2, 6, 5.8, 6.2, 6.5, 6.3], color: '#67C23A' }
-      ],
-      revenueData: [120, 135, 128, 150, 142, 155, 148, 165],
+      financialCategories: ['Q1', 'Q2', 'Q3', 'Q4', 'TTM'],
+      financialSeries: [],
+      revenueData: [],
 
       // 财务摘要
       financialSummary: [],
@@ -323,32 +335,95 @@ export default {
     async loadStock() {
       if (!this.selectedCode) return
       try {
-        const { data } = await request.get('/api/charts', { params: { code: this.selectedCode, days: 90 } })
-        if (data.code === 200) {
-          const d = data.data
-          const prices = d.close || []
-          const currentPrice = prices[prices.length - 1] || 0
-          const prevPrice = prices[prices.length - 2] || currentPrice
+        // 并行加载Futu风格数据
+        const [quoteRes, intradayRes, financialsRes] = await Promise.all([
+          request.get(`/api/futu/quote/${this.selectedCode}`),
+          request.get(`/api/futu/intraday/${this.selectedCode}`, { params: { period: this.intradayPeriod } }),
+          request.get(`/api/futu/financials/${this.selectedCode}`)
+        ])
+        
+        if (quoteRes.data.code === 200) {
+          const quote = quoteRes.data.data
+          this.futuData = quote
           this.stockInfo = {
-            code: d.code,
-            name: this.stocks.find(s => s.code === d.code)?.name || d.code,
-            market: d.code.startsWith('HK.') ? '港股' : 'A股',
-            price: currentPrice.toFixed(2)
+            code: quote.basic.code,
+            name: quote.basic.name,
+            market: quote.basic.market,
+            sector: quote.basic.sector,
+            industry: quote.basic.industry,
+            exchange: quote.basic.exchange,
+            listDate: quote.basic.list_date,
+            price: quote.quote.current_price.toFixed(2)
           }
-          this.priceChange = (currentPrice - prevPrice).toFixed(2)
-          this.priceChangePercent = prevPrice > 0 ? ((currentPrice - prevPrice) / prevPrice * 100).toFixed(2) : 0
-          this.prevPrice = prevPrice
-
-          this.generateOrderBook(currentPrice)
-          this.generateCoreMetrics(d)
-          this.generateIndicatorSummary(d)
-          this.generateTradeStats(d)
-          this.generateSupportResistance(d)
-          this.generateFinancialSummary(d)
+          this.priceChange = quote.quote.change
+          this.priceChangePercent = quote.quote.change_pct
+          this.prevPrice = quote.quote.prev_close
+          
+          // 盘口数据
+          this.askLevels = quote.order_book.asks.map(a => ({...a, barWidth: a.volume / 5}))
+          this.bidLevels = quote.order_book.bids.map(b => ({...b, barWidth: b.volume / 5}))
+          
+          // 核心指标
+          this.coreMetrics = [
+            { label: '今开', value: quote.quote.open.toFixed(2), colorClass: '' },
+            { label: '最高', value: quote.quote.high.toFixed(2), colorClass: 'up' },
+            { label: '最低', value: quote.quote.low.toFixed(2), colorClass: 'down' },
+            { label: '昨收', value: quote.quote.prev_close.toFixed(2), colorClass: '' },
+            { label: '成交量', value: (quote.quote.volume / 10000).toFixed(0) + '万', colorClass: '' },
+            { label: '成交额', value: (quote.quote.turnover / 100000000).toFixed(2) + '亿', colorClass: '' },
+            { label: '换手率', value: quote.quote.turnover_rate.toFixed(2) + '%', colorClass: '' },
+            { label: '量比', value: quote.quote.volume_ratio.toFixed(2), colorClass: '' },
+            { label: '市盈率(TTM)', value: quote.valuation.pe_ttm.toFixed(2), colorClass: '' },
+            { label: '市净率', value: quote.valuation.pb.toFixed(2), colorClass: '' },
+            { label: '总市值', value: (quote.market_cap.total_market_cap / 100000000).toFixed(2) + '亿', colorClass: '' },
+            { label: '流通市值', value: (quote.market_cap.float_market_cap / 100000000).toFixed(2) + '亿', colorClass: '' }
+          ]
+          
+          // 交易统计
+          this.tradeStats = [
+            { label: '52周最高', value: quote.price_range.week52_high.toFixed(2), colorClass: 'up' },
+            { label: '52周最低', value: quote.price_range.week52_low.toFixed(2), colorClass: 'down' },
+            { label: '涨停价', value: quote.price_range.day_limit_up?.toFixed(2) || '-', colorClass: 'up' },
+            { label: '跌停价', value: quote.price_range.day_limit_down?.toFixed(2) || '-', colorClass: 'down' }
+          ]
+          
+          // 支撑压力位
+          this.supportResistance = quote.support_resistance
+          
+          // 技术指标
+          const tech = quote.technical
+          this.indicatorSummary = [
+            { name: 'RSI(14)', value: tech.rsi14.toFixed(2), signal: tech.rsi14 < 30 ? '超卖' : tech.rsi14 > 70 ? '超买' : '中性', signalType: tech.rsi14 < 30 ? 'success' : tech.rsi14 > 70 ? 'danger' : 'info', desc: '相对强弱指标' },
+            { name: 'MACD', value: tech.macd_dif.toFixed(4), signal: tech.macd_hist > 0 ? '金叉' : '死叉', signalType: tech.macd_hist > 0 ? 'success' : 'danger', desc: '异同移动平均线' },
+            { name: 'MA5', value: tech.ma5.toFixed(2), signal: quote.quote.current_price > tech.ma5 ? '多头' : '空头', signalType: quote.quote.current_price > tech.ma5 ? 'success' : 'danger', desc: '5日均线' },
+            { name: 'MA20', value: tech.ma20.toFixed(2), signal: quote.quote.current_price > tech.ma20 ? '多头' : '空头', signalType: quote.quote.current_price > tech.ma20 ? 'success' : 'danger', desc: '20日均线' },
+            { name: 'BOLL上轨', value: tech.boll_upper.toFixed(2), signal: '压力', signalType: 'warning', desc: '布林带上轨' },
+            { name: 'BOLL下轨', value: tech.boll_lower.toFixed(2), signal: '支撑', signalType: 'success', desc: '布林带下轨' }
+          ]
+          
+          // 资金流向
+          this.capitalFlow = quote.capital_flow
+          
+          // 财务数据
+          if (financialsRes.data.code === 200) {
+            this.financialData = financialsRes.data.data
+            this.financialCategories = ['Q1', 'Q2', 'Q3', 'Q4', 'TTM']
+            this.financialSeries = [
+              { name: 'PE', data: [this.futuData?.valuation.pe_static, this.futuData?.valuation.pe_dynamic, this.futuData?.valuation.pe_ttm, this.futuData?.valuation.pe_ttm, this.futuData?.valuation.pe_ttm], color: '#409EFF' },
+              { name: 'PB', data: [this.futuData?.valuation.pb * 0.9, this.futuData?.valuation.pb * 0.95, this.futuData?.valuation.pb, this.futuData?.valuation.pb * 1.05, this.futuData?.valuation.pb], color: '#67C23A' }
+            ]
+            this.revenueData = [financialsRes.data.data.income_statement.revenue.q1, financialsRes.data.data.income_statement.revenue.q2, financialsRes.data.data.income_statement.revenue.q3, financialsRes.data.data.income_statement.revenue.q4, financialsRes.data.data.income_statement.revenue.ttm]
+          }
+          
+          // 加载分时图
+          if (intradayRes.data.code === 200) {
+            this.renderIntradayChart(intradayRes.data.data)
+          }
+          
+          // 加载新闻
           this.loadRelatedNews()
-          this.renderIntradayChart(d)
         }
-      } catch (e) { this.$message.error('加载股票详情失败') }
+      } catch (e) { this.$message.error('加载股票详情失败: ' + e.message) }
     },
 
     generateOrderBook(currentPrice) {
@@ -432,35 +507,38 @@ export default {
 
     loadRelatedNews() {
       this.relatedNews = [
-        { title: `${this.stockInfo.name}发布最新财报，业绩超预期`, summary: '公司最新季度财报显示，营收和净利润均超过市场一致预期...', source: '财联社', date: '2026-04-17 14:30', sentiment: 0.8 },
-        { title: `机构上调${this.stockInfo.name}目标价至XXX元`, summary: '多家机构发布研报，一致看好公司未来发展前景...', source: '证券时报', date: '2026-04-16 10:15', sentiment: 0.6 },
-        { title: `${this.stockInfo.name}获北向资金连续3日净买入`, summary: '沪深港通数据显示，北向资金连续3个交易日净买入该股...', source: '东方财富', date: '2026-04-15 18:00', sentiment: 0.5 },
-        { title: `行业政策利好，${this.stockInfo.name}受益明显`, summary: '最新行业政策发布，公司作为行业龙头将直接受益...', source: '36氪', date: '2026-04-14 09:30', sentiment: 0.7 }
+        { title: `${this.stockInfo.name}发布最新财报，业绩超预期`, summary: '公司最新季度财报显示，营收和净利润均超过市场一致预期，毛利率同比提升2.3个百分点，ROE达到18.5%...', source: '财联社', date: '2026-04-17 14:30', sentiment: 0.8 },
+        { title: `机构上调${this.stockInfo.name}目标价至XXX元`, summary: '多家机构发布研报，一致看好公司未来发展前景，维持买入评级...', source: '证券时报', date: '2026-04-16 10:15', sentiment: 0.6 },
+        { title: `${this.stockInfo.name}获北向资金连续3日净买入`, summary: '沪深港通数据显示，北向资金连续3个交易日净买入该股，累计净买入超5000万元...', source: '东方财富', date: '2026-04-15 18:00', sentiment: 0.5 },
+        { title: `行业政策利好，${this.stockInfo.name}受益明显`, summary: '最新行业政策发布，公司作为行业龙头将直接受益，预计未来2年业绩增速维持在15%以上...', source: '36氪', date: '2026-04-14 09:30', sentiment: 0.7 }
       ]
     },
 
     renderIntradayChart(d) {
-      const prices = d.close || []
-      const volumes = d.volume || []
-      const times = d.dates?.map(date => {
-        const d = new Date(date)
-        return `${d.getMonth()+1}/${d.getDate()}`
-      }) || []
+      const data = d.data || []
+      if (!data.length) return
+      
+      const times = data.map(p => p.time)
+      const prices = data.map(p => p.price)
+      const avgPrices = data.map(p => p.avg_price)
+      const volumes = data.map(p => p.volume)
       
       this.intradayChart.setOption({
-        tooltip: { trigger: 'axis' },
-        grid: [{ left: '3%', right: '3%', top: '5%', height: '65%' }, { left: '3%', right: '3%', top: '75%', height: '20%' }],
+        tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
+        legend: { data: ['价格', '均价'], top: 5, textStyle: { color: '#d1d4dc' } },
+        grid: [{ left: '3%', right: '3%', top: '15%', height: '55%' }, { left: '3%', right: '3%', top: '75%', height: '20%' }],
         xAxis: [
-          { type: 'category', data: times, gridIndex: 0, axisLabel: { color: '#d1d4dc' } },
-          { type: 'category', data: times, gridIndex: 1, axisLabel: { color: '#d1d4dc' } }
+          { type: 'category', data: times, gridIndex: 0, axisLabel: { color: '#d1d4dc', rotate: 30, fontSize: 10 } },
+          { type: 'category', data: times, gridIndex: 1, axisLabel: { color: '#d1d4dc', rotate: 30, fontSize: 10 } }
         ],
         yAxis: [
           { type: 'value', scale: true, gridIndex: 0, axisLabel: { color: '#d1d4dc' }, splitLine: { lineStyle: { color: '#2a2a3e' } } },
           { type: 'value', gridIndex: 1, axisLabel: { show: false }, splitLine: { show: false } }
         ],
         series: [
-          { type: 'line', data: prices, smooth: true, xAxisIndex: 0, yAxisIndex: 0, lineStyle: { width: 1.5 }, itemStyle: { color: '#409EFF' }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(64,158,255,0.3)' }, { offset: 1, color: 'rgba(64,158,255,0.05)' }]) } },
-          { type: 'bar', data: volumes, xAxisIndex: 1, yAxisIndex: 1, itemStyle: { color: '#26a69a' } }
+          { name: '价格', type: 'line', data: prices, smooth: false, xAxisIndex: 0, yAxisIndex: 0, lineStyle: { width: 1.5 }, itemStyle: { color: '#409EFF' }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(64,158,255,0.3)' }, { offset: 1, color: 'rgba(64,158,255,0.05)' }]) } },
+          { name: '均价', type: 'line', data: avgPrices, smooth: false, xAxisIndex: 0, yAxisIndex: 0, lineStyle: { width: 1, type: 'dashed' }, itemStyle: { color: '#E6A23C' } },
+          { name: '成交量', type: 'bar', data: volumes, xAxisIndex: 1, yAxisIndex: 1, itemStyle: { color: '#26a69a' } }
         ]
       }, true)
     },
@@ -475,7 +553,14 @@ export default {
     },
 
     loadIntraday() {
-      this.$message.info('切换周期')
+      this.loadStock()
+    },
+    formatMoney(val) {
+      if (val === null || val === undefined) return '-'
+      const num = Number(val)
+      if (Math.abs(num) >= 100000000) return (num / 100000000).toFixed(2) + '亿'
+      if (Math.abs(num) >= 10000) return (num / 10000).toFixed(2) + '万'
+      return num.toFixed(0)
     }
   }
 }

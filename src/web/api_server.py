@@ -558,6 +558,7 @@ from src.web.modules.error_handler import ErrorHandler
 ErrorHandler.register(app)
 
 # 注: cache 和 rate_limit 可作为装饰器直接使用
+app.register_blueprint(futu_bp)
 
 if __name__ == '__main__':
     sn = get_stock_names()  # 加载股票名称
@@ -3373,6 +3374,7 @@ from src.web.modules.visualization import viz_bp
 from src.web.modules.optimizer import optimizer_bp
 from src.web.modules.cache import cache, cached
 from src.web.modules.rate_limiter import rate_limit
+from src.web.modules.futu_quote import futu_bp
 
 
 # ========== 缓存装饰器 (应用于高频查询API) ==========
