@@ -60,6 +60,18 @@ export const constantRoutes = [
   { path: '/scatter-plot', component: Layout, children: [{ path: '', name: 'ScatterPlot', component: () => import('@/views/scatter-plot/index'), meta: { title: '散点图', icon: 'el-icon-s-data' } }] },
   { path: '/settings', component: Layout, children: [{ path: '', name: 'Settings', component: () => import('@/views/settings/index'), meta: { title: '系统设置', icon: 'el-icon-s-tools' } }] },
   { path: '/backup-manager', component: Layout, children: [{ path: '', name: 'BackupManager', component: () => import('@/views/backup-manager/index'), meta: { title: '备份管理', icon: 'el-icon-files' } }] },
+  { path: '/realtime-pusher', component: Layout, children: [{ path: '', name: 'RealtimePusher', component: () => import('@/views/realtime-pusher/index'), meta: { title: '实时推送', icon: 'el-icon-connection' } }] },
+  { path: '/strategy-upgrade', component: Layout, children: [{ path: '', name: 'StrategyUpgrade', component: () => import('@/views/strategy-upgrade/index'), meta: { title: '策略升级', icon: 'el-icon-s-promotion' } }] },
+  { path: '/us-hk-data', component: Layout, children: [{ path: '', name: 'UsHkData', component: () => import('@/views/us-hk-data/index'), meta: { title: '美股港股', icon: 'el-icon-s-finance' } }] },
+  { path: '/multi-user', component: Layout, children: [{ path: '', name: 'MultiUser', component: () => import('@/views/multi-user/index'), meta: { title: '用户管理', icon: 'el-icon-user' } }] },
+  { path: '/ai-reports', component: Layout, children: [{ path: '', name: 'AIReports', component: () => import('@/views/ai-reports/index'), meta: { title: 'AI研报', icon: 'el-icon-magic-stick' } }] },
+  { path: '/sentiment-engine', component: Layout, children: [{ path: '', name: 'SentimentEngine', component: () => import('@/views/sentiment-engine/index'), meta: { title: '情绪分析', icon: 'el-icon-s-opportunity' } }] },
+  { path: '/smart-alert', component: Layout, children: [{ path: '', name: 'SmartAlert', component: () => import('@/views/smart-alert/index'), meta: { title: '智能预警', icon: 'el-icon-warning' } }] },
+  { path: '/strategy-recommender', component: Layout, children: [{ path: '', name: 'StrategyRecommender', component: () => import('@/views/strategy-recommender/index'), meta: { title: '策略推荐', icon: 'el-icon-s-check' } }] },
+  { path: '/community', component: Layout, children: [{ path: '', name: 'Community', component: () => import('@/views/community/index'), meta: { title: '策略社区', icon: 'el-icon-s-custom' } }] },
+  { path: '/perf-monitor', component: Layout, children: [{ path: '', name: 'PerfMonitor', component: () => import('@/views/perf-monitor/index'), meta: { title: '性能监控', icon: 'el-icon-monitor' } }] },
+  { path: '/scheduler', component: Layout, children: [{ path: '', name: 'Scheduler', component: () => import('@/views/scheduler/index'), meta: { title: '定时任务', icon: 'el-icon-alarm-clock' } }] },
+  { path: '/log-analyzer', component: Layout, children: [{ path: '', name: 'LogAnalyzer', component: () => import('@/views/log-analyzer/index'), meta: { title: '日志分析', icon: 'el-icon-document-copy' } }] },
   { path: '*', redirect: '/404', hidden: true }
 ]
 
