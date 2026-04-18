@@ -7,7 +7,7 @@
       </div>
       <el-form :inline="true">
         <el-form-item label="涨跌幅范围">
-          <el-input-number v-model="form.minChange" :min="-10" :max="10" :step="1" style="width: 100px;" /> 
+          <el-input-number v-model="form.minChange" :min="-10" :max="10" :step="1" style="width: 100px;" />
           <span style="margin: 0 8px;">~</span>
           <el-input-number v-model="form.maxChange" :min="-10" :max="10" :step="1" style="width: 100px;" />
         </el-form-item>
@@ -30,7 +30,7 @@
         <el-table-column prop="volume" label="成交量" width="100" />
         <el-table-column label="操作" width="100">
           <template slot-scope="{ row }">
-            <el-button size="mini" @click="$router.push('/charts')">📉 图表</el-button>
+            <el-button size="mini" @click="$router.push('/charts?code=' + row.code)">📉 图表</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -40,28 +40,26 @@
 </template>
 
 <script>
+import request from '@/utils/request'
 export default {
   name: 'Screener',
   data() {
     return { form: { minChange: -3, maxChange: 3, minVolume: 0 }, results: [], total: 0, loading: false }
   },
   methods: {
-    screen() {
+    async screen() {
       this.loading = true
-      fetch('/api/screener', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(this.form)
-      })
-      .then(r => r.json())
-      .then(d => {
-        this.loading = false
-        if (d.code === 200) {
-          this.results = d.data.list || []
-          this.total = d.data.total
+      try {
+        const { data } = await request.post('/api/screener', this.form)
+        if (data.code === 200) {
+          this.results = data.data.results || []
+          this.total = data.data.total || 0
         }
-      })
-      .catch(() => { this.loading = false })
+      } catch (e) {
+        this.$message.error('筛选失败: ' + e.message)
+      } finally {
+        this.loading = false
+      }
     }
   }
 }
