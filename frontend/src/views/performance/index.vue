@@ -7,7 +7,7 @@
       </el-col>
     </el-row>
     <el-card style="margin-top:20px;"><div slot="header"><span>📈 月度收益</span></div>
-      <el-table :data="monthly" style="width:100%">
+      <el-table :data="monthly" v-loading="loading">
         <el-table-column prop="month" label="月份" width="100" />
         <el-table-column prop="return_pct" label="收益率"><template slot-scope="{ row }"><span :style="{color: row.return_pct > 0 ? '#67C23A' : '#F56C6C', fontWeight:600}">{{ row.return_pct > 0 ? '+' : '' }}{{ row.return_pct }}%</span></template></el-table-column>
         <el-table-column prop="benchmark" label="基准" width="80" />
@@ -17,18 +17,30 @@
   </div>
 </template>
 <script>
+import request from '@/utils/request'
 export default { name: 'Performance', data() { return {
   metrics: [
-    { label: '累计收益', value: '+15.2%', color: '#67C23A' },
-    { label: '年化收益', value: '+18.5%', color: '#67C23A' },
-    { label: '夏普比率', value: '1.35', color: '#303133' },
-    { label: '最大回撤', value: '-8.2%', color: '#F56C6C' }
+    { label: '累计收益', value: '--', color: '#303133' },
+    { label: '年化收益', value: '--', color: '#303133' },
+    { label: '夏普比率', value: '--', color: '#303133' },
+    { label: '最大回撤', value: '--', color: '#303133' }
   ],
-  monthly: [
-    { month: '2026-04', return_pct: 5.2, benchmark: 2.1, alpha: 3.1 },
-    { month: '2026-03', return_pct: -2.1, benchmark: -1.5, alpha: -0.6 },
-    { month: '2026-02', return_pct: 8.3, benchmark: 4.2, alpha: 4.1 },
-    { month: '2026-01', return_pct: 3.1, benchmark: 1.8, alpha: 1.3 }
-  ]
-}}}
+  monthly: [], loading: false
+}}, created() { this.fetchData() }, methods: {
+  async fetchData() {
+    this.loading = true
+    try {
+      const { data } = await request.get('/api/performance')
+      if (data.code === 200) {
+        const d = data.data
+        this.metrics[0].value = d.total_return ? '+' + d.total_return + '%' : '--'
+        this.metrics[1].value = d.annual_return ? '+' + d.annual_return + '%' : '--'
+        this.metrics[2].value = d.sharpe || '--'
+        this.metrics[3].value = d.max_drawdown ? d.max_drawdown + '%' : '--'
+        this.monthly = d.monthly || []
+      }
+    } catch (e) { this.$message.error('获取绩效数据失败') }
+    finally { this.loading = false }
+  }
+}}
 </script>

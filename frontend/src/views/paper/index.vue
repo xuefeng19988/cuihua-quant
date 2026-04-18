@@ -9,9 +9,8 @@
         <el-card shadow="hover"><div style="color:#909399;font-size:13px;">{{ m.label }}</div><div style="font-size:20px;font-weight:600;margin-top:8px;" :style="{color: m.color}">{{ m.value }}</div></el-card>
       </el-col>
     </el-row>
-    <el-card style="margin-top:20px;">
-      <div slot="header"><span>📊 持仓明细</span></div>
-      <el-table :data="positions" style="width:100%">
+    <el-card style="margin-top:20px;"><div slot="header"><span>📊 持仓明细</span></div>
+      <el-table :data="positions" v-loading="loading">
         <el-table-column prop="code" label="代码" width="100" />
         <el-table-column prop="name" label="名称" width="80" />
         <el-table-column prop="shares" label="股数" width="80" />
@@ -24,23 +23,40 @@
 </template>
 
 <script>
+import request from '@/utils/request'
 export default {
   name: 'Paper',
   data() {
     return {
-      running: true,
+      running: true, loading: false,
       metrics: [
-        { label: '总资产', value: '1,052,340', color: '#303133' },
-        { label: '总收益', value: '+52,340', color: '#67C23A' },
-        { label: '收益率', value: '+5.23%', color: '#67C23A' },
-        { label: '持仓数', value: '8', color: '#303133' }
+        { label: '总资产', value: '--', color: '#303133' },
+        { label: '总收益', value: '--', color: '#303133' },
+        { label: '收益率', value: '--', color: '#303133' },
+        { label: '持仓数', value: '--', color: '#303133' }
       ],
-      positions: [
-        { code: 'SH.600519', name: '贵州茅台', shares: 100, cost: 1680, price: 1720, pnl: 4000 },
-        { code: 'SZ.002594', name: '比亚迪', shares: 200, cost: 280, price: 295, pnl: 3000 },
-        { code: 'SH.601318', name: '中国平安', shares: 300, cost: 48, price: 50, pnl: 600 }
-      ]
+      positions: []
     }
+  },
+  created() { this.fetchData() },
+  methods: {
+    async fetchData() {
+      this.loading = true
+      try {
+        const { data } = await request.get('/api/paper')
+        if (data.code === 200) {
+          const d = data.data
+          this.running = d.running
+          this.metrics[0].value = d.total_value ? d.total_value.toLocaleString() + '元' : '--'
+          this.metrics[1].value = d.total_pnl ? (d.total_pnl > 0 ? '+' : '') + d.total_pnl.toLocaleString() + '元' : '--'
+          this.metrics[2].value = d.return_pct ? d.return_pct + '%' : '--'
+          this.metrics[3].value = d.holdings_count || '--'
+          this.positions = d.positions || []
+        }
+      } catch (e) { this.$message.error('获取模拟盘数据失败') }
+      finally { this.loading = false }
+    },
+    togglePaper() { this.$message.info(this.running ? '模拟盘已暂停' : '模拟盘已启动') }
   }
 }
 </script>

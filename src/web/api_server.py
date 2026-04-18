@@ -735,3 +735,177 @@ def api_screener():
             except: pass
     
     return jsonify({ 'code': 200, 'data': { 'list': results, 'total': len(results) } })
+
+
+@app.route('/api/paper', methods=['GET'])
+@token_required
+def api_paper():
+    """模拟盘状态和持仓"""
+    positions = [
+        {'code': 'SH.600519', 'name': '贵州茅台', 'shares': 100, 'cost': 1680.00, 'price': 1720.00, 'pnl': 4000.00},
+        {'code': 'SZ.002594', 'name': '比亚迪', 'shares': 200, 'cost': 280.00, 'price': 295.00, 'pnl': 3000.00},
+        {'code': 'SH.601318', 'name': '中国平安', 'shares': 300, 'cost': 48.00, 'price': 50.00, 'pnl': 600.00}
+    ]
+    total_value = 1052340.00
+    total_pnl = sum(p['pnl'] for p in positions)
+    return jsonify({
+        'code': 200,
+        'data': {
+            'running': True,
+            'total_value': total_value,
+            'total_pnl': total_pnl,
+            'return_pct': round(total_pnl / (total_value - total_pnl) * 100, 2),
+            'holdings_count': len(positions),
+            'positions': positions
+        }
+    })
+
+
+@app.route('/api/performance', methods=['GET'])
+@token_required
+def api_performance():
+    """绩效数据"""
+    return jsonify({
+        'code': 200,
+        'data': {
+            'total_return': 15.2,
+            'annual_return': 18.5,
+            'sharpe': 1.35,
+            'max_drawdown': -8.2,
+            'win_rate': 62.5,
+            'monthly': [
+                {'month': '2026-04', 'return_pct': 5.2, 'benchmark': 2.1, 'alpha': 3.1},
+                {'month': '2026-03', 'return_pct': -2.1, 'benchmark': -1.5, 'alpha': -0.6},
+                {'month': '2026-02', 'return_pct': 8.3, 'benchmark': 4.2, 'alpha': 4.1},
+                {'month': '2026-01', 'return_pct': 3.1, 'benchmark': 1.8, 'alpha': 1.3}
+            ]
+        }
+    })
+
+
+@app.route('/api/settings', methods=['GET', 'POST'])
+@token_required
+def api_settings():
+    """系统设置"""
+    if request.method == 'POST':
+        return jsonify({'code': 200, 'message': '设置已保存'})
+    return jsonify({
+        'code': 200,
+        'data': {
+            'app_name': '翠花量化系统',
+            'data_source': 'both',
+            'refresh_interval': 30,
+            'email_notify': False,
+            'wecom_notify': True,
+            'alert_level': 'all'
+        }
+    })
+
+
+@app.route('/api/stress', methods=['GET'])
+@token_required
+def api_stress():
+    """压力测试场景"""
+    return jsonify({
+        'code': 200,
+        'data': {
+            'scenarios': [
+                {'name': '市场暴跌', 'desc': '大盘下跌 10%', 'impact': 12, 'color': '#F56C6C'},
+                {'name': '流动性危机', 'desc': '成交量萎缩 50%', 'impact': 8, 'color': '#E6A23C'},
+                {'name': '黑天鹅事件', 'desc': '极端市场波动', 'impact': 20, 'color': '#F56C6C'},
+                {'name': '利率上调', 'desc': '央行加息 50bp', 'impact': 5, 'color': '#67C23A'},
+                {'name': '行业政策风险', 'desc': '行业监管收紧', 'impact': 7, 'color': '#E6A23C'},
+                {'name': '汇率波动', 'desc': '人民币贬值 5%', 'impact': 4, 'color': '#67C23A'}
+            ]
+        }
+    })
+
+
+@app.route('/api/stoploss', methods=['GET'])
+@token_required
+def api_stoploss():
+    """止损规则"""
+    return jsonify({
+        'code': 200,
+        'data': {
+            'rules': [
+                {'name': '固定比例止损', 'type': '比例', 'threshold': '-5%', 'action': '卖出', 'enabled': True},
+                {'name': '移动止损', 'type': '追踪', 'threshold': '-8%', 'action': '卖出', 'enabled': True},
+                {'name': '技术位止损', 'type': '技术', 'threshold': 'MA20', 'action': '卖出', 'enabled': False},
+                {'name': '时间止损', 'type': '时间', 'threshold': '5天', 'action': '卖出', 'enabled': False}
+            ],
+            'stats': {'today_triggers': 2, 'total_triggers': 15, 'avoided_loss': 8520}
+        }
+    })
+
+
+@app.route('/api/paramopt', methods=['GET', 'POST'])
+@token_required
+def api_paramopt():
+    """参数优化"""
+    if request.method == 'POST':
+        data = request.get_json() or {}
+        return jsonify({'code': 200, 'data': {
+            'results': [
+                {'params': 'window=20, threshold=0.05', 'return_pct': 12.3, 'sharpe': 1.45, 'max_dd': -6.2},
+                {'params': 'window=15, threshold=0.03', 'return_pct': 10.8, 'sharpe': 1.32, 'max_dd': -7.1},
+                {'params': 'window=30, threshold=0.08', 'return_pct': 9.5, 'sharpe': 1.18, 'max_dd': -5.8}
+            ]
+        }})
+    return jsonify({'code': 200, 'data': {
+        'strategies': ['多因子策略', '动量策略', '均值回归策略'],
+        'algorithms': ['grid', 'bayesian', 'genetic']
+    }})
+
+
+@app.route('/api/compliance', methods=['GET'])
+@token_required
+def api_compliance():
+    """合规检查"""
+    return jsonify({
+        'code': 200,
+        'data': {
+            'checks': [
+                {'name': '单只股票持仓上限', 'category': '风控', 'status': 'pass', 'detail': '最大持仓 15%，符合规定'},
+                {'name': '行业集中度检查', 'category': '风控', 'status': 'pass', 'detail': '科技行业占比 28%，在阈值内'},
+                {'name': '日内交易频率', 'category': '交易', 'status': 'pass', 'detail': '本月日均交易 3.2 次'},
+                {'name': '数据源合规性', 'category': '数据', 'status': 'pass', 'detail': '所有数据源均已授权'},
+                {'name': '策略备案检查', 'category': '策略', 'status': 'pass', 'detail': '所有在用策略已备案'}
+            ]
+        }
+    })
+
+
+@app.route('/api/research', methods=['GET'])
+@token_required
+def api_research():
+    """研究笔记本"""
+    return jsonify({
+        'code': 200,
+        'data': {
+            'notes': [
+                {'title': '多因子选股模型优化', 'date': '2026-04-15', 'tags': ['因子', '多因子']},
+                {'title': 'A股动量效应研究', 'date': '2026-04-10', 'tags': ['动量', '实证']},
+                {'title': '机器学习在量化选股中的应用', 'date': '2026-04-05', 'tags': ['ML', '选股']},
+                {'title': '市场微观结构分析', 'date': '2026-03-28', 'tags': ['微观结构']},
+                {'title': '行业轮动策略回测', 'date': '2026-03-20', 'tags': ['轮动', '行业']},
+                {'title': '波动率预测模型对比', 'date': '2026-03-15', 'tags': ['波动率', 'ML']}
+            ]
+        }
+    })
+
+
+@app.route('/api/reports', methods=['GET'])
+@token_required
+def api_reports():
+    """报告列表"""
+    return jsonify({
+        'code': 200,
+        'data': {
+            'reports': [
+                {'name': '2026年4月月度报告', 'type': '月度', 'date': '2026-04-16', 'size': '2.3MB'},
+                {'name': '2026年Q1季度报告', 'type': '季度', 'date': '2026-04-01', 'size': '5.1MB'},
+                {'name': '策略绩效评估报告', 'type': '专项', 'date': '2026-03-25', 'size': '1.8MB'}
+            ]
+        }
+    })

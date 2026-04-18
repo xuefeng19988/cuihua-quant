@@ -7,8 +7,8 @@
       <el-form-item label="迭代次数"><el-input-number v-model="form.iterations" :min="10" :max="1000" :step="10" /></el-form-item>
       <el-form-item><el-button type="primary" @click="startOptimize" :loading="running">🚀 开始优化</el-button></el-form-item>
     </el-form>
-    <el-card v-if="results.length"><div slot="header"><span>📊 优化结果</span></div>
-      <el-table :data="results" style="width:100%">
+    <el-card v-if="results.length" style="margin-top:20px;"><div slot="header"><span>📊 优化结果</span></div>
+      <el-table :data="results">
         <el-table-column prop="params" label="参数组合" />
         <el-table-column prop="return_pct" label="收益率" width="90"><template slot-scope="{ row }"><span :style="{color: row.return_pct > 0 ? '#67C23A' : '#F56C6C'}">{{ row.return_pct }}%</span></template></el-table-column>
         <el-table-column prop="sharpe" label="夏普" width="80" />
@@ -18,23 +18,21 @@
   </div>
 </template>
 <script>
+import request from '@/utils/request'
 export default { name: 'ParamOpt', data() { return {
   form: { strategy: '多因子策略', algorithm: 'bayesian', iterations: 100 },
-  running: false,
-  strategies: ['多因子策略', '动量策略', '均值回归策略'],
-  results: []
+  strategies: [], running: false, results: []
 }}, methods: {
-  startOptimize() {
+  async startOptimize() {
     this.running = true
-    setTimeout(() => {
-      this.results = [
-        { params: 'window=20, threshold=0.05', return_pct: 12.3, sharpe: 1.45, max_dd: -6.2 },
-        { params: 'window=15, threshold=0.03', return_pct: 10.8, sharpe: 1.32, max_dd: -7.1 },
-        { params: 'window=30, threshold=0.08', return_pct: 9.5, sharpe: 1.18, max_dd: -5.8 }
-      ]
-      this.running = false
+    try {
+      const { data } = await request.post('/api/paramopt', this.form)
+      if (data.code === 200) this.results = data.data.results || []
       this.$message.success('优化完成')
-    }, 2000)
+    } catch (e) { this.$message.error('优化失败') }
+    finally { this.running = false }
   }
+}, created() {
+  request.get('/api/paramopt').then(({ data }) => { if (data.code === 200) this.strategies = data.data.strategies || [] })
 }}
 </script>
