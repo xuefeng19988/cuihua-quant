@@ -91,3 +91,15 @@ export function updateStockGroup(data) {
 export function deleteStockGroup(data) {
   return request({ url: '/stock-groups', method: 'delete', data })
 }
+
+export function getEquityCurve(params) {
+  return request({ url: '/equity-curve', method: 'get', params })
+}
+
+export function screenStocks(data) {
+  return request({ url: '/screener', method: 'post', data })
+}
+
+export function exportData(format, params) {
+  return request({ url: `/export/${format}`, method: 'get', params })
+}

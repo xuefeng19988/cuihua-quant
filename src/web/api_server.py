@@ -692,18 +692,38 @@ def api_stock_groups():
 @app.route('/api/export/<format>', methods=['GET'])
 @token_required
 def api_export(format):
+    """数据导出 (Phase 128) - CSV/Excel/JSON"""
     engine = get_db_engine()
     if not engine:
         return jsonify({ 'code': 500, 'message': '数据库未连接' })
     code = request.args.get('code', '')
     days = int(request.args.get('days', 60))
-    if code:
-        df = pd.read_sql(f"SELECT * FROM stock_daily WHERE code='{code}' ORDER BY date DESC LIMIT {days}", engine)
-    else:
-        df = pd.read_sql("SELECT * FROM stock_daily ORDER BY date DESC LIMIT 1000", engine)
-    if format == 'json':
-        return jsonify({ 'code': 200, 'data': df.to_dict('records') })
-    return jsonify({ 'code': 400, 'message': '不支持的格式' })
+    try:
+        if code:
+            df = pd.read_sql(f"SELECT * FROM stock_daily WHERE code='{code}' ORDER BY date DESC LIMIT {days}", engine)
+        else:
+            df = pd.read_sql("SELECT * FROM stock_daily ORDER BY date DESC LIMIT 1000", engine)
+
+        if format == 'json':
+            return jsonify({ 'code': 200, 'data': df.to_dict('records') })
+        elif format == 'csv':
+            import io
+            output = io.StringIO()
+            df.to_csv(output, index=False)
+            from flask import Response
+            return Response(output.getvalue(), mimetype='text/csv',
+                headers={'Content-Disposition': f'attachment; filename=stock_{code or "all"}_{days}d.csv'})
+        elif format == 'excel':
+            import io
+            output = io.BytesIO()
+            df.to_excel(output, index=False, engine='openpyxl')
+            output.seek(0)
+            from flask import Response
+            return Response(output.read(), mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                headers={'Content-Disposition': f'attachment; filename=stock_{code or "all"}_{days}d.xlsx'})
+        return jsonify({ 'code': 400, 'message': '不支持的格式，支持: json/csv/excel' })
+    except Exception as e:
+        return jsonify({ 'code': 500, 'message': str(e) })
 
 
 @app.route('/api/stream/quotes', methods=['GET'])
@@ -813,19 +833,31 @@ def api_stats():
 @app.route('/api/screener', methods=['POST'])
 @token_required
 def api_screener():
-    """股票筛选器"""
+    """高级股票筛选器 (Phase 129)"""
     data = request.get_json() or {}
     min_change = data.get('min_change', -10)
     max_change = data.get('max_change', 10)
     min_volume = data.get('min_volume', 0)
-    
+    max_volume = data.get('max_volume', float('inf'))
+    min_price = data.get('min_price', 0)
+    max_price = data.get('max_price', float('inf'))
+    market_type = data.get('market', '')  # A/HK/all
+    sort_by = data.get('sort_by', 'change')  # change/volume/price
+    sort_order = data.get('sort_order', 'desc')
+
     engine = get_db_engine()
     results = []
     sn = get_stock_names()
     codes = get_stock_codes()
-    
+
     if engine:
         for code in codes:
+            # 市场类型筛选
+            if market_type == 'A' and not code.startswith(('SH.', 'SZ.')):
+                continue
+            if market_type == 'HK' and not code.startswith('HK.'):
+                continue
+
             try:
                 df = pd.read_sql(f"SELECT close_price, volume FROM stock_daily WHERE code='{code}' ORDER BY date DESC LIMIT 2", engine)
                 if len(df) >= 2:
@@ -833,17 +865,30 @@ def api_screener():
                     prev = float(df.iloc[1]['close_price'])
                     change = round((price - prev) / prev * 100, 2)
                     vol = int(df.iloc[0]['volume']) if 'volume' in df.columns else 0
-                    
-                    if min_change <= change <= max_change and vol >= min_volume:
-                        results.append({
-                            'code': code,
-                            'name': sn.get(code, ''),
-                            'price': price,
-                            'change': change,
-                            'volume': vol
-                        })
-            except: pass
-    
+
+                    # 多条件筛选
+                    if not (min_change <= change <= max_change):
+                        continue
+                    if not (min_volume <= vol <= max_volume):
+                        continue
+                    if not (min_price <= price <= max_price):
+                        continue
+
+                    results.append({
+                        'code': code,
+                        'name': sn.get(code, ''),
+                        'price': round(price, 2),
+                        'change': change,
+                        'volume': vol,
+                        'market': 'A' if code.startswith(('SH.', 'SZ.')) else 'HK'
+                    })
+            except:
+                pass
+
+    # 排序
+    if sort_by in ('change', 'volume', 'price'):
+        results.sort(key=lambda x: x.get(sort_by, 0), reverse=(sort_order == 'desc'))
+
     return jsonify({ 'code': 200, 'data': { 'list': results, 'total': len(results) } })
 
 
@@ -889,6 +934,53 @@ def api_performance():
                 {'month': '2026-02', 'return_pct': 8.3, 'benchmark': 4.2, 'alpha': 4.1},
                 {'month': '2026-01', 'return_pct': 3.1, 'benchmark': 1.8, 'alpha': 1.3}
             ]
+        }
+    })
+
+
+@app.route('/api/equity-curve', methods=['GET'])
+@token_required
+def api_equity_curve():
+    """收益曲线数据 (Phase 127)"""
+    import random
+    random.seed(42)
+
+    days = int(request.args.get('days', 90))
+    dates = []
+    from datetime import datetime, timedelta
+    for i in range(days - 1, -1, -1):
+        d = datetime.now() - timedelta(days=i)
+        dates.append(d.strftime('%Y-%m-%d'))
+
+    # 模拟收益曲线 (实际应从数据库读取)
+    equity = [100.0]
+    benchmark = [100.0]
+    drawdown = [0.0]
+    peak = 100.0
+
+    for i in range(1, days):
+        # 策略收益：日均0.1%，波动1.5%
+        daily_return = random.gauss(0.001, 0.015)
+        equity.append(equity[-1] * (1 + daily_return))
+
+        # 基准收益：日均0.05%，波动1.0%
+        bench_return = random.gauss(0.0005, 0.01)
+        benchmark.append(benchmark[-1] * (1 + bench_return))
+
+        # 回撤计算
+        peak = max(peak, equity[-1])
+        dd = (equity[-1] - peak) / peak * 100
+        drawdown.append(dd)
+
+    return jsonify({
+        'code': 200,
+        'data': {
+            'dates': dates,
+            'equity': [round(e, 2) for e in equity],
+            'benchmark': [round(b, 2) for b in benchmark],
+            'drawdown': [round(d, 2) for d in drawdown],
+            'final_return': round((equity[-1] - 100) / 100 * 100, 2),
+            'max_drawdown': round(min(drawdown), 2)
         }
     })
 
