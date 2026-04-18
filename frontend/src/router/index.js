@@ -59,6 +59,7 @@ export const constantRoutes = [
   { path: '/theme-switcher', component: Layout, children: [{ path: '', name: 'ThemeSwitcher', component: () => import('@/views/theme-switcher/index'), meta: { title: '主题切换', icon: 'el-icon-sunny' } }] },
   { path: '/scatter-plot', component: Layout, children: [{ path: '', name: 'ScatterPlot', component: () => import('@/views/scatter-plot/index'), meta: { title: '散点图', icon: 'el-icon-s-data' } }] },
   { path: '/settings', component: Layout, children: [{ path: '', name: 'Settings', component: () => import('@/views/settings/index'), meta: { title: '系统设置', icon: 'el-icon-s-tools' } }] },
+  { path: '/backup-manager', component: Layout, children: [{ path: '', name: 'BackupManager', component: () => import('@/views/backup-manager/index'), meta: { title: '备份管理', icon: 'el-icon-files' } }] },
   { path: '*', redirect: '/404', hidden: true }
 ]
 

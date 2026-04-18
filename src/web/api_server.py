@@ -2382,3 +2382,252 @@ def api_notes_tags():
         return jsonify({'code': 500, 'message': str(e)})
     finally:
         session.close()
+
+
+# ========== Phase 169: 备份管理系统 ==========
+
+@app.route('/api/backup/create', methods=['POST'])
+@token_required
+def api_backup_create():
+    """创建备份"""
+    import json, zipfile, io
+    from datetime import datetime
+
+    backup_name = f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    backup_dir = os.path.join(project_root, 'backups')
+    os.makedirs(backup_dir, exist_ok=True)
+    backup_path = os.path.join(backup_dir, f"{backup_name}.zip")
+
+    try:
+        with zipfile.ZipFile(backup_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+            # 1. 股票配置
+            stocks_path = os.path.join(project_root, 'config', 'stocks.yaml')
+            if os.path.exists(stocks_path):
+                zf.write(stocks_path, 'config/stocks.yaml')
+
+            # 2. 笔记数据
+            from src.data.database import get_db_engine, Notes
+            from sqlalchemy.orm import sessionmaker
+            engine = get_db_engine()
+            if engine:
+                Session = sessionmaker(bind=engine)
+                session = Session()
+                notes = session.query(Notes).all()
+                notes_data = [{
+                    'title': n.title, 'source': n.source, 'content': n.content,
+                    'tags': n.tags, 'created_at': n.created_at.isoformat() if n.created_at else '',
+                    'updated_at': n.updated_at.isoformat() if n.updated_at else ''
+                } for n in notes]
+                session.close()
+                zf.writestr('data/notes.json', json.dumps(notes_data, ensure_ascii=False, indent=2))
+
+            # 3. 观察池/分组
+            groups_path = os.path.join(project_root, 'config', 'stock_groups.json')
+            if os.path.exists(groups_path):
+                zf.write(groups_path, 'config/stock_groups.json')
+
+            # 4. 系统配置
+            auth_path = os.path.join(project_root, 'config', 'auth.yaml')
+            if os.path.exists(auth_path):
+                zf.write(auth_path, 'config/auth.yaml')
+
+            # 5. 备份元数据
+            meta = {
+                'name': backup_name,
+                'created_at': datetime.now().isoformat(),
+                'version': '3.0.0',
+                'tables': ['notes'],
+                'files': ['stocks.yaml', 'stock_groups.json', 'auth.yaml']
+            }
+            zf.writestr('meta.json', json.dumps(meta, ensure_ascii=False, indent=2))
+
+        # 记录备份信息
+        backup_info_path = os.path.join(backup_dir, 'backup_index.json')
+        if os.path.exists(backup_info_path):
+            with open(backup_info_path, 'r') as f:
+                index = json.load(f)
+        else:
+            index = {'backups': []}
+
+        file_size = os.path.getsize(backup_path)
+        index['backups'].insert(0, {
+            'filename': f"{backup_name}.zip",
+            'name': backup_name,
+            'size': file_size,
+            'size_mb': round(file_size / (1024*1024), 2),
+            'created_at': meta['created_at'],
+            'tables': meta['tables'],
+            'files': meta['files']
+        })
+
+        with open(backup_info_path, 'w') as f:
+            json.dump(index, f, ensure_ascii=False, indent=2)
+
+        return jsonify({'code': 200, 'data': {'filename': f"{backup_name}.zip", 'size_mb': round(file_size / (1024*1024), 2)}, 'message': '备份创建成功'})
+
+    except Exception as e:
+        return jsonify({'code': 500, 'message': f'备份失败: {str(e)}'})
+
+
+@app.route('/api/backup/list', methods=['GET'])
+@token_required
+def api_backup_list():
+    """备份列表"""
+    import json
+    backup_dir = os.path.join(project_root, 'backups')
+    index_path = os.path.join(backup_dir, 'backup_index.json')
+
+    if not os.path.exists(index_path):
+        return jsonify({'code': 200, 'data': {'backups': [], 'total': 0, 'page': 1, 'total_pages': 1}})
+
+    with open(index_path, 'r') as f:
+        index = json.load(f)
+
+    backups = index.get('backups', [])
+
+    # 分页
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
+    total = len(backups)
+    start = (page - 1) * per_page
+    paged = backups[start:start + per_page]
+
+    return jsonify({
+        'code': 200,
+        'data': {
+            'backups': paged,
+            'total': total,
+            'page': page,
+            'total_pages': max(1, (total + per_page - 1) // per_page)
+        }
+    })
+
+
+@app.route('/api/backup/download/<filename>', methods=['GET'])
+@token_required
+def api_backup_download(filename):
+    """下载备份文件"""
+    from flask import send_file
+    backup_path = os.path.join(project_root, 'backups', filename)
+    if not os.path.exists(backup_path):
+        return jsonify({'code': 404, 'message': '备份文件不存在'})
+    return send_file(backup_path, as_attachment=True, download_name=filename)
+
+
+@app.route('/api/backup/upload', methods=['POST'])
+@token_required
+def api_backup_upload():
+    """上传备份文件"""
+    if 'file' not in request.files:
+        return jsonify({'code': 400, 'message': '没有文件'})
+
+    file = request.files['file']
+    if not file.filename.endswith('.zip'):
+        return jsonify({'code': 400, 'message': '只支持.zip备份文件'})
+
+    backup_dir = os.path.join(project_root, 'backups')
+    os.makedirs(backup_dir, exist_ok=True)
+    filepath = os.path.join(backup_dir, file.filename)
+    file.save(filepath)
+
+    # 更新索引
+    index_path = os.path.join(backup_dir, 'backup_index.json')
+    if os.path.exists(index_path):
+        with open(index_path, 'r') as f:
+            index = json.load(f)
+    else:
+        index = {'backups': []}
+
+    file_size = os.path.getsize(filepath)
+    # 检查是否已存在
+    existing = next((b for b in index['backups'] if b['filename'] == file.filename), None)
+    if not existing:
+        index['backups'].insert(0, {
+            'filename': file.filename,
+            'name': file.filename.replace('.zip', ''),
+            'size': file_size,
+            'size_mb': round(file_size / (1024*1024), 2),
+            'created_at': datetime.now().isoformat(),
+            'tables': [],
+            'files': [],
+            'uploaded': True
+        })
+        with open(index_path, 'w') as f:
+            json.dump(index, f, ensure_ascii=False, indent=2)
+
+    return jsonify({'code': 200, 'message': '备份文件上传成功'})
+
+
+@app.route('/api/backup/restore/<filename>', methods=['POST'])
+@token_required
+def api_backup_restore(filename):
+    """恢复备份"""
+    import zipfile
+    backup_path = os.path.join(project_root, 'backups', filename)
+    if not os.path.exists(backup_path):
+        return jsonify({'code': 404, 'message': '备份文件不存在'})
+
+    try:
+        with zipfile.ZipFile(backup_path, 'r') as zf:
+            # 1. 恢复股票配置
+            if 'config/stocks.yaml' in zf.namelist():
+                stocks_path = os.path.join(project_root, 'config', 'stocks.yaml')
+                zf.extract('config/stocks.yaml', project_root)
+                os.rename(os.path.join(project_root, 'config', 'stocks.yaml'), stocks_path)
+
+            # 2. 恢复笔记
+            if 'data/notes.json' in zf.namelist():
+                notes_json = json.loads(zf.read('data/notes.json'))
+                from src.data.database import get_db_engine, Notes
+                from sqlalchemy.orm import sessionmaker
+                engine = get_db_engine()
+                if engine:
+                    Session = sessionmaker(bind=engine)
+                    session = Session()
+                    # 清空现有笔记
+                    session.query(Notes).delete()
+                    # 导入备份笔记
+                    for n in notes_json:
+                        new_note = Notes(
+                            title=n.get('title', ''),
+                            source=n.get('source', ''),
+                            content=n.get('content', ''),
+                            tags=n.get('tags', ''),
+                            created_at=datetime.fromisoformat(n['created_at']) if n.get('created_at') else datetime.now(),
+                            updated_at=datetime.fromisoformat(n['updated_at']) if n.get('updated_at') else datetime.now()
+                        )
+                        session.add(new_note)
+                    session.commit()
+                    session.close()
+
+            # 3. 恢复分组
+            if 'config/stock_groups.json' in zf.namelist():
+                zf.extract('config/stock_groups.json', project_root)
+
+        return jsonify({'code': 200, 'message': '备份恢复成功'})
+
+    except Exception as e:
+        return jsonify({'code': 500, 'message': f'恢复失败: {str(e)}'})
+
+
+@app.route('/api/backup/delete/<filename>', methods=['DELETE'])
+@token_required
+def api_backup_delete(filename):
+    """删除备份"""
+    import json
+    backup_path = os.path.join(project_root, 'backups', filename)
+    if not os.path.exists(backup_path):
+        return jsonify({'code': 404, 'message': '备份文件不存在'})
+
+    os.remove(backup_path)
+
+    # 更新索引
+    index_path = os.path.join(project_root, 'backups', 'backup_index.json')
+    if os.path.exists(index_path):
+        with open(index_path, 'r') as f:
+            index = json.load(f)
+        index['backups'] = [b for b in index['backups'] if b['filename'] != filename]
+        with open(index_path, 'w') as f:
+            json.dump(index, f, ensure_ascii=False, indent=2)
+
+    return jsonify({'code': 200, 'message': '备份删除成功'})

@@ -216,3 +216,24 @@ export function uploadNoteImage(formData) {
 export function getNoteTags() {
   return request({ url: '/notes/tags', method: 'get' })
 }
+
+// 备份管理
+export function createBackup() {
+  return request({ url: '/backup/create', method: 'post' })
+}
+
+export function getBackups(params) {
+  return request({ url: '/backup/list', method: 'get', params })
+}
+
+export function uploadBackup(formData) {
+  return request({ url: '/backup/upload', method: 'post', data: formData, headers: { 'Content-Type': 'multipart/form-data' } })
+}
+
+export function restoreBackup(filename) {
+  return request({ url: `/backup/restore/${filename}`, method: 'post' })
+}
+
+export function deleteBackup(filename) {
+  return request({ url: `/backup/delete/${filename}`, method: 'delete' })
+}
