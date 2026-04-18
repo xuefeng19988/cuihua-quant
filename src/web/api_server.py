@@ -1116,14 +1116,17 @@ def api_reports():
 @app.route('/api/articles', methods=['GET'])
 @token_required
 def api_articles():
-    """文章信息 - 从TrendRadar数据库获取"""
+    """文章信息 - 从TrendRadar数据库获取 (Phase 167: 优化版)"""
     try:
         from src.analysis.article_manager import ArticleManager
+        from collections import defaultdict
         mgr = ArticleManager()
         dates = mgr.get_available_dates()
 
         query_date = request.args.get('date', '')
         keyword = request.args.get('keyword', '')
+        platform = request.args.get('platform', '')
+        relevance = request.args.get('relevance', '')
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 20, type=int)
         stock_only = request.args.get('stock_only', 'false').lower() == 'true'
@@ -1140,8 +1143,17 @@ def api_articles():
         else:
             articles = []
 
+        # 关键词过滤
         if keyword:
             articles = [a for a in articles if keyword.lower() in a.get('title', '').lower()]
+
+        # 平台过滤
+        if platform:
+            articles = [a for a in articles if platform in a.get('platform_name', '')]
+
+        # 相关度过滤
+        if relevance:
+            articles = [a for a in articles if a.get('relevance', 'low') == relevance]
 
         total = len(articles)
         start = (page - 1) * per_page
@@ -1161,10 +1173,25 @@ def api_articles():
                 'relevance': a.get('relevance', 'low'),
             })
 
+        # 统计信息
+        stock_related = len([a for a in articles if a.get('has_stock')])
+        today = datetime.now().strftime('%Y-%m-%d')
+        today_count = len([a for a in articles if a.get('date') == today]) if today in dates else 0
+
+        # 平台分布
+        platform_counts = defaultdict(int)
+        for a in articles:
+            platform_counts[a.get('platform_name', '未知')] += 1
+        platform_dist = [{'name': k, 'count': v} for k, v in sorted(platform_counts.items(), key=lambda x: x[1], reverse=True)]
+
         return jsonify({
             'code': 200,
             'data': result,
             'total': total,
+            'stock_related': stock_related,
+            'today_count': today_count,
+            'platform_count': len(platform_counts),
+            'platform_distribution': platform_dist,
             'page': page,
             'total_pages': max(1, (total + per_page - 1) // per_page),
             'available_dates': dates[-30:] if dates else [],
