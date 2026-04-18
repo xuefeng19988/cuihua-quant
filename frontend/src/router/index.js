@@ -55,6 +55,8 @@ export const constantRoutes = [
   { path: '/custom-dashboard', component: Layout, children: [{ path: '', name: 'CustomDashboard', component: () => import('@/views/custom-dashboard/index'), meta: { title: '自定义仪表板', icon: 'el-icon-s-grid' } }] },
   { path: '/option-strategy', component: Layout, children: [{ path: '', name: 'OptionStrategy', component: () => import('@/views/option-strategy/index'), meta: { title: '期权策略', icon: 'el-icon-s-cooperation' } }] },
   { path: '/strategy-market', component: Layout, children: [{ path: '', name: 'StrategyMarket', component: () => import('@/views/strategy-market/index'), meta: { title: '策略市场', icon: 'el-icon-shopping-cart-full' } }] },
+  { path: '/theme-switcher', component: Layout, children: [{ path: '', name: 'ThemeSwitcher', component: () => import('@/views/theme-switcher/index'), meta: { title: '主题切换', icon: 'el-icon-sunny' } }] },
+  { path: '/scatter-plot', component: Layout, children: [{ path: '', name: 'ScatterPlot', component: () => import('@/views/scatter-plot/index'), meta: { title: '散点图', icon: 'el-icon-s-data' } }] },
   { path: '/settings', component: Layout, children: [{ path: '', name: 'Settings', component: () => import('@/views/settings/index'), meta: { title: '系统设置', icon: 'el-icon-s-tools' } }] },
   { path: '*', redirect: '/404', hidden: true }
 ]
