@@ -45,6 +45,7 @@ export const constantRoutes = [
   ]},
   { path: '/notifications', component: Layout, children: [{ path: '', name: 'Notifications', component: () => import('@/views/notifications/index'), meta: { title: '通知中心', icon: 'el-icon-bell' } }] },
   { path: '/stock-detail', component: Layout, children: [{ path: '', name: 'StockDetail', component: () => import('@/views/stock-detail/index'), meta: { title: '个股详情', icon: 'el-icon-info' } }] },
+  { path: '/stock-detail/:id', component: Layout, children: [{ path: '', name: 'StockDetailById', component: () => import('@/views/stock-detail/index'), meta: { title: '个股详情', icon: 'el-icon-info' } }] },
   { path: '/sector-rotation', component: Layout, children: [{ path: '', name: 'SectorRotation', component: () => import('@/views/sector-rotation/index'), meta: { title: '板块轮动', icon: 'el-icon-s-data' } }] },
   { path: '/fund-flow', component: Layout, children: [{ path: '', name: 'FundFlow', component: () => import('@/views/fund-flow/index'), meta: { title: '资金流向', icon: 'el-icon-money' } }] },
   { path: '/financial-data', component: Layout, children: [{ path: '', name: 'FinancialData', component: () => import('@/views/financial-data/index'), meta: { title: '财务数据', icon: 'el-icon-document' } }] },
