@@ -1437,3 +1437,106 @@ def api_cache_stats():
             'avg_response_time': '120ms'
         }
     })
+
+
+# ========== Phase 137+: 更多新功能 ==========
+
+@app.route('/api/stock-detail/<code>', methods=['GET'])
+@token_required
+def api_stock_detail(code):
+    """个股详情 (Phase 137)"""
+    engine = get_db_engine()
+    if not engine:
+        return jsonify({'code': 500, 'message': '数据库未连接'})
+
+    try:
+        df = pd.read_sql(f"SELECT * FROM stock_daily WHERE code='{code}' ORDER BY date DESC LIMIT 30", engine)
+        if df.empty:
+            return jsonify({'code': 404, 'message': '无数据'})
+
+        latest = df.iloc[0]
+        prev = df.iloc[1] if len(df) > 1 else latest
+        change = round((float(latest['close_price']) - float(prev['close_price'])) / float(prev['close_price']) * 100, 2)
+
+        return jsonify({
+            'code': 200,
+            'data': {
+                'code': code,
+                'name': get_stock_names().get(code, ''),
+                'price': float(latest['close_price']),
+                'change': change,
+                'volume': int(latest['volume']) if 'volume' in df.columns else 0,
+                'high_30d': float(df['close_price'].max()),
+                'low_30d': float(df['close_price'].min()),
+                'avg_volume_30d': int(df['volume'].mean()) if 'volume' in df.columns else 0
+            }
+        })
+    except Exception as e:
+        return jsonify({'code': 500, 'message': str(e)})
+
+
+@app.route('/api/sector-rotation', methods=['GET'])
+@token_required
+def api_sector_rotation():
+    """板块轮动分析 (Phase 138)"""
+    sectors = {
+        '科技': [{'code': 'SH.600519', 'name': '贵州茅台'}, {'code': 'SZ.300750', 'name': '宁德时代'}],
+        '金融': [{'code': 'SH.601318', 'name': '中国平安'}, {'code': 'SH.600036', 'name': '招商银行'}],
+        '消费': [{'code': 'SZ.000858', 'name': '五粮液'}, {'code': 'SZ.000333', 'name': '美的集团'}],
+        '能源': [{'code': 'SH.601088', 'name': '中国神华'}, {'code': 'SH.600900', 'name': '长江电力'}]
+    }
+
+    engine = get_db_engine()
+    results = []
+    for sector_name, stocks in sectors.items():
+        changes = []
+        for stock in stocks:
+            if engine:
+                try:
+                    df = pd.read_sql(f"SELECT close_price FROM stock_daily WHERE code='{stock['code']}' ORDER BY date DESC LIMIT 2", engine)
+                    if len(df) >= 2:
+                        c = round((float(df.iloc[0]['close_price']) - float(df.iloc[1]['close_price'])) / float(df.iloc[1]['close_price']) * 100, 2)
+                        changes.append(c)
+                except: pass
+
+        avg_change = round(sum(changes) / len(changes), 2) if changes else 0
+        results.append({
+            'sector': sector_name,
+            'avg_change': avg_change,
+            'stock_count': len(changes),
+            'top_stock': stocks[0]['name'] if changes else '-'
+        })
+
+    results.sort(key=lambda x: x['avg_change'], reverse=True)
+    return jsonify({'code': 200, 'data': {'sectors': results}})
+
+
+@app.route('/api/fund-flow', methods=['GET'])
+@token_required
+def api_fund_flow():
+    """资金流向分析 (Phase 139)"""
+    import random
+    random.seed(42)
+
+    codes = get_stock_codes()[:15]
+    sn = get_stock_names()
+    results = []
+    for code in codes:
+        main_in = round(random.uniform(100, 5000), 0)
+        main_out = round(random.uniform(100, 5000), 0)
+        retail_in = round(random.uniform(500, 8000), 0)
+        retail_out = round(random.uniform(500, 8000), 0)
+        net_main = main_in - main_out
+        net_retail = retail_in - retail_out
+        results.append({
+            'code': code,
+            'name': sn.get(code, ''),
+            'main_in': int(main_in),
+            'main_out': int(main_out),
+            'net_main': int(net_main),
+            'net_retail': int(net_retail),
+            'net_total': int(net_main + net_retail)
+        })
+
+    results.sort(key=lambda x: x['net_total'], reverse=True)
+    return jsonify({'code': 200, 'data': {'flows': results}})

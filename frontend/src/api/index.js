@@ -127,3 +127,15 @@ export function markNotificationsRead() {
 export function getCacheStats() {
   return request({ url: '/cache/stats', method: 'get' })
 }
+
+export function getStockDetail(code) {
+  return request({ url: `/stock-detail/${code}`, method: 'get' })
+}
+
+export function getSectorRotation() {
+  return request({ url: '/sector-rotation', method: 'get' })
+}
+
+export function getFundFlow() {
+  return request({ url: '/fund-flow', method: 'get' })
+}
