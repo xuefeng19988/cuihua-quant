@@ -52,6 +52,9 @@ export const constantRoutes = [
   { path: '/macro-data', component: Layout, children: [{ path: '', name: 'MacroData', component: () => import('@/views/macro-data/index'), meta: { title: '宏观数据', icon: 'el-icon-s-marketing' } }] },
   { path: '/sentiment', component: Layout, children: [{ path: '', name: 'Sentiment', component: () => import('@/views/sentiment/index'), meta: { title: '市场情绪', icon: 'el-icon-s-custom' } }] },
   { path: '/trade-calendar', component: Layout, children: [{ path: '', name: 'TradeCalendar', component: () => import('@/views/trade-calendar/index'), meta: { title: '交易日历', icon: 'el-icon-date' } }] },
+  { path: '/custom-dashboard', component: Layout, children: [{ path: '', name: 'CustomDashboard', component: () => import('@/views/custom-dashboard/index'), meta: { title: '自定义仪表板', icon: 'el-icon-s-grid' } }] },
+  { path: '/option-strategy', component: Layout, children: [{ path: '', name: 'OptionStrategy', component: () => import('@/views/option-strategy/index'), meta: { title: '期权策略', icon: 'el-icon-s-cooperation' } }] },
+  { path: '/strategy-market', component: Layout, children: [{ path: '', name: 'StrategyMarket', component: () => import('@/views/strategy-market/index'), meta: { title: '策略市场', icon: 'el-icon-shopping-cart-full' } }] },
   { path: '/settings', component: Layout, children: [{ path: '', name: 'Settings', component: () => import('@/views/settings/index'), meta: { title: '系统设置', icon: 'el-icon-s-tools' } }] },
   { path: '*', redirect: '/404', hidden: true }
 ]

@@ -1889,3 +1889,90 @@ def api_trade_calendar():
             ]
         }
     })
+
+
+# ========== Phase 150+: 更多高级功能 ==========
+
+@app.route('/api/custom-dashboard', methods=['GET', 'POST'])
+@token_required
+def api_custom_dashboard():
+    """自定义仪表板 (Phase 150)"""
+    import json
+    dash_path = os.path.join(project_root, 'data', 'dashboard_config.json')
+
+    if request.method == 'POST':
+        data = request.get_json() or {}
+        os.makedirs(os.path.dirname(dash_path), exist_ok=True)
+        with open(dash_path, 'w') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        return jsonify({'code': 200, 'message': '仪表板配置已保存'})
+
+    if os.path.exists(dash_path):
+        with open(dash_path, 'r') as f:
+            return jsonify({'code': 200, 'data': json.load(f)})
+
+    return jsonify({
+        'code': 200,
+        'data': {
+            'widgets': [
+                {'id': 'market_overview', 'type': 'chart', 'title': '市场概览', 'x': 0, 'y': 0, 'w': 12, 'h': 6},
+                {'id': 'portfolio_pnl', 'type': 'stat', 'title': '持仓盈亏', 'x': 0, 'y': 6, 'w': 6, 'h': 4},
+                {'id': 'recent_trades', 'type': 'table', 'title': '最近交易', 'x': 6, 'y': 6, 'w': 6, 'h': 4}
+            ]
+        }
+    })
+
+
+@app.route('/api/option-chain', methods=['GET'])
+@token_required
+def api_option_chain():
+    """期权链数据 (Phase 151)"""
+    import random
+    random.seed(42)
+    underlying = request.args.get('underlying', '510050.SH')
+
+    strikes = [3.5, 3.6, 3.7, 3.8, 3.9, 4.0, 4.1, 4.2, 4.3]
+    calls = []
+    puts = []
+    for strike in strikes:
+        calls.append({
+            'strike': strike,
+            'bid': round(max(0.01, 4.0 - strike + random.uniform(-0.1, 0.1)), 3),
+            'ask': round(max(0.02, 4.0 - strike + random.uniform(0, 0.2)), 3),
+            'volume': random.randint(100, 5000),
+            'oi': random.randint(1000, 20000)
+        })
+        puts.append({
+            'strike': strike,
+            'bid': round(max(0.01, strike - 3.9 + random.uniform(-0.1, 0.1)), 3),
+            'ask': round(max(0.02, strike - 3.9 + random.uniform(0, 0.2)), 3),
+            'volume': random.randint(100, 5000),
+            'oi': random.randint(1000, 20000)
+        })
+
+    return jsonify({
+        'code': 200,
+        'data': {
+            'underlying': underlying,
+            'current_price': 3.95,
+            'calls': calls,
+            'puts': puts
+        }
+    })
+
+
+@app.route('/api/strategy-market', methods=['GET'])
+@token_required
+def api_strategy_market():
+    """量化策略市场 (Phase 152)"""
+    return jsonify({
+        'code': 200,
+        'data': {
+            'strategies': [
+                {'name': '双均线策略', 'author': '翠花', 'annual_return': 22.4, 'max_drawdown': -12.5, 'sharpe': 1.35, 'subscribers': 128, 'rating': 4.5},
+                {'name': 'RSI反转策略', 'author': '量化达人', 'annual_return': 18.3, 'max_drawdown': -8.2, 'sharpe': 1.52, 'subscribers': 95, 'rating': 4.8},
+                {'name': '布林带突破', 'author': '交易员A', 'annual_return': 15.7, 'max_drawdown': -15.3, 'sharpe': 0.95, 'subscribers': 67, 'rating': 4.2},
+                {'name': 'MACD趋势跟踪', 'author': '策略师B', 'annual_return': 25.1, 'max_drawdown': -18.7, 'sharpe': 1.12, 'subscribers': 156, 'rating': 4.6}
+            ]
+        }
+    })
