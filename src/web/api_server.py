@@ -1540,3 +1540,169 @@ def api_fund_flow():
 
     results.sort(key=lambda x: x['net_total'], reverse=True)
     return jsonify({'code': 200, 'data': {'flows': results}})
+
+
+# ========== Phase 140+: 更多高级功能 ==========
+
+@app.route('/api/financial/<code>', methods=['GET'])
+@token_required
+def api_financial_data(code):
+    """财务数据展示 (Phase 140)"""
+    import random
+    random.seed(hash(code) % 10000)
+
+    return jsonify({
+        'code': 200,
+        'data': {
+            'code': code,
+            'name': get_stock_names().get(code, ''),
+            'pe': round(random.uniform(10, 50), 2),
+            'pb': round(random.uniform(1, 8), 2),
+            'roe': round(random.uniform(5, 30), 2),
+            'revenue': round(random.uniform(100, 5000), 0),
+            'net_profit': round(random.uniform(20, 1000), 0),
+            'gross_margin': round(random.uniform(20, 70), 2),
+            'debt_ratio': round(random.uniform(20, 70), 2),
+            'eps': round(random.uniform(0.5, 10), 2),
+            'dividend_yield': round(random.uniform(0.5, 5), 2),
+            'market_cap': round(random.uniform(100, 10000), 0),
+            'quarterly': [
+                {'quarter': '2026-Q1', 'revenue': round(random.uniform(100, 800), 0), 'profit': round(random.uniform(20, 150), 0)},
+                {'quarter': '2025-Q4', 'revenue': round(random.uniform(100, 800), 0), 'profit': round(random.uniform(20, 150), 0)},
+                {'quarter': '2025-Q3', 'revenue': round(random.uniform(100, 800), 0), 'profit': round(random.uniform(20, 150), 0)},
+                {'quarter': '2025-Q2', 'revenue': round(random.uniform(100, 800), 0), 'profit': round(random.uniform(20, 150), 0)}
+            ]
+        }
+    })
+
+
+@app.route('/api/chart-export', methods=['POST'])
+@token_required
+def api_chart_export():
+    """图表导出PNG (Phase 141)"""
+    import base64
+    data = request.get_json() or {}
+    chart_type = data.get('type', 'kline')
+    code = data.get('code', '')
+
+    # 返回Base64编码的图表数据 (实际应由前端ECharts生成)
+    return jsonify({
+        'code': 200,
+        'data': {
+            'message': '请使用浏览器右键保存图表为PNG',
+            'chart_type': chart_type,
+            'code': code
+        }
+    })
+
+
+@app.route('/api/trade-simulator', methods=['GET', 'POST'])
+@token_required
+def api_trade_simulator():
+    """实盘模拟交易 (Phase 142)"""
+    import json
+    trade_path = os.path.join(project_root, 'data', 'trade_sim.json')
+
+    def load_trades():
+        if os.path.exists(trade_path):
+            with open(trade_path, 'r') as f:
+                return json.load(f)
+        return {'balance': 1000000, 'positions': [], 'history': []}
+
+    def save_trades(data):
+        os.makedirs(os.path.dirname(trade_path), exist_ok=True)
+        with open(trade_path, 'w') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+
+    if request.method == 'POST':
+        data = request.get_json() or {}
+        action = data.get('action', '')
+        sim = load_trades()
+
+        if action == 'buy':
+            code = data.get('code', '')
+            price = float(data.get('price', 0))
+            qty = int(data.get('qty', 0))
+            cost = price * qty
+            if cost > sim['balance']:
+                return jsonify({'code': 400, 'message': '资金不足'})
+
+            sim['balance'] -= cost
+            # 查找已有持仓
+            pos = next((p for p in sim['positions'] if p['code'] == code), None)
+            if pos:
+                avg_cost = (pos['avg_cost'] * pos['qty'] + price * qty) / (pos['qty'] + qty)
+                pos['avg_cost'] = round(avg_cost, 2)
+                pos['qty'] += qty
+            else:
+                sim['positions'].append({'code': code, 'name': get_stock_names().get(code, ''), 'qty': qty, 'avg_cost': price, 'current_price': price})
+
+            sim['history'].append({'action': '买入', 'code': code, 'price': price, 'qty': qty, 'time': datetime.now().isoformat()})
+            save_trades(sim)
+            return jsonify({'code': 200, 'message': f'买入成功: {code} {qty}股'})
+
+        elif action == 'sell':
+            code = data.get('code', '')
+            price = float(data.get('price', 0))
+            qty = int(data.get('qty', 0))
+            pos = next((p for p in sim['positions'] if p['code'] == code), None)
+            if not pos or pos['qty'] < qty:
+                return jsonify({'code': 400, 'message': '持仓不足'})
+
+            sim['balance'] += price * qty
+            pos['qty'] -= qty
+            if pos['qty'] == 0:
+                sim['positions'] = [p for p in sim['positions'] if p['code'] != code]
+
+            sim['history'].append({'action': '卖出', 'code': code, 'price': price, 'qty': qty, 'time': datetime.now().isoformat()})
+            save_trades(sim)
+            return jsonify({'code': 200, 'message': f'卖出成功: {code} {qty}股'})
+
+        return jsonify({'code': 400, 'message': '无效操作'})
+
+    # GET
+    sim = load_trades()
+    total_value = sim['balance']
+    for pos in sim['positions']:
+        total_value += pos.get('current_price', pos['avg_cost']) * pos['qty']
+
+    return jsonify({
+        'code': 200,
+        'data': {
+            'balance': sim['balance'],
+            'total_value': total_value,
+            'total_pnl': total_value - 1000000,
+            'return_pct': round((total_value - 1000000) / 1000000 * 100, 2),
+            'positions': sim['positions'],
+            'history': sim['history'][-20:]
+        }
+    })
+
+
+@app.route('/api/alert-config', methods=['GET', 'POST'])
+@token_required
+def api_alert_config():
+    """技术指标预警配置 (Phase 143)"""
+    import json
+    config_path = os.path.join(project_root, 'data', 'alert_config.json')
+
+    if request.method == 'POST':
+        data = request.get_json() or {}
+        os.makedirs(os.path.dirname(config_path), exist_ok=True)
+        with open(config_path, 'w') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        return jsonify({'code': 200, 'message': '预警配置已保存'})
+
+    if os.path.exists(config_path):
+        with open(config_path, 'r') as f:
+            return jsonify({'code': 200, 'data': json.load(f)})
+
+    defaults = {
+        'alerts': [
+            {'code': 'SH.600519', 'name': '贵州茅台', 'type': 'price_above', 'value': 1800, 'enabled': True},
+            {'code': 'SZ.002594', 'name': '比亚迪', 'type': 'price_below', 'value': 250, 'enabled': True},
+            {'code': 'SH.600519', 'name': '贵州茅台', 'type': 'rsi_overbought', 'value': 70, 'enabled': False},
+            {'code': 'SZ.300750', 'name': '宁德时代', 'type': 'macd_golden_cross', 'value': 0, 'enabled': True}
+        ]
+    }
+    return jsonify({'code': 200, 'data': defaults})

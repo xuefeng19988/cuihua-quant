@@ -139,3 +139,23 @@ export function getSectorRotation() {
 export function getFundFlow() {
   return request({ url: '/fund-flow', method: 'get' })
 }
+
+export function getFinancialData(code) {
+  return request({ url: `/financial/${code}`, method: 'get' })
+}
+
+export function getTradeSimulator() {
+  return request({ url: '/trade-simulator', method: 'get' })
+}
+
+export function executeTrade(data) {
+  return request({ url: '/trade-simulator', method: 'post', data })
+}
+
+export function getAlertConfig() {
+  return request({ url: '/alert-config', method: 'get' })
+}
+
+export function saveAlertConfig(data) {
+  return request({ url: '/alert-config', method: 'post', data })
+}
