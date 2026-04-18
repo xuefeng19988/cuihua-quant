@@ -4,6 +4,7 @@ import router from './router'
 import store from './store'
 import ElementUI from 'element-ui'
 import './styles/index.scss'
+import './assets/responsive.css'
 
 Vue.use(ElementUI, { size: 'small' })
 Vue.config.productionTip = false

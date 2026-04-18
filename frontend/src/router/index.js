@@ -37,8 +37,10 @@ export const constantRoutes = [
     { path: 'behavior', name: 'Behavior', component: () => import('@/views/behavior/index'), meta: { title: '行为分析', icon: 'el-icon-headset' } },
     { path: 'paramopt', name: 'ParamOpt', component: () => import('@/views/paramopt/index'), meta: { title: '参数优化', icon: 'el-icon-cpu' } },
     { path: 'reports', name: 'Reports', component: () => import('@/views/reports/index'), meta: { title: '自动报告', icon: 'el-icon-document-copy' } },
-    { path: 'research-notebook', name: 'ResearchNotebook', component: () => import('@/views/research/index'), meta: { title: '研究笔记本', icon: 'el-icon-notebook-1' } }
+    { path: 'research-notebook', name: 'ResearchNotebook', component: () => import('@/views/research/index'), meta: { title: '研究笔记本', icon: 'el-icon-notebook-1' } },
+    { path: 'data-quality', name: 'DataQuality', component: () => import('@/views/data-quality/index'), meta: { title: '数据质量', icon: 'el-icon-circle-check' } }
   ]},
+  { path: '/notifications', component: Layout, children: [{ path: '', name: 'Notifications', component: () => import('@/views/notifications/index'), meta: { title: '通知中心', icon: 'el-icon-bell' } }] },
   { path: '/settings', component: Layout, children: [{ path: '', name: 'Settings', component: () => import('@/views/settings/index'), meta: { title: '系统设置', icon: 'el-icon-s-tools' } }] },
   { path: '*', redirect: '/404', hidden: true }
 ]

@@ -6,6 +6,8 @@
         <div style="float:right;">
           <el-tag size="mini">{{ filtered.length }} 只</el-tag>
           <el-button size="mini" type="primary" @click="showAddDialog" style="margin-left:8px;">➕ 添加</el-button>
+          <el-button size="mini" @click="showImportDialog" style="margin-left:4px;">📥 导入</el-button>
+          <el-button size="mini" @click="exportStocks" style="margin-left:4px;">📤 导出</el-button>
         </div>
       </div>
       <el-form :inline="true">
@@ -57,6 +59,16 @@
         <el-button type="primary" @click="addStock" :loading="adding">确认</el-button>
       </span>
     </el-dialog>
+
+    <!-- 批量导入对话框 -->
+    <el-dialog title="批量导入股票" :visible.sync="importDialogVisible" width="500px">
+      <el-alert title="CSV格式: code,name" type="info" :closable="false" style="margin-bottom:16px;" />
+      <el-input type="textarea" v-model="importCsv" :rows="8" placeholder="SH.600519,贵州茅台&#10;SZ.002594,比亚迪" />
+      <span slot="footer">
+        <el-button @click="importDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="importStocks" :loading="importing">导入</el-button>
+      </span>
+    </el-dialog>
   </div>
 </template>
 
@@ -75,8 +87,11 @@ export default {
       page: 1,
       loading: false,
       addDialogVisible: false,
+      importDialogVisible: false,
       adding: false,
-      newStock: { code: '', name: '' }
+      importing: false,
+      newStock: { code: '', name: '' },
+      importCsv: ''
     }
   },
   created() { this.fetchData(); this.fetchGroups() },
@@ -96,23 +111,17 @@ export default {
     async fetchGroups() {
       try {
         const { data } = await request.get('/api/stock-groups')
-        if (data.code === 200) {
-          this.groups = data.data.groups || {}
-        }
+        if (data.code === 200) this.groups = data.data.groups || {}
       } catch (e) {}
     },
     filterStocks() {
       let list = this.stocks
-      // 分组筛选
       if (this.filterGroup && this.groups[this.filterGroup]) {
         const groupCodes = this.groups[this.filterGroup].stocks || []
         list = list.filter(s => groupCodes.includes(s.code))
       }
-      // 关键词搜索
       const kw = this.keyword.toLowerCase()
-      if (kw) {
-        list = list.filter(s => s.code.toLowerCase().includes(kw) || (s.name || '').includes(kw))
-      }
+      if (kw) list = list.filter(s => s.code.toLowerCase().includes(kw) || (s.name || '').includes(kw))
       this.filtered = list
     },
     showAddDialog() { this.newStock = { code: '', name: '' }; this.addDialogVisible = true },
@@ -133,6 +142,34 @@ export default {
         this.$message.success('已删除')
         this.fetchData()
       } catch (e) { this.$message.error('删除失败') }
+    },
+    showImportDialog() { this.importCsv = ''; this.importDialogVisible = true },
+    async importStocks() {
+      if (!this.importCsv.trim()) return this.$message.warning('请输入CSV数据')
+      this.importing = true
+      try {
+        const { data } = await request.post('/api/stock-import', { csv: this.importCsv })
+        if (data.code === 200) {
+          this.$message.success(`导入成功: ${data.data.imported}只, 跳过${data.data.skipped}只`)
+          this.importDialogVisible = false
+          this.fetchData()
+        }
+      } catch (e) { this.$message.error('导入失败') }
+      finally { this.importing = false }
+    },
+    async exportStocks() {
+      try {
+        const { data } = await request.get('/api/stock-export')
+        if (data.code === 200) {
+          const csv = 'code,name\n' + data.data.stocks.map(s => `${s.code},${s.name}`).join('\n')
+          const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' })
+          const link = document.createElement('a')
+          link.href = URL.createObjectURL(blob)
+          link.download = `stocks_${new Date().toISOString().slice(0,10)}.csv`
+          link.click()
+          this.$message.success(`已导出 ${data.data.total} 只股票`)
+        }
+      } catch (e) { this.$message.error('导出失败') }
     },
     async refresh() { this.fetchData() }
   }

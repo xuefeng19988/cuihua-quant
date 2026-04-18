@@ -103,3 +103,27 @@ export function screenStocks(data) {
 export function exportData(format, params) {
   return request({ url: `/export/${format}`, method: 'get', params })
 }
+
+export function importStocks(data) {
+  return request({ url: '/stock-import', method: 'post', data })
+}
+
+export function exportStocks() {
+  return request({ url: '/stock-export', method: 'get' })
+}
+
+export function getDataQuality() {
+  return request({ url: '/data-quality', method: 'get' })
+}
+
+export function getNotifications() {
+  return request({ url: '/notifications', method: 'get' })
+}
+
+export function markNotificationsRead() {
+  return request({ url: '/notifications', method: 'post', data: { action: 'mark_read' } })
+}
+
+export function getCacheStats() {
+  return request({ url: '/cache/stats', method: 'get' })
+}
