@@ -1,31 +1,21 @@
 <template>
   <div class="app-container">
-    <el-card>
-      <div slot="header"><span>📑 自动报告</span></div>
-      <el-table :data="reports" style="width: 100%">
-        <el-table-column prop="name" label="报告类型" />
-        <el-table-column prop="content" label="内容" />
-        <el-table-column prop="frequency" label="频率" width="80" />
-        <el-table-column label="状态" width="100">
-          <template slot-scope="{ row }"><el-tag :type="row.enabled ? 'success' : 'info'" size="small">{{ row.enabled ? '已配置' : '待配置' }}</el-tag></template>
-        </el-table-column>
-      </el-table>
-    </el-card>
+    <el-card style="margin-bottom:20px;"><div slot="header"><span>📄 报告生成</span><el-button size="mini" style="float:right;" type="primary" @click="generateReport">📄 生成报告</el-button></div></el-card>
+    <el-table :data="reports" style="width:100%">
+      <el-table-column prop="name" label="报告名称" />
+      <el-table-column prop="type" label="类型" width="100"><template slot-scope="{ row }"><el-tag size="mini">{{ row.type }}</el-tag></template></el-table-column>
+      <el-table-column prop="date" label="生成日期" width="110" />
+      <el-table-column prop="size" label="大小" width="80" />
+      <el-table-column label="操作" width="100"><template slot-scope="{ row }"><el-button size="mini" type="primary">📥 下载</el-button></template></el-table-column>
+    </el-table>
   </div>
 </template>
 <script>
-export default {
-  name: 'Reports',
-  data() {
-    return {
-      reports: [
-        { name: '每日交易报告', content: '交易记录/盈亏', frequency: '每日', enabled: false },
-        { name: '周报', content: '组合表现/策略分析', frequency: '每周', enabled: false },
-        { name: '月报', content: '月度总结/风险报告', frequency: '每月', enabled: false },
-        { name: '风险报告', content: 'VaR/压力测试', frequency: '每周', enabled: false },
-        { name: '策略报告', content: '策略表现对比', frequency: '每月', enabled: false }
-      ]
-    }
-  }
-}
+export default { name: 'Reports', data() { return {
+  reports: [
+    { name: '2026年4月月度报告', type: '月度', date: '2026-04-16', size: '2.3MB' },
+    { name: '2026年Q1季度报告', type: '季度', date: '2026-04-01', size: '5.1MB' },
+    { name: '策略绩效评估报告', type: '专项', date: '2026-03-25', size: '1.8MB' }
+  ]
+}}, methods: { generateReport() { this.$message.info('报告生成中，请稍候...') } } }
 </script>

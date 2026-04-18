@@ -1,29 +1,25 @@
 <template>
   <div class="app-container">
-    <el-card>
-      <div slot="header"><span>🧠 行为分析</span></div>
-      <el-table :data="behaviors" style="width: 100%">
-        <el-table-column prop="name" label="行为指标" />
-        <el-table-column prop="desc" label="描述" />
-        <el-table-column prop="value" label="当前值" width="100" />
-        <el-table-column prop="suggestion" label="建议" />
-      </el-table>
-    </el-card>
+    <el-card style="margin-bottom:20px;"><div slot="header"><span>🧠 行为分析</span></div></el-card>
+    <el-row :gutter="20">
+      <el-col :span="8" v-for="b in behaviors" :key="b.name">
+        <el-card shadow="hover"><div style="font-weight:600;margin-bottom:8px;">{{ b.icon }} {{ b.name }}</div>
+          <el-progress :percentage="b.score" :color="b.color" :stroke-width="12" />
+          <div style="color:#909399;font-size:12px;margin-top:8px;">{{ b.desc }}</div>
+        </el-card>
+      </el-col>
+    </el-row>
   </div>
 </template>
 <script>
-export default {
-  name: 'Behavior',
-  data() {
-    return {
-      behaviors: [
-        { name: '过度交易', desc: '交易频率过高', value: '--', suggestion: '控制交易次数' },
-        { name: '损失厌恶', desc: '亏损持仓过长', value: '--', suggestion: '严格执行止损' },
-        { name: '确认偏误', desc: '只看支持信息', value: '--', suggestion: '多角度分析' },
-        { name: '锚定效应', desc: '依赖初始价格', value: '--', suggestion: '动态调整预期' },
-        { name: '羊群效应', desc: '跟随市场情绪', value: '--', suggestion: '独立思考' }
-      ]
-    }
-  }
-}
+export default { name: 'Behavior', data() { return {
+  behaviors: [
+    { name: '过度交易', icon: '🔄', score: 35, color: '#67C23A', desc: '交易频率适中' },
+    { name: '损失厌恶', icon: '😰', score: 62, color: '#E6A23C', desc: '需注意止损纪律' },
+    { name: '确认偏误', icon: '🔍', score: 28, color: '#67C23A', desc: '决策较客观' },
+    { name: '锚定效应', icon: '⚓', score: 45, color: '#67C23A', desc: '价格判断较合理' },
+    { name: '从众心理', icon: '👥', score: 55, color: '#E6A23C', desc: '有一定独立思考' },
+    { name: '风险偏好', icon: '🎲', score: 70, color: '#F56C6C', desc: '风险偏好较高，注意控制' }
+  ]
+}}}
 </script>
