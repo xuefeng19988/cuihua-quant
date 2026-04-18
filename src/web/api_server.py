@@ -528,6 +528,14 @@ def api_risk():
     return jsonify({ 'code': 200, 'data': { 'indicators': indicators } })
 
 # SPA fallback - 所有非 API 请求返回 index.html
+@app.route('/public/notes/<filename>')
+def serve_note_image(filename):
+    """笔记图片服务"""
+    notes_dir = os.path.join(project_root, 'public', 'notes')
+    if os.path.exists(os.path.join(notes_dir, filename)):
+        return send_from_directory(notes_dir, filename)
+    return jsonify({'code': 404, 'message': '图片不存在'})
+
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve_vue(path):
@@ -2170,3 +2178,153 @@ def api_docker_status():
             ]
         }
     })
+
+
+# ========== Phase 168: 笔记系统 ==========
+
+@app.route('/api/notes', methods=['GET', 'POST'])
+@token_required
+def api_notes():
+    """笔记列表/创建"""
+    import json
+    notes_path = os.path.join(project_root, 'data', 'notes.json')
+
+    def load_notes():
+        if os.path.exists(notes_path):
+            with open(notes_path, 'r') as f:
+                return json.load(f)
+        return {'notes': []}
+
+    def save_notes(data):
+        os.makedirs(os.path.dirname(notes_path), exist_ok=True)
+        with open(notes_path, 'w') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+
+    if request.method == 'POST':
+        data = request.get_json() or {}
+        notes_data = load_notes()
+        new_note = {
+            'id': len(notes_data['notes']) + 1,
+            'title': data.get('title', '无标题'),
+            'date': datetime.now().strftime('%Y-%m-%d %H:%M'),
+            'source': data.get('source', ''),
+            'content': data.get('content', ''),
+            'tags': data.get('tags', []),
+            'created_at': datetime.now().isoformat(),
+            'updated_at': datetime.now().isoformat()
+        }
+        notes_data['notes'].insert(0, new_note)
+        save_notes(notes_data)
+        return jsonify({'code': 200, 'data': new_note, 'message': '笔记创建成功'})
+
+    # GET
+    notes_data = load_notes()
+    notes = notes_data['notes']
+
+    # 过滤
+    keyword = request.args.get('keyword', '')
+    tag = request.args.get('tag', '')
+    if keyword:
+        notes = [n for n in notes if keyword.lower() in n.get('title', '').lower() or keyword.lower() in n.get('content', '').lower()]
+    if tag:
+        notes = [n for n in notes if tag in n.get('tags', [])]
+
+    # 分页
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
+    total = len(notes)
+    start = (page - 1) * per_page
+    paged = notes[start:start + per_page]
+
+    return jsonify({
+        'code': 200,
+        'data': {
+            'notes': paged,
+            'total': total,
+            'page': page,
+            'total_pages': max(1, (total + per_page - 1) // per_page)
+        }
+    })
+
+
+@app.route('/api/notes/<int:note_id>', methods=['GET', 'PUT', 'DELETE'])
+@token_required
+def api_note_detail(note_id):
+    """笔记详情/更新/删除"""
+    import json
+    notes_path = os.path.join(project_root, 'data', 'notes.json')
+
+    def load_notes():
+        if os.path.exists(notes_path):
+            with open(notes_path, 'r') as f:
+                return json.load(f)
+        return {'notes': []}
+
+    def save_notes(data):
+        with open(notes_path, 'w') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+
+    notes_data = load_notes()
+    note = next((n for n in notes_data['notes'] if n['id'] == note_id), None)
+
+    if not note:
+        return jsonify({'code': 404, 'message': '笔记不存在'})
+
+    if request.method == 'GET':
+        return jsonify({'code': 200, 'data': note})
+
+    elif request.method == 'PUT':
+        data = request.get_json() or {}
+        note['title'] = data.get('title', note['title'])
+        note['source'] = data.get('source', note.get('source', ''))
+        note['content'] = data.get('content', note.get('content', ''))
+        note['tags'] = data.get('tags', note.get('tags', []))
+        note['updated_at'] = datetime.now().isoformat()
+        save_notes(notes_data)
+        return jsonify({'code': 200, 'message': '笔记更新成功'})
+
+    elif request.method == 'DELETE':
+        notes_data['notes'] = [n for n in notes_data['notes'] if n['id'] != note_id]
+        save_notes(notes_data)
+        return jsonify({'code': 200, 'message': '笔记删除成功'})
+
+
+@app.route('/api/notes/upload', methods=['POST'])
+@token_required
+def api_notes_upload():
+    """笔记图片上传"""
+    if 'file' not in request.files:
+        return jsonify({'code': 400, 'message': '没有文件'})
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'code': 400, 'message': '没有选择文件'})
+
+    # 保存文件
+    upload_dir = os.path.join(project_root, 'public', 'notes')
+    os.makedirs(upload_dir, exist_ok=True)
+
+    import uuid
+    ext = file.filename.rsplit('.', 1)[1] if '.' in file.filename else 'png'
+    filename = f"{uuid.uuid4().hex}.{ext}"
+    filepath = os.path.join(upload_dir, filename)
+    file.save(filepath)
+
+    url = f"/public/notes/{filename}"
+    return jsonify({'code': 200, 'data': {'url': url, 'filename': filename}})
+
+
+@app.route('/api/notes/tags', methods=['GET'])
+@token_required
+def api_notes_tags():
+    """获取所有标签"""
+    import json
+    notes_path = os.path.join(project_root, 'data', 'notes.json')
+    if os.path.exists(notes_path):
+        with open(notes_path, 'r') as f:
+            notes_data = json.load(f)
+        tags = set()
+        for n in notes_data.get('notes', []):
+            tags.update(n.get('tags', []))
+        return jsonify({'code': 200, 'data': {'tags': sorted(list(tags))}})
+    return jsonify({'code': 200, 'data': {'tags': []}})

@@ -2,75 +2,60 @@
   <div class="app-wrapper">
     <el-container style="height: 100vh;">
       <!-- Sidebar -->
-      <el-aside :width="isCollapse ? '64px' : '210px'" style="background: #304156; transition: width 0.3s;">
-        <div class="logo">
-          <span v-if="!isCollapse">🦜 翠花量化</span>
-          <span v-else>🦜</span>
+      <el-aside :width="isCollapse ? '64px' : '220px'" class="sidebar-container" :class="{ collapse: isCollapse }">
+        <div class="logo" @click="$router.push('/')">
+          <img src="/favicon.ico" class="logo-icon" onerror="this.style.display='none'" />
+          <span v-if="!isCollapse" class="logo-title">🦜 翠花量化</span>
+          <span v-else class="logo-icon-text">🦜</span>
         </div>
-        <el-menu
-          :default-active="$route.path"
-          :collapse="isCollapse"
-          :collapse-transition="false"
-          background-color="#304156"
-          text-color="#bfcbd9"
-          active-text-color="#409EFF"
-          router
-          unique-opened
-        >
-          <template v-for="route in $router.options.routes">
-            <template v-if="!route.hidden">
-              <!-- Single item -->
-              <el-menu-item v-if="!route.children || route.children.length <= 1"
-                :key="route.path" :index="route.path || route.children[0].path">
-                <i :class="route.children ? route.children[0].meta.icon : route.meta.icon"></i>
-                <span slot="title">{{ route.children ? route.children[0].meta.title : route.meta.title }}</span>
-              </el-menu-item>
-              <!-- Group -->
-              <el-submenu v-else :key="route.path" :index="route.path">
-                <template slot="title">
-                  <i :class="route.meta.icon"></i>
-                  <span slot="title">{{ route.meta.title }}</span>
-                </template>
-                <el-menu-item v-for="child in route.children" :key="child.path"
-                  :index="route.path + '/' + child.path">
-                  <i :class="child.meta.icon" style="margin-right: 4px;"></i>
-                  <span slot="title">{{ child.meta.title }}</span>
-                </el-menu-item>
-              </el-submenu>
-            </template>
-          </template>
-        </el-menu>
+
+        <el-scrollbar wrap-class="scrollbar-wrapper">
+          <el-menu
+            :default-active="activeMenu"
+            :collapse="isCollapse"
+            :collapse-transition="false"
+            :unique-opened="true"
+            background-color="#304156"
+            text-color="#bfcbd9"
+            active-text-color="#409EFF"
+            router
+          >
+            <sidebar-item v-for="route in sidebarRoutes" :key="route.path" :item="route" :base-path="route.path" />
+          </el-menu>
+        </el-scrollbar>
       </el-aside>
 
-      <!-- Main -->
+      <!-- Main Container -->
       <el-container>
         <!-- Header -->
-        <el-header style="background: #fff; border-bottom: 1px solid #e6e6e6; display: flex; align-items: center; justify-content: space-between;">
-          <div style="display: flex; align-items: center;">
-            <i :class="isCollapse ? 'el-icon-s-unfold' : 'el-icon-s-fold'"
-              @click="$store.dispatch('settings/toggleSideBar')"
-              style="font-size: 20px; cursor: pointer; margin-right: 16px;"></i>
-            <el-breadcrumb separator="/">
+        <el-header class="header-container">
+          <div class="header-left">
+            <div class="hamburger" @click="$store.dispatch('settings/toggleSideBar')">
+              <i :class="isCollapse ? 'el-icon-s-unfold' : 'el-icon-s-fold'"></i>
+            </div>
+            <el-breadcrumb separator="/" class="breadcrumb">
               <el-breadcrumb-item v-for="item in breadcrumbs" :key="item.path">{{ item.title }}</el-breadcrumb-item>
             </el-breadcrumb>
           </div>
-          <div style="display: flex; align-items: center;">
-            <el-dropdown @command="handleCommand">
-              <span style="cursor: pointer; display: flex; align-items: center;">
-                <span style="margin-right: 8px;">{{ userInfo.name || '管理员' }}</span>
-                <span style="font-size: 20px;">{{ userInfo.avatar || '🦜' }}</span>
-              </span>
+          <div class="header-right">
+            <el-dropdown @command="handleCommand" trigger="click">
+              <div class="user-info">
+                <span class="user-name">{{ userInfo.name || '管理员' }}</span>
+                <span class="user-avatar">{{ userInfo.avatar || '🦜' }}</span>
+                <i class="el-icon-arrow-down el-icon--right"></i>
+              </div>
               <el-dropdown-menu slot="dropdown">
-                <el-dropdown-item command="profile">个人信息</el-dropdown-item>
-                <el-dropdown-item command="settings">系统设置</el-dropdown-item>
-                <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
+                <el-dropdown-item command="profile">👤 个人信息</el-dropdown-item>
+                <el-dropdown-item command="settings">⚙️ 系统设置</el-dropdown-item>
+                <el-dropdown-item command="theme">🎨 主题切换</el-dropdown-item>
+                <el-dropdown-item command="logout" divided>🚪 退出登录</el-dropdown-item>
               </el-dropdown-menu>
             </el-dropdown>
           </div>
         </el-header>
 
         <!-- Content -->
-        <el-main style="background: #f0f2f5;">
+        <el-main class="main-container">
           <transition name="fade-transform" mode="out-in">
             <router-view />
           </transition>
@@ -82,44 +67,90 @@
 
 <script>
 import { mapState } from 'vuex'
+import SidebarItem from './components/SidebarItem'
 
 export default {
   name: 'Layout',
+  components: { SidebarItem },
   computed: {
     ...mapState({
       isCollapse: state => !state.settings.sidebar.opened,
       userInfo: state => state.user
     }),
+    activeMenu() {
+      const { meta, path } = this.$route
+      if (meta.activeMenu) return meta.activeMenu
+      return path
+    },
+    sidebarRoutes() {
+      return this.$router.options.routes.filter(r => !r.hidden)
+    },
     breadcrumbs() {
-      const matched = this.$route.matched.filter(item => item.meta && item.meta.title)
-      return matched.map(item => ({ path: item.path, title: item.meta.title }))
+      return this.$route.matched.filter(item => item.meta && item.meta.title).map(item => ({ path: item.path, title: item.meta.title }))
     }
   },
   methods: {
     handleCommand(command) {
+      const map = { profile: '/settings', settings: '/settings', theme: '/theme-switcher' }
       if (command === 'logout') {
         this.$confirm('确定退出登录?', '提示', { type: 'warning' })
           .then(() => this.$router.push('/login'))
           .catch(() => {})
-      } else if (command === 'profile') {
-        this.$router.push('/settings')
-      } else if (command === 'settings') {
-        this.$router.push('/settings')
+      } else if (map[command]) {
+        this.$router.push(map[command])
       }
     }
   }
 }
 </script>
 
-<style scoped>
-.logo {
-  height: 50px;
+<style lang="scss" scoped>
+.app-wrapper { width: 100%; height: 100%; }
+
+.sidebar-container {
+  background: #304156;
+  transition: width 0.3s;
+  overflow: hidden;
+  box-shadow: 2px 0 6px rgba(0, 21, 41, 0.35);
+
+  &.collapse { width: 64px !important; }
+
+  .logo {
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: #2b2f3a;
+    border-bottom: 1px solid #1f2d3d;
+
+    .logo-icon { width: 32px; height: 32px; margin-right: 8px; }
+    .logo-title { color: #fff; font-size: 16px; font-weight: 600; white-space: nowrap; }
+    .logo-icon-text { font-size: 24px; }
+  }
+
+  ::v-deep .el-menu { border-right: none; }
+  ::v-deep .el-submenu__title:hover, ::v-deep .el-menu-item:hover { background-color: #263445 !important; }
+  ::v-deep .el-menu-item.is-active { background-color: #409EFF !important; color: #fff !important; }
+}
+
+.header-container {
+  background: #fff;
+  border-bottom: 1px solid #e6e6e6;
   display: flex;
   align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-size: 16px;
-  font-weight: 600;
-  border-bottom: 1px solid #1f2d3d;
+  justify-content: space-between;
+  padding: 0 20px;
+  box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
+
+  .header-left { display: flex; align-items: center; flex: 1; }
+  .hamburger { font-size: 20px; cursor: pointer; padding: 0 12px; transition: color 0.3s; &:hover { color: #409EFF; } }
+  .breadcrumb { margin-left: 8px; }
+
+  .header-right .user-info { display: flex; align-items: center; cursor: pointer; padding: 0 8px; }
+  .user-name { margin-right: 8px; color: #606266; }
+  .user-avatar { font-size: 20px; }
 }
+
+.main-container { background: #f0f2f5; overflow-y: auto; }
 </style>

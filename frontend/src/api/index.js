@@ -187,3 +187,32 @@ export function getSentiment() {
 export function getTradeCalendar() {
   return request({ url: '/trade-calendar', method: 'get' })
 }
+
+// 笔记管理
+export function getNotes(params) {
+  return request({ url: '/notes', method: 'get', params })
+}
+
+export function createNote(data) {
+  return request({ url: '/notes', method: 'post', data })
+}
+
+export function getNote(id) {
+  return request({ url: `/notes/${id}`, method: 'get' })
+}
+
+export function updateNote(id, data) {
+  return request({ url: `/notes/${id}`, method: 'put', data })
+}
+
+export function deleteNote(id) {
+  return request({ url: `/notes/${id}`, method: 'delete' })
+}
+
+export function uploadNoteImage(formData) {
+  return request({ url: '/notes/upload', method: 'post', data: formData, headers: { 'Content-Type': 'multipart/form-data' } })
+}
+
+export function getNoteTags() {
+  return request({ url: '/notes/tags', method: 'get' })
+}

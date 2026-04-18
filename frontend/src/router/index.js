@@ -38,7 +38,8 @@ export const constantRoutes = [
     { path: 'paramopt', name: 'ParamOpt', component: () => import('@/views/paramopt/index'), meta: { title: '参数优化', icon: 'el-icon-cpu' } },
     { path: 'reports', name: 'Reports', component: () => import('@/views/reports/index'), meta: { title: '自动报告', icon: 'el-icon-document-copy' } },
     { path: 'research-notebook', name: 'ResearchNotebook', component: () => import('@/views/research/index'), meta: { title: '研究笔记本', icon: 'el-icon-notebook-1' } },
-    { path: 'data-quality', name: 'DataQuality', component: () => import('@/views/data-quality/index'), meta: { title: '数据质量', icon: 'el-icon-circle-check' } }
+    { path: 'data-quality', name: 'DataQuality', component: () => import('@/views/data-quality/index'), meta: { title: '数据质量', icon: 'el-icon-circle-check' } },
+    { path: 'notes', name: 'Notes', component: () => import('@/views/notes/index'), meta: { title: '笔记管理', icon: 'el-icon-edit-outline' } }
   ]},
   { path: '/notifications', component: Layout, children: [{ path: '', name: 'Notifications', component: () => import('@/views/notifications/index'), meta: { title: '通知中心', icon: 'el-icon-bell' } }] },
   { path: '/stock-detail', component: Layout, children: [{ path: '', name: 'StockDetail', component: () => import('@/views/stock-detail/index'), meta: { title: '个股详情', icon: 'el-icon-info' } }] },
