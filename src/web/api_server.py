@@ -394,26 +394,66 @@ def api_signals():
 @app.route('/api/charts', methods=['GET'])
 @token_required
 def api_charts():
-    code = request.args.get('code', 'SZ.002594')
-    days = int(request.args.get('days', 60))
+    """K线数据 + 技术指标 (Phase 125)"""
+    code = request.args.get('code', 'SH.600519')
+    days = int(request.args.get('days', 90))
+    indicators = request.args.get('indicators', 'ma,macd,rsi,bb')  # 默认开启全部
+
     engine = get_db_engine()
     if not engine:
         return jsonify({ 'code': 200, 'data': {} })
+
     try:
-        df = pd.read_sql(f"SELECT date, open_price, high_price, low_price, close_price, volume FROM stock_daily WHERE code='{code}' ORDER BY date DESC LIMIT {days}", engine)
-        df = df.iloc[::-1]  # 升序
-        if not df.empty:
-            kline = {
-                'dates': df['date'].tolist(),
-                'open': df['open_price'].tolist(),
-                'high': df['high_price'].tolist(),
-                'low': df['low_price'].tolist(),
-                'close': df['close_price'].tolist(),
-                'volume': df['volume'].tolist()
-            }
-            return jsonify({ 'code': 200, 'data': { 'kline': kline, 'code': code } })
-    except: pass
-    return jsonify({ 'code': 200, 'data': {} })
+        query = f"SELECT date, open_price, high_price, low_price, close_price, volume FROM stock_daily WHERE code='{code}' ORDER BY date DESC LIMIT {days}"
+        df = pd.read_sql(query, engine)
+        if df.empty:
+            return jsonify({ 'code': 404, 'message': '无数据' })
+
+        df = df.iloc[::-1].reset_index(drop=True)  # 升序
+
+        # 计算技术指标
+        from src.analysis.technical import calculate_indicators
+        df_for_indicators = df[['open_price', 'high_price', 'low_price', 'close_price', 'volume']].copy()
+        df_for_indicators.columns = ['open', 'high', 'low', 'close', 'volume']
+        df_with_indicators = calculate_indicators(df_for_indicators)
+
+        # 构建返回数据
+        result = {
+            'code': code,
+            'dates': df['date'].tolist(),
+            'open': df['open_price'].tolist(),
+            'high': df['high_price'].tolist(),
+            'low': df['low_price'].tolist(),
+            'close': df['close_price'].tolist(),
+            'volume': df['volume'].tolist(),
+            'indicators': {}
+        }
+
+        # MA
+        if 'ma' in indicators:
+            result['indicators']['ma5'] = df_with_indicators['ma5'].round(2).tolist()
+            result['indicators']['ma10'] = df_with_indicators['ma10'].round(2).tolist()
+            result['indicators']['ma20'] = df_with_indicators['ma20'].round(2).tolist()
+
+        # MACD
+        if 'macd' in indicators:
+            result['indicators']['macd'] = df_with_indicators['macd'].round(4).tolist()
+            result['indicators']['macd_signal'] = df_with_indicators['macd_signal'].round(4).tolist()
+            result['indicators']['macd_hist'] = df_with_indicators['macd_hist'].round(4).tolist()
+
+        # RSI
+        if 'rsi' in indicators:
+            result['indicators']['rsi'] = df_with_indicators['rsi'].round(2).tolist()
+
+        # Bollinger Bands
+        if 'bb' in indicators:
+            result['indicators']['bb_upper'] = df_with_indicators['bb_upper'].round(2).tolist()
+            result['indicators']['bb_middle'] = df_with_indicators['bb_middle'].round(2).tolist()
+            result['indicators']['bb_lower'] = df_with_indicators['bb_lower'].round(2).tolist()
+
+        return jsonify({ 'code': 200, 'data': result })
+    except Exception as e:
+        return jsonify({ 'code': 500, 'message': str(e) })
 
 @app.route('/api/strategies', methods=['GET'])
 @token_required
