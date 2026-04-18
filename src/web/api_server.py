@@ -3520,3 +3520,129 @@ def api_docs():
             'endpoints': rules
         }
     })
+
+# ========== Phase 250: 股票评分系统 ==========
+@app.route('/api/stock-score/<code>', methods=['GET'])
+@token_required
+def api_stock_score(code):
+    """获取股票综合评分"""
+    try:
+        from src.web.modules.stock_scorer import StockScorer
+        from src.data.database import get_db_engine
+        from sqlalchemy import text
+        
+        engine = get_db_engine()
+        if not engine:
+            return jsonify({'code': 500, 'message': '数据库未连接'})
+        
+        # 获取股票数据
+        with engine.connect() as conn:
+            result = conn.execute(text(f"""
+                SELECT close_price, volume, turnover 
+                FROM stock_daily 
+                WHERE code='{code}' 
+                ORDER BY date DESC 
+                LIMIT 1
+            """))
+            row = result.fetchone()
+            
+            if not row:
+                return jsonify({'code': 404, 'message': '股票数据不存在'})
+            
+            # 构建评分数据
+            stock_data = {
+                'price': float(row[0]),
+                'volume': float(row[1]) if row[1] else 0,
+                'turnover_rate': float(row[2]) if row[2] else 0,
+                'pe': 25.0,  # 模拟数据
+                'pb': 3.5,
+                'roe': 15.0,
+                'rsi': 55.0,
+                'macd': 0.5,
+                'ma5': float(row[0]) * 0.99,
+                'ma20': float(row[0]) * 0.97,
+                'week52_high': float(row[0]) * 1.2,
+                'week52_low': float(row[0]) * 0.8,
+                'change': 2.5
+            }
+            
+            # 计算评分
+            score_result = StockScorer.calculate_score(stock_data)
+            
+            return jsonify({
+                'code': 200,
+                'data': {
+                    'code': code,
+                    'score': score_result['total'],
+                    'grade': score_result['grade'],
+                    'recommendation': score_result['recommendation'],
+                    'scores': score_result['scores']
+                }
+            })
+    except Exception as e:
+        return jsonify({'code': 500, 'message': str(e)})
+
+
+@app.route('/api/stock-ranking', methods=['GET'])
+@token_required
+def api_stock_ranking():
+    """获取股票排名"""
+    try:
+        from src.web.modules.stock_scorer import StockScorer
+        from src.data.database import get_db_engine
+        from sqlalchemy import text
+        
+        engine = get_db_engine()
+        if not engine:
+            return jsonify({'code': 500, 'message': '数据库未连接'})
+        
+        # 获取所有股票
+        with engine.connect() as conn:
+            result = conn.execute(text("""
+                SELECT code, close_price, volume, turnover 
+                FROM stock_daily 
+                WHERE date = (SELECT MAX(date) FROM stock_daily)
+                ORDER BY code
+            """))
+            
+            rows = result.fetchall()
+            rankings = []
+            
+            for row in rows:
+                stock_data = {
+                    'code': row[0],
+                    'price': float(row[1]),
+                    'volume': float(row[2]) if row[2] else 0,
+                    'turnover_rate': float(row[3]) if row[3] else 0,
+                    'pe': 25.0,
+                    'pb': 3.5,
+                    'roe': 15.0,
+                    'rsi': 55.0,
+                    'macd': 0.5,
+                    'ma5': float(row[1]) * 0.99,
+                    'ma20': float(row[1]) * 0.97,
+                    'week52_high': float(row[1]) * 1.2,
+                    'week52_low': float(row[1]) * 0.8,
+                    'change': 2.5
+                }
+                
+                score_result = StockScorer.calculate_score(stock_data)
+                rankings.append({
+                    'code': row[0],
+                    'score': score_result['total'],
+                    'grade': score_result['grade'],
+                    'recommendation': score_result['recommendation']
+                })
+            
+            # 按评分排序
+            rankings.sort(key=lambda x: x['score'], reverse=True)
+            
+            return jsonify({
+                'code': 200,
+                'data': {
+                    'rankings': rankings[:50],  # Top 50
+                    'total': len(rankings)
+                }
+            })
+    except Exception as e:
+        return jsonify({'code': 500, 'message': str(e)})
