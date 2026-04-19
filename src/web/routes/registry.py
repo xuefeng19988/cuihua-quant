@@ -3,7 +3,11 @@ Phase 269: 路由注册表
 集中管理所有路由模块的注册
 """
 
-def register_all_routes(app, helpers):
+from typing import Any
+from flask import Flask
+
+
+def register_all_routes(app: Flask, helpers: dict[str, Any]) -> dict[str, str]:
     """
     注册所有路由模块
     helpers: dict with token_required, get_stock_codes, get_stock_names, get_db_engine, etc.

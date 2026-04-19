@@ -3952,3 +3952,27 @@ def api_cache_clear_advanced():
     _api_cache.clear()
     _api_cache_ttl.clear()
     return ok(message='缓存已清空')
+
+
+# ========== Phase 274: 模块化路由集成 ==========
+# 将 Phase 269 路由模块接入主服务
+
+def _build_route_helpers():
+    """构建路由模块需要的辅助函数字典"""
+    return {
+        'token_required': token_required,
+        'get_stock_codes': get_stock_codes,
+        'get_stock_names': get_stock_names,
+        'get_db_engine': get_db_engine,
+        'get_futu_manager': get_futu_manager,
+        'get_note_manager': get_note_manager,
+    }
+
+
+# 注册模块化路由 (仅在非测试环境下)
+try:
+    _route_helpers = _build_route_helpers()
+    from src.web.routes.registry import register_all_routes
+    register_all_routes(app, _route_helpers)
+except Exception as e:
+    print(f"模块化路由注册跳过: {e}")
