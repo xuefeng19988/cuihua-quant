@@ -104,6 +104,41 @@ class TestLLMEngine(unittest.TestCase):
         self.assertIn('{context}', LLMEngine.PROMPT_REPORT_GENERATE)
         self.assertIn('{context}', LLMEngine.PROMPT_MARKET_SUMMARY)
 
+    def test_list_providers(self):
+        from src.ai.llm_engine import LLMEngine
+        providers = LLMEngine.list_providers()
+        self.assertIn('bailian', providers)
+        self.assertIn('openai', providers)
+        self.assertIn('qwen-plus', providers['bailian']['default_model'])
+        self.assertIn('阿里百炼', providers['bailian']['description'])
+
+    def test_bailian_preset(self):
+        from src.ai.llm_engine import PROVIDER_PRESETS
+        bailian = PROVIDER_PRESETS['bailian']
+        self.assertIn('dashscope', bailian['base_url'])
+        self.assertIn('qwen-plus', bailian['models'])
+        self.assertIn('qwen-max', bailian['models'])
+        self.assertIn('qwen-turbo', bailian['models'])
+
+
+class TestAIProvidersEndpoint(unittest.TestCase):
+    """测试提供商列表端点"""
+
+    def setUp(self):
+        from flask import Flask
+        self.app = Flask(__name__)
+        from src.web.modules.ai_service import ai_bp
+        self.app.register_blueprint(ai_bp)
+        self.client = self.app.test_client()
+
+    def test_providers_endpoint(self):
+        """GET /api/ai/providers"""
+        resp = self.client.get('/api/ai/providers')
+        data = resp.get_json()
+        self.assertEqual(data['code'], 200)
+        self.assertIn('bailian', data['data']['providers'])
+        self.assertIn('openai', data['data']['providers'])
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

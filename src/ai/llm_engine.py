@@ -1,6 +1,12 @@
 """
 Phase 277: AI 大模型引擎
 支持多 LLM 提供商，用于智能问答、研报生成、行情解读
+
+支持提供商:
+  - OpenAI (默认)
+  - 阿里百炼 DashScope (qwen-turbo / qwen-plus / qwen-max)
+  - DeepSeek
+  - 其他 OpenAI 兼容接口
 """
 
 import os
@@ -10,13 +16,39 @@ from typing import Dict, List, Optional
 from datetime import datetime
 
 
+# ========== 预置提供商配置 ==========
+PROVIDER_PRESETS = {
+    'openai': {
+        'base_url': 'https://api.openai.com/v1',
+        'default_model': 'gpt-3.5-turbo',
+    },
+    'bailian': {
+        'base_url': 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+        'default_model': 'qwen-plus',
+        'models': ['qwen-turbo', 'qwen-plus', 'qwen-max', 'qwen-long', 'qwen-vl-max'],
+        'description': '阿里百炼 DashScope',
+    },
+    'deepseek': {
+        'base_url': 'https://api.deepseek.com/v1',
+        'default_model': 'deepseek-chat',
+        'description': 'DeepSeek',
+    },
+    'siliconflow': {
+        'base_url': 'https://api.siliconflow.cn/v1',
+        'default_model': 'Qwen/Qwen2.5-72B-Instruct',
+        'description': '硅基流动',
+    },
+}
+
+
 class LLMProvider:
-    """LLM 提供商抽象"""
+    """LLM 提供商抽象 (OpenAI 兼容接口)"""
     
-    def __init__(self, api_key: str, base_url: str, model: str):
+    def __init__(self, api_key: str, base_url: str, model: str, provider_name: str = 'openai'):
         self.api_key = api_key
         self.base_url = base_url
         self.model = model
+        self.provider_name = provider_name
     
     async def chat(self, messages: List[Dict], temperature: float = 0.7, max_tokens: int = 2000) -> Dict:
         """发送对话请求"""
@@ -72,13 +104,29 @@ class LLMEngine:
     
     def _create_provider(self) -> Optional[LLMProvider]:
         """创建 LLM 提供商实例"""
+        # 优先从环境变量读取
+        provider_name = os.getenv('LLM_PROVIDER', self.config.get('provider', 'openai')).lower()
         api_key = os.getenv('LLM_API_KEY', self.config.get('api_key', ''))
-        base_url = os.getenv('LLM_BASE_URL', self.config.get('base_url', 'https://api.openai.com/v1'))
-        model = os.getenv('LLM_MODEL', self.config.get('model', 'gpt-3.5-turbo'))
+        base_url = os.getenv('LLM_BASE_URL', '')
+        model = os.getenv('LLM_MODEL', '')
+        
+        # 如果没指定 base_url，从预置配置获取
+        preset = PROVIDER_PRESETS.get(provider_name)
+        if preset:
+            if not base_url:
+                base_url = preset['base_url']
+            if not model:
+                model = preset.get('default_model', 'qwen-plus')
+        elif not base_url:
+            # 未知提供商，回退到 OpenAI
+            base_url = PROVIDER_PRESETS['openai']['base_url']
+            if not model:
+                model = PROVIDER_PRESETS['openai']['default_model']
         
         if not api_key:
             return None
-        return LLMProvider(api_key, base_url, model)
+        
+        return LLMProvider(api_key, base_url, model, provider_name)
     
     def is_available(self) -> bool:
         """检查 AI 是否可用"""
@@ -86,10 +134,34 @@ class LLMEngine:
     
     def get_config(self) -> Dict:
         """获取配置信息"""
+        p = self.provider
+        if p is None:
+            return {
+                'available': False,
+                'provider': 'none',
+                'model': 'none',
+                'base_url': 'none',
+                'available_models': [],
+            }
         return {
-            'available': self.is_available(),
-            'model': self.provider.model if self.provider else 'none',
-            'base_url': self.provider.base_url if self.provider else 'none',
+            'available': True,
+            'provider': p.provider_name,
+            'model': p.model,
+            'base_url': p.base_url,
+            'available_models': PROVIDER_PRESETS.get(p.provider_name, {}).get('models', []),
+        }
+    
+    @staticmethod
+    def list_providers() -> Dict:
+        """列出所有支持的提供商"""
+        return {
+            name: {
+                'base_url': info['base_url'],
+                'default_model': info['default_model'],
+                'description': info.get('description', ''),
+                'models': info.get('models', []),
+            }
+            for name, info in PROVIDER_PRESETS.items()
         }
     
     async def analyze_stock(self, stock_data: Dict) -> Dict:

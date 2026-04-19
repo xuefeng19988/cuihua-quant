@@ -141,3 +141,10 @@ def api_ai_clear_history():
     engine = get_llm_engine()
     engine.clear_history()
     return ok(message='历史已清空')
+
+
+@ai_bp.route('/api/ai/providers', methods=['GET'])
+def api_ai_providers():
+    """列出所有支持的 LLM 提供商"""
+    from src.ai.llm_engine import LLMEngine
+    return ok(data={'providers': LLMEngine.list_providers()})
