@@ -3377,7 +3377,7 @@ from src.web.modules.rate_limiter import rate_limit
 from src.web.modules.futu_quote import futu_bp
 
 
-# ========== 缓存装饰器 (应用于高频查询API) ==========
+# ========== Phase 268: 高级缓存集成 ==========
 from functools import wraps
 import time
 
@@ -3407,6 +3407,13 @@ api_heatmap = cache_api(120)(api_heatmap)
 api_fund_flow = cache_api(90)(api_fund_flow)
 api_sector_rotation = cache_api(90)(api_sector_rotation)
 api_market_sentiment = cache_api(60)(api_market_sentiment)
+
+# Phase 268: 高级缓存管理
+try:
+    from src.web.modules.cache_manager import advanced_cache, api_cached, CacheStats
+    _has_advanced_cache = True
+except ImportError:
+    _has_advanced_cache = False
 
 # ========== 安全中间件 ==========
 @app.before_request
@@ -3652,9 +3659,10 @@ def api_stock_score(code):
 @app.route('/api/stock-ranking', methods=['GET'])
 @token_required
 def api_stock_ranking():
-    """获取股票排名 (Phase 267 增强: 8维度评分 + 百分位 + 行业对比)"""
+    """获取股票排名 (Phase 268 优化: 批量查询替代 N+1)"""
     try:
         from src.web.modules.stock_scorer import StockScorer
+        from src.web.modules.batch_scorer import batch_build_score_data
         from src.data.database import get_db_engine
         
         engine = get_db_engine()
@@ -3671,15 +3679,20 @@ def api_stock_ranking():
         stocks = get_stock_codes()
         sn = get_stock_names()
         
+        # 市场筛选
+        if market == 'A':
+            filtered_codes = [c for c in stocks if c.startswith(('SH.', 'SZ.'))]
+        elif market == 'HK':
+            filtered_codes = [c for c in stocks if c.startswith('HK.')]
+        else:
+            filtered_codes = stocks
+        
+        # 批量查询 - 仅2条SQL搞定所有股票 (Phase 268 优化)
+        batch_data = batch_build_score_data(filtered_codes, engine)
+        
         rankings = []
-        for code in stocks:
-            # 市场筛选
-            if market == 'A' and not code.startswith(('SH.', 'SZ.')):
-                continue
-            if market == 'HK' and not code.startswith('HK.'):
-                continue
-            
-            stock_data = _build_stock_score_data(code, engine)
+        for code in filtered_codes:
+            stock_data = batch_data.get(code)
             if not stock_data:
                 continue
             
@@ -3746,10 +3759,14 @@ def api_stock_compare():
             return jsonify({'code': 400, 'message': '最多对比10只股票'})
         
         sn = get_stock_names()
-        stock_list = []
         
+        # Phase 268 优化: 批量查询替代 N+1
+        from src.web.modules.batch_scorer import batch_build_score_data
+        batch_data = batch_build_score_data(codes, engine)
+        
+        stock_list = []
         for code in codes:
-            stock_data = _build_stock_score_data(code, engine)
+            stock_data = batch_data.get(code)
             if not stock_data:
                 continue
             
@@ -3806,11 +3823,14 @@ def api_scoring_dashboard():
                 'level': '优' if score >= 75 else '良' if score >= 60 else '中' if score >= 45 else '差'
             })
         
-        # 获取同行业其他股票做对比
+        # 获取同行业其他股票做对比 (Phase 268 优化: 批量查询)
+        from src.web.modules.batch_scorer import batch_build_score_data
         all_codes = get_stock_codes()[:100]  # 取前100只做行业对比
+        batch_data = batch_build_score_data(all_codes, engine)
+        
         sector_scores = []
         for c in all_codes:
-            sd = _build_stock_score_data(c, engine)
+            sd = batch_data.get(c)
             if sd:
                 sr = StockScorer.calculate_score(sd)
                 sector_scores.append({'code': c, 'total': sr['total']})
@@ -3844,3 +3864,90 @@ def api_scoring_dashboard():
         })
     except Exception as e:
         return jsonify({'code': 500, 'message': str(e)})
+
+
+# ========== Phase 268: 批量评分 + 缓存统计 ==========
+
+@app.route('/api/stock-score-batch', methods=['POST'])
+@token_required
+def api_stock_score_batch():
+    """批量评分 (Phase 268: 仅2条SQL搞定所有股票)"""
+    try:
+        from src.web.modules.stock_scorer import StockScorer
+        from src.web.modules.batch_scorer import batch_build_score_data
+        from src.data.database import get_db_engine
+        
+        engine = get_db_engine()
+        if not engine:
+            return jsonify({'code': 500, 'message': '数据库未连接'})
+        
+        data = request.get_json() or {}
+        codes = data.get('codes', [])
+        if not codes:
+            codes = get_stock_codes()
+        
+        sn = get_stock_names()
+        
+        # 批量查询 - 仅2条SQL
+        batch_data = batch_build_score_data(codes, engine)
+        
+        results = []
+        for code in codes:
+            stock_data = batch_data.get(code)
+            if not stock_data:
+                continue
+            
+            score_result = StockScorer.calculate_score(stock_data)
+            results.append({
+                'code': code,
+                'name': sn.get(code, ''),
+                'score': score_result['total'],
+                'grade': score_result['grade'],
+                'percentile': score_result['percentile'],
+                'recommendation': score_result['recommendation'],
+                'scores': score_result['scores'],
+                'price': stock_data['price'],
+                'change': stock_data['change']
+            })
+        
+        # 按总分排序
+        results.sort(key=lambda x: x['score'], reverse=True)
+        
+        return jsonify({
+            'code': 200,
+            'data': {
+                'results': results,
+                'total': len(results),
+                'sql_queries': 2  # 优化对比
+            }
+        })
+    except Exception as e:
+        return jsonify({'code': 500, 'message': str(e)})
+
+
+@app.route('/api/cache/stats', methods=['GET'])
+@token_required
+def api_cache_stats():
+    """缓存统计 (Phase 268)"""
+    stats = {
+        'simple_cache': {
+            'entries': len(_api_cache),
+            'ttl_entries': len(_api_cache_ttl)
+        }
+    }
+    
+    if _has_advanced_cache:
+        stats['advanced_cache'] = advanced_cache.to_dict()
+    
+    return jsonify({'code': 200, 'data': stats})
+
+
+@app.route('/api/cache/clear', methods=['POST'])
+@token_required
+def api_cache_clear_advanced():
+    """清空高级缓存 (Phase 268)"""
+    if _has_advanced_cache:
+        advanced_cache.clear()
+    _api_cache.clear()
+    _api_cache_ttl.clear()
+    return jsonify({'code': 200, 'message': '缓存已清空'})
