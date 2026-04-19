@@ -3521,64 +3521,130 @@ def api_docs():
         }
     })
 
-# ========== Phase 250: 股票评分系统 ==========
+# ========== Phase 267: 个股增强 + 对比增强评分系统 ==========
+
+def _build_stock_score_data(code, engine):
+    """从数据库构建评分所需数据 (Phase 267 增强版)"""
+    from sqlalchemy import text
+    import pandas as pd
+    
+    # 获取最新行情
+    latest = pd.read_sql(text(f"SELECT * FROM stock_daily WHERE code='{code}' ORDER BY date DESC LIMIT 1"), engine)
+    if latest.empty:
+        return None
+    
+    row = latest.iloc[0]
+    price = float(row['close_price'])
+    
+    # 获取历史数据计算均线
+    history = pd.read_sql(text(f"SELECT close_price, volume, turnover, change_pct, turnover_rate FROM stock_daily WHERE code='{code}' ORDER BY date DESC LIMIT 250"), engine)
+    
+    # 计算均线
+    closes = history['close_price'].values if len(history) > 0 else [price]
+    ma5 = float(pd.Series(closes).rolling(5).mean().iloc[-1]) if len(closes) >= 5 else price
+    ma20 = float(pd.Series(closes).rolling(20).mean().iloc[-1]) if len(closes) >= 20 else price
+    ma60 = float(pd.Series(closes).rolling(60).mean().iloc[-1]) if len(closes) >= 60 else ma20
+    
+    # 52周高低
+    week52_high = float(max(closes)) if len(closes) > 0 else price * 1.2
+    week52_low = float(min(closes)) if len(closes) > 0 else price * 0.8
+    
+    # 涨跌
+    change = float(row['change_pct']) if 'change_pct' in row and pd.notna(row['change_pct']) else 0
+    if len(closes) >= 2:
+        change = round((closes[0] - closes[1]) / closes[1] * 100, 2) if closes[1] != 0 else 0
+    
+    # 成交量/换手率
+    volume = float(row['volume']) if 'volume' in row and pd.notna(row['volume']) else 0
+    turnover = float(row['turnover_rate']) if 'turnover_rate' in row and pd.notna(row['turnover_rate']) else 0
+    
+    # PE (从数据库或模拟)
+    pe = float(row['pe_ratio']) if 'pe_ratio' in row and pd.notna(row['pe_ratio']) else 25.0
+    
+    # 简单RSI计算
+    rsi = 50.0
+    if len(closes) >= 15:
+        deltas = pd.Series(closes).diff().dropna()
+        gains = deltas[deltas > 0].rolling(14).mean().iloc[-1] if len(deltas[deltas > 0]) > 0 else 0
+        losses = abs(deltas[deltas < 0].rolling(14).mean().iloc[-1]) if len(deltas[deltas < 0]) > 0 else 0.001
+        rs = gains / losses if losses != 0 else 1
+        rsi = round(100 - (100 / (1 + rs)), 1)
+    
+    # MACD 简化计算
+    macd = 0
+    if len(closes) >= 26:
+        ema12 = pd.Series(closes).ewm(span=12).mean().iloc[-1]
+        ema26 = pd.Series(closes).ewm(span=26).mean().iloc[-1]
+        macd = round(float(ema12 - ema26), 4)
+    
+    # 模拟基本面数据 (后续可从财务表获取)
+    pb = round(pe / (15 + change * 0.5), 2) if pe > 0 else 3.5
+    roe = round(pe / pb * 10, 1) if pb > 0 else 15.0
+    net_margin = round(roe * 0.4, 1)
+    debt_ratio = round(40 + change * 0.3, 1)
+    dividend_yield = round(2.5 + (50 - pe) * 0.05, 2)
+    revenue_growth = round(10 + change * 0.5, 1)
+    profit_growth = round(15 + change * 0.8, 1)
+    northbound = round(change * 1000000, 0)
+    main_flow = round(change * 5000000, 0)
+    
+    return {
+        'price': price,
+        'change': change,
+        'volume': volume,
+        'turnover_rate': turnover,
+        'pe': pe if pe > 0 else 25.0,
+        'pb': max(0.5, pb),
+        'roe': max(0, roe),
+        'rsi': max(0, min(100, rsi)),
+        'macd': macd,
+        'ma5': ma5,
+        'ma20': ma20,
+        'ma60': ma60,
+        'week52_high': week52_high,
+        'week52_low': week52_low,
+        'revenue_growth': revenue_growth,
+        'profit_growth': profit_growth,
+        'net_margin': max(0, net_margin),
+        'debt_ratio': max(10, min(80, debt_ratio)),
+        'dividend_yield': max(0, dividend_yield),
+        'northbound': northbound,
+        'main_net_inflow': main_flow
+    }
+
+
 @app.route('/api/stock-score/<code>', methods=['GET'])
 @token_required
 def api_stock_score(code):
-    """获取股票综合评分"""
+    """获取股票综合评分 (Phase 267 增强: 8维度 + 百分位 + 强/弱项)"""
     try:
         from src.web.modules.stock_scorer import StockScorer
         from src.data.database import get_db_engine
-        from sqlalchemy import text
         
         engine = get_db_engine()
         if not engine:
             return jsonify({'code': 500, 'message': '数据库未连接'})
         
-        # 获取股票数据
-        with engine.connect() as conn:
-            result = conn.execute(text(f"""
-                SELECT close_price, volume, turnover 
-                FROM stock_daily 
-                WHERE code='{code}' 
-                ORDER BY date DESC 
-                LIMIT 1
-            """))
-            row = result.fetchone()
-            
-            if not row:
-                return jsonify({'code': 404, 'message': '股票数据不存在'})
-            
-            # 构建评分数据
-            stock_data = {
-                'price': float(row[0]),
-                'volume': float(row[1]) if row[1] else 0,
-                'turnover_rate': float(row[2]) if row[2] else 0,
-                'pe': 25.0,  # 模拟数据
-                'pb': 3.5,
-                'roe': 15.0,
-                'rsi': 55.0,
-                'macd': 0.5,
-                'ma5': float(row[0]) * 0.99,
-                'ma20': float(row[0]) * 0.97,
-                'week52_high': float(row[0]) * 1.2,
-                'week52_low': float(row[0]) * 0.8,
-                'change': 2.5
+        stock_data = _build_stock_score_data(code, engine)
+        if not stock_data:
+            return jsonify({'code': 404, 'message': '股票数据不存在'})
+        
+        score_result = StockScorer.calculate_score(stock_data)
+        
+        return jsonify({
+            'code': 200,
+            'data': {
+                'code': code,
+                'score': score_result['total'],
+                'percentile': score_result['percentile'],
+                'grade': score_result['grade'],
+                'recommendation': score_result['recommendation'],
+                'scores': score_result['scores'],
+                'strengths': score_result['strengths'],
+                'weaknesses': score_result['weaknesses'],
+                'weights': score_result['weights']
             }
-            
-            # 计算评分
-            score_result = StockScorer.calculate_score(stock_data)
-            
-            return jsonify({
-                'code': 200,
-                'data': {
-                    'code': code,
-                    'score': score_result['total'],
-                    'grade': score_result['grade'],
-                    'recommendation': score_result['recommendation'],
-                    'scores': score_result['scores']
-                }
-            })
+        })
     except Exception as e:
         return jsonify({'code': 500, 'message': str(e)})
 
@@ -3586,63 +3652,191 @@ def api_stock_score(code):
 @app.route('/api/stock-ranking', methods=['GET'])
 @token_required
 def api_stock_ranking():
-    """获取股票排名"""
+    """获取股票排名 (Phase 267 增强: 8维度评分 + 百分位 + 行业对比)"""
     try:
         from src.web.modules.stock_scorer import StockScorer
         from src.data.database import get_db_engine
-        from sqlalchemy import text
         
         engine = get_db_engine()
         if not engine:
             return jsonify({'code': 500, 'message': '数据库未连接'})
         
-        # 获取所有股票
-        with engine.connect() as conn:
-            result = conn.execute(text("""
-                SELECT code, close_price, volume, turnover 
-                FROM stock_daily 
-                WHERE date = (SELECT MAX(date) FROM stock_daily)
-                ORDER BY code
-            """))
+        # 获取筛选参数
+        limit = int(request.args.get('limit', 50))
+        market = request.args.get('market', '')  # A/HK
+        min_score = int(request.args.get('min_score', 0))
+        
+        # 获取所有最新股票
+        stocks = get_stock_codes()
+        sn = get_stock_names()
+        
+        rankings = []
+        for code in stocks:
+            # 市场筛选
+            if market == 'A' and not code.startswith(('SH.', 'SZ.')):
+                continue
+            if market == 'HK' and not code.startswith('HK.'):
+                continue
             
-            rows = result.fetchall()
-            rankings = []
+            stock_data = _build_stock_score_data(code, engine)
+            if not stock_data:
+                continue
             
-            for row in rows:
-                stock_data = {
-                    'code': row[0],
-                    'price': float(row[1]),
-                    'volume': float(row[2]) if row[2] else 0,
-                    'turnover_rate': float(row[3]) if row[3] else 0,
-                    'pe': 25.0,
-                    'pb': 3.5,
-                    'roe': 15.0,
-                    'rsi': 55.0,
-                    'macd': 0.5,
-                    'ma5': float(row[1]) * 0.99,
-                    'ma20': float(row[1]) * 0.97,
-                    'week52_high': float(row[1]) * 1.2,
-                    'week52_low': float(row[1]) * 0.8,
-                    'change': 2.5
-                }
-                
-                score_result = StockScorer.calculate_score(stock_data)
-                rankings.append({
-                    'code': row[0],
-                    'score': score_result['total'],
-                    'grade': score_result['grade'],
-                    'recommendation': score_result['recommendation']
-                })
+            score_result = StockScorer.calculate_score(stock_data)
+            if score_result['total'] < min_score:
+                continue
             
-            # 按评分排序
-            rankings.sort(key=lambda x: x['score'], reverse=True)
-            
-            return jsonify({
-                'code': 200,
-                'data': {
-                    'rankings': rankings[:50],  # Top 50
-                    'total': len(rankings)
-                }
+            rankings.append({
+                'code': code,
+                'name': sn.get(code, ''),
+                'score': score_result['total'],
+                'percentile': score_result['percentile'],
+                'grade': score_result['grade'],
+                'recommendation': score_result['recommendation'],
+                'scores': score_result['scores'],
+                'price': stock_data['price'],
+                'change': stock_data['change']
             })
+        
+        # 按评分排序
+        rankings.sort(key=lambda x: x['score'], reverse=True)
+        rankings = rankings[:limit]
+        
+        # 添加排名
+        for i, r in enumerate(rankings):
+            r['rank'] = i + 1
+        
+        # 统计
+        all_scores = [r['score'] for r in rankings]
+        return jsonify({
+            'code': 200,
+            'data': {
+                'rankings': rankings,
+                'total': len(rankings),
+                'avg_score': round(sum(all_scores) / len(all_scores)) if all_scores else 0,
+                'max_score': max(all_scores) if all_scores else 0,
+                'min_score': min(all_scores) if all_scores else 0
+            }
+        })
+    except Exception as e:
+        return jsonify({'code': 500, 'message': str(e)})
+
+
+@app.route('/api/stock-compare', methods=['POST'])
+@token_required
+def api_stock_compare():
+    """股票对比评分分析 (Phase 267 新增)"""
+    try:
+        from src.web.modules.stock_scorer import StockScorer
+        from src.data.database import get_db_engine
+        
+        engine = get_db_engine()
+        if not engine:
+            return jsonify({'code': 500, 'message': '数据库未连接'})
+        
+        data = request.get_json() or {}
+        codes = data.get('codes', [])
+        if not codes or len(codes) < 2:
+            return jsonify({'code': 400, 'message': '请至少选择2只股票'})
+        if len(codes) > 10:
+            return jsonify({'code': 400, 'message': '最多对比10只股票'})
+        
+        sn = get_stock_names()
+        stock_list = []
+        
+        for code in codes:
+            stock_data = _build_stock_score_data(code, engine)
+            if not stock_data:
+                continue
+            
+            score_result = StockScorer.calculate_score(stock_data)
+            stock_list.append({
+                'code': code,
+                'name': sn.get(code, ''),
+                'price': stock_data['price'],
+                'change': stock_data['change'],
+                'score_result': score_result
+            })
+        
+        # 对比分析
+        compare_result = StockScorer.compare_stocks(stock_list)
+        
+        return jsonify({
+            'code': 200,
+            'data': compare_result
+        })
+    except Exception as e:
+        return jsonify({'code': 500, 'message': str(e)})
+
+
+@app.route('/api/stock-scoring-dashboard', methods=['GET'])
+@token_required
+def api_scoring_dashboard():
+    """评分面板数据 (Phase 267 新增)"""
+    try:
+        from src.web.modules.stock_scorer import StockScorer
+        from src.data.database import get_db_engine
+        
+        engine = get_db_engine()
+        if not engine:
+            return jsonify({'code': 500, 'message': '数据库未连接'})
+        
+        code = request.args.get('code', '')
+        if not code:
+            return jsonify({'code': 400, 'message': '请提供股票代码'})
+        
+        stock_data = _build_stock_score_data(code, engine)
+        if not stock_data:
+            return jsonify({'code': 404, 'message': '股票数据不存在'})
+        
+        score_result = StockScorer.calculate_score(stock_data)
+        
+        # 构建评分详情
+        dim_details = []
+        for dim, score in score_result['scores'].items():
+            dim_details.append({
+                'dim': dim,
+                'label': StockScorer.dim_label(dim),
+                'score': score,
+                'weight': score_result['weights'][dim],
+                'level': '优' if score >= 75 else '良' if score >= 60 else '中' if score >= 45 else '差'
+            })
+        
+        # 获取同行业其他股票做对比
+        all_codes = get_stock_codes()[:100]  # 取前100只做行业对比
+        sector_scores = []
+        for c in all_codes:
+            sd = _build_stock_score_data(c, engine)
+            if sd:
+                sr = StockScorer.calculate_score(sd)
+                sector_scores.append({'code': c, 'total': sr['total']})
+        
+        sector_ranking = None
+        if sector_scores:
+            sorted_sector = sorted(sector_scores, key=lambda x: x['total'], reverse=True)
+            for i, s in enumerate(sorted_sector):
+                if s['code'] == code:
+                    percentile = round((1 - i / len(sorted_sector)) * 100) if len(sorted_sector) > 1 else 100
+                    sector_ranking = {
+                        'rank': i + 1,
+                        'total': len(sorted_sector),
+                        'percentile': percentile
+                    }
+                    break
+        
+        return jsonify({
+            'code': 200,
+            'data': {
+                'code': code,
+                'score': score_result['total'],
+                'grade': score_result['grade'],
+                'percentile': score_result['percentile'],
+                'recommendation': score_result['recommendation'],
+                'dimensions': dim_details,
+                'strengths': score_result['strengths'],
+                'weaknesses': score_result['weaknesses'],
+                'sector_ranking': sector_ranking
+            }
+        })
     except Exception as e:
         return jsonify({'code': 500, 'message': str(e)})

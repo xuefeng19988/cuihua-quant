@@ -28,6 +28,7 @@
         <el-tab-pane label="📊 概览" name="overview" />
         <el-tab-pane label="📈 K线" name="kline" />
         <el-tab-pane label="📋 财务" name="financials" />
+        <el-tab-pane label="🎯 评分" name="scoring" />
         <el-tab-pane label="📊 分析" name="analysis" />
         <el-tab-pane label="📰 新闻" name="news" />
       </el-tabs>
@@ -191,6 +192,14 @@
       </el-card>
     </div>
 
+    <!-- 评分 Tab -->
+    <div v-show="activeTab === 'scoring'" class="tab-content">
+      <el-card class="futu-card">
+        <div slot="header"><span>🎯 综合评分</span></div>
+        <scoring-panel :code="selectedCode" />
+      </el-card>
+    </div>
+
     <!-- 分析 Tab -->
     <div v-show="activeTab === 'analysis'" class="tab-content">
       <el-row :gutter="16">
@@ -245,10 +254,11 @@ import request from '@/utils/request'
 import * as echarts from 'echarts'
 import TradingChart from '@/components/trading-chart/index.vue'
 import { LineChart, BarChart, RadarChart } from '@/components/charts'
+import ScoringPanel from '@/components/scoring-panel/index.vue'
 
 export default {
   name: 'StockDetail',
-  components: { TradingChart, LineChart, BarChart, RadarChart },
+  components: { TradingChart, LineChart, BarChart, RadarChart, ScoringPanel },
   data() {
     return {
       selectedCode: '',

@@ -45,6 +45,7 @@ export const constantRoutes = [
   { path: '/stock-detail', component: Layout, children: [{ path: '', name: 'StockDetail', component: () => import('@/views/stock-detail/index'), meta: { title: '个股详情', icon: 'el-icon-info' } }] },
   { path: '/stock-detail/:id', component: Layout, children: [{ path: '', name: 'StockDetailById', component: () => import('@/views/stock-detail/index'), meta: { title: '个股详情', icon: 'el-icon-info' } }] },
   { path: '/stock-compare', component: Layout, children: [{ path: '', name: 'StockCompare', component: () => import('@/views/stock-compare/index'), meta: { title: '股票对比', icon: 'el-icon-s-data' } }] },
+  { path: '/scoring-dashboard', component: Layout, children: [{ path: '', name: 'ScoringDashboard', component: () => import('@/views/scoring-dashboard/index'), meta: { title: '评分排行', icon: 'el-icon-trophy' } }] },
   { path: '/stock-alerts', component: Layout, children: [{ path: '', name: 'StockAlerts', component: () => import('@/views/stock-alerts/index'), meta: { title: '行情异动', icon: 'el-icon-warning' } }] },
   { path: '/stock-news', component: Layout, children: [{ path: '', name: 'StockNews', component: () => import('@/views/stock-news/index'), meta: { title: '股票资讯', icon: 'el-icon-news' } }] },
   { path: '/smart-alerts', component: Layout, children: [{ path: '', name: 'SmartAlerts', component: () => import('@/views/smart-alerts/index'), meta: { title: '智能提醒', icon: 'el-icon-bell' } }] },
