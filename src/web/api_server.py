@@ -569,6 +569,9 @@ app.register_blueprint(futu_bp)
 # Phase 276: 实盘交易模块
 from src.web.modules.live_trading import live_trading_bp
 app.register_blueprint(live_trading_bp)
+# Phase 277: AI 大模型集成
+from src.web.modules.ai_service import ai_bp
+app.register_blueprint(ai_bp)
 
 if __name__ == '__main__':
     sn = get_stock_names()  # 加载股票名称
