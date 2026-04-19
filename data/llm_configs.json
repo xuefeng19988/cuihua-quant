@@ -1,0 +1,57 @@
+{
+  "configs": {
+    "openai": {
+      "name": "openai",
+      "provider": "openai",
+      "api_key": "***",
+      "api_key_full": "",
+      "model": "gpt-3.5-turbo",
+      "base_url": "https://api.openai.com/v1",
+      "enabled": false,
+      "created_at": "2026-04-19T23:08:33.122720",
+      "last_used": null,
+      "usage_count": 0,
+      "total_tokens": 0
+    },
+    "bailian": {
+      "name": "bailian",
+      "provider": "bailian",
+      "api_key": "***",
+      "api_key_full": "",
+      "model": "qwen-plus",
+      "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+      "enabled": true,
+      "created_at": "2026-04-19T23:08:33.122734",
+      "last_used": null,
+      "usage_count": 0,
+      "total_tokens": 0
+    },
+    "deepseek": {
+      "name": "deepseek",
+      "provider": "deepseek",
+      "api_key": "***",
+      "api_key_full": "",
+      "model": "deepseek-chat",
+      "base_url": "https://api.deepseek.com/v1",
+      "enabled": false,
+      "created_at": "2026-04-19T23:08:33.122738",
+      "last_used": null,
+      "usage_count": 0,
+      "total_tokens": 0
+    },
+    "siliconflow": {
+      "name": "siliconflow",
+      "provider": "siliconflow",
+      "api_key": "***",
+      "api_key_full": "",
+      "model": "Qwen/Qwen2.5-72B-Instruct",
+      "base_url": "https://api.siliconflow.cn/v1",
+      "enabled": false,
+      "created_at": "2026-04-19T23:08:33.122742",
+      "last_used": null,
+      "usage_count": 0,
+      "total_tokens": 0
+    }
+  },
+  "active_config": "bailian"
+}
