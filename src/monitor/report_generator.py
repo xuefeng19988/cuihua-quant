@@ -4,7 +4,6 @@ Phase 97: 自动报告生成器 (Automated Report Generator)
 日报/周报/月报自动生成与分发
 """
 
-from __future__ import annotations
 
 from typing import Dict, List, Optional
 from dataclasses import dataclass

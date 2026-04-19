@@ -9,7 +9,7 @@ import hashlib
 import time
 import json
 import pickle
-from typing import Any, Optional, Dict, Callable
+from typing import Any, Optional, Dict
 from datetime import datetime, timedelta
 from functools import wraps
 

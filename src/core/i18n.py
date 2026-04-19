@@ -5,7 +5,7 @@ Multi-language support for CLI and Web UI.
 
 import os
 import sys
-from typing import Dict, Optional
+from typing import Dict
 
 # Project paths
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))

@@ -4,9 +4,8 @@ Phase 96: 系统健康检查 (System Health Check)
 全系统自动化监控与诊断
 """
 
-from __future__ import annotations
 
-from typing import Dict, List, Optional
+from typing import Dict, List
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum

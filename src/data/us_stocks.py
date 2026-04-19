@@ -9,7 +9,7 @@ import json
 import requests
 import pandas as pd
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 # Project paths
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))

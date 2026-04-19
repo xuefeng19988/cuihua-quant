@@ -11,7 +11,7 @@
       <div v-for="(msg, idx) in messages" :key="idx" class="chat-msg" :class="msg.role">
         <div class="msg-bubble">
           <span class="msg-role">{{ msg.role === 'user' ? '🧑' : '🤖' }}</span>
-          <div class="msg-content" v-html="formatContent(msg.content)" />
+          <div class="msg-content" v-html="sanitizeHTML(formatContent(msg.content))" />
         </div>
       </div>
       <div v-if="loading" class="chat-msg ai">
@@ -32,8 +32,10 @@
 
 <script>
 import request from '@/utils/request'
+import sanitizeMixin from '@/mixins/sanitize'
 
 export default {
+  mixins: [sanitizeMixin],
   name: 'AIChat',
   data() {
     return {

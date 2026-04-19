@@ -8,7 +8,7 @@ import sys
 import time
 import json
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Callable
+from typing import Dict, List, Callable
 
 # Project paths
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))

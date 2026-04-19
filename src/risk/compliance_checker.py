@@ -4,9 +4,8 @@ Phase 100: 交易合规检查系统 (Trade Compliance Checker)
 交易合规性验证与审计
 """
 
-from __future__ import annotations
 
-from typing import Dict, List, Optional
+from typing import Dict, List
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum

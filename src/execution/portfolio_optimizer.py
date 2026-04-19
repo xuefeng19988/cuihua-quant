@@ -8,7 +8,7 @@ import sys
 import pandas as pd
 import numpy as np
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple
+from typing import List, Tuple
 from scipy.optimize import minimize
 
 # Project paths

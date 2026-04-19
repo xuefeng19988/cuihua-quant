@@ -4,9 +4,8 @@ Phase 95: 交易行为分析系统 (Trading Behavior Analysis)
 分析投资者行为偏差，优化交易决策
 """
 
-from __future__ import annotations
 
-from typing import Dict, List, Optional
+from typing import Dict, List
 from dataclasses import dataclass
 from enum import Enum
 

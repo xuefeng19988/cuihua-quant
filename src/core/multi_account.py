@@ -4,9 +4,8 @@ Phase 99: 多账户管理系统 (Multi-Account Management)
 统一管理多个投资组合
 """
 
-from __future__ import annotations
 
-from typing import Dict, List, Optional
+from typing import Dict, List
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum

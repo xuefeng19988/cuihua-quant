@@ -19,7 +19,7 @@
           <span>📊 分析结果 - {{ selectedStock.name }}</span>
           <span style="float:right;color:#909399;font-size:12px;">模型: {{ result.model }}</span>
         </div>
-        <div class="result-content" v-html="formatResult(result.content)" />
+        <div class="result-content" v-html="sanitizeHTML(formatResult(result.content))" />
         <div v-if="result.usage" style="margin-top:12px;padding-top:12px;border-top:1px solid #ebeef5;">
           <span style="font-size:12px;color:#909399;">
             用量: {{ result.usage.total_tokens }} tokens
@@ -34,8 +34,10 @@
 
 <script>
 import request from '@/utils/request'
+import sanitizeMixin from '@/mixins/sanitize'
 
 export default {
+  mixins: [sanitizeMixin],
   name: 'AIStockAnalyze',
   data() {
     return {

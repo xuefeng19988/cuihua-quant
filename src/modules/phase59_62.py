@@ -11,7 +11,7 @@ import sys
 import pandas as pd
 import numpy as np
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List
 
 # Project paths
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))

@@ -8,7 +8,7 @@ import sys
 import time
 import psutil
 from datetime import datetime
-from typing import Dict, List
+from typing import Dict
 
 # Project paths
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))

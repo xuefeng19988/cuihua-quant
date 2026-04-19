@@ -289,7 +289,7 @@
                 <div v-for="(msg, idx) in aiMessages" :key="idx" class="chat-msg" :class="msg.role">
                   <div class="msg-bubble">
                     <span class="msg-role">{{ msg.role === 'user' ? '🧑' : '🤖' }}</span>
-                    <div class="msg-content" v-html="formatMsg(msg.content)" />
+                    <div class="msg-content" v-html="sanitizeHTML(formatMsg(msg.content))" />
                   </div>
                 </div>
                 <div v-if="aiLoading" class="chat-msg ai">
@@ -340,8 +340,10 @@ import * as echarts from 'echarts'
 import TradingChart from '@/components/trading-chart/index.vue'
 import { LineChart, BarChart, RadarChart } from '@/components/charts'
 import ScoringPanel from '@/components/scoring-panel/index.vue'
+import sanitizeMixin from '@/mixins/sanitize'
 
 export default {
+  mixins: [sanitizeMixin],
   name: 'StockDetail',
   components: { TradingChart, LineChart, BarChart, RadarChart, ScoringPanel },
   data() {

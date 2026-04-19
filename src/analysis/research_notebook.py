@@ -4,7 +4,6 @@ Phase 107: 量化研究笔记本 (Quant Research Notebook)
 Jupyter 集成与量化研究环境
 """
 
-from __future__ import annotations
 
 from typing import Dict, List, Optional
 from dataclasses import dataclass

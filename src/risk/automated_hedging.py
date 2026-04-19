@@ -4,7 +4,6 @@ Phase 106: 自动对冲系统 (Automated Hedging System)
 智能对冲策略
 """
 
-from __future__ import annotations
 
 from typing import Dict, List, Optional
 from dataclasses import dataclass

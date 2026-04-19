@@ -10,7 +10,7 @@ import time
 import asyncio
 import threading
 from datetime import datetime
-from typing import Dict, List, Optional, Callable, Set
+from typing import Dict, List, Callable, Set
 
 # Project paths
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))

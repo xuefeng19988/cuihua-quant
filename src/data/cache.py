@@ -6,7 +6,7 @@ import sys
 import json
 import hashlib
 from datetime import datetime, timedelta
-from typing import Any, Optional
+from typing import Any
 
 # Project paths
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))

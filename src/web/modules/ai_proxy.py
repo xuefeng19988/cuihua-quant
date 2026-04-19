@@ -4,7 +4,7 @@ bailian → openai → deepseek 自动降级
 """
 
 import asyncio
-from typing import Dict, List, Optional
+from typing import Dict, List
 from flask import Blueprint, request
 from src.web.response_helpers import ok, error, bad_request
 from src.ai.llm_engine import LLMProvider, PROVIDER_PRESETS

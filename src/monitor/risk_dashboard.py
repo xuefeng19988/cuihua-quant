@@ -4,7 +4,6 @@ Phase 105: 实时风险仪表板 (Real-time Risk Dashboard)
 动态风险监控与可视化
 """
 
-from __future__ import annotations
 
 from typing import Dict, List, Optional
 from dataclasses import dataclass

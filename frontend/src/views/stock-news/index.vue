@@ -47,14 +47,16 @@
           <span>{{ selectedNews.source }}</span>
           <span>{{ selectedNews.date }}</span>
         </div>
-        <div class="news-content" v-html="selectedNews.content"></div>
+        <div class="news-content" v-html="sanitizeHTML(selectedNews.content)"></div>
       </div>
     </el-dialog>
   </div>
 </template>
 
 <script>
+import sanitizeMixin from '@/mixins/sanitize'
 export default {
+  mixins: [sanitizeMixin],
   name: 'StockNews',
   data() {
     return {

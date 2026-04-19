@@ -4,7 +4,6 @@ Phase 102: 社交交易系统 (Social Trading System)
 跟单/分享/社区功能
 """
 
-from __future__ import annotations
 
 from typing import Dict, List, Optional
 from dataclasses import dataclass, field

@@ -4,7 +4,6 @@ Phase 89: 市场微观结构分析 (Market Microstructure Analysis)
 订单流、买卖价差、市场深度分析
 """
 
-from __future__ import annotations
 
 from typing import Dict, List, Optional
 from dataclasses import dataclass

@@ -8,7 +8,7 @@ import json
 import logging
 import logging.handlers
 from datetime import datetime
-from typing import Optional, Dict, Any
+from typing import Optional, Any
 from pathlib import Path
 
 # Project paths

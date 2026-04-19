@@ -4,7 +4,6 @@ Phase 93: 智能止损系统 (Intelligent Stop-Loss System)
 动态止损策略，保护组合收益
 """
 
-from __future__ import annotations
 
 from typing import Dict, List, Optional
 from dataclasses import dataclass

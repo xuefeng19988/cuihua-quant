@@ -5,7 +5,6 @@ Phase 307: Prompt 模板管理
 
 import os
 import json
-from typing import Dict, List
 from datetime import datetime
 from flask import Blueprint, request
 from src.web.response_helpers import ok, error, bad_request

@@ -8,7 +8,6 @@ Phase 77: 实时告警系统 (Real-time Alert System)
 - 自定义告警规则
 """
 
-from __future__ import annotations
 
 import time
 import smtplib

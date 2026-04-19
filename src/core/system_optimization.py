@@ -8,7 +8,7 @@ import sys
 import pandas as pd
 import numpy as np
 from datetime import datetime
-from typing import Dict, List, Optional, Callable
+from typing import Dict, Optional, Callable
 from functools import lru_cache
 
 # Project paths

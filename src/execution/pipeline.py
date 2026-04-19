@@ -9,7 +9,7 @@ import sys
 import yaml
 import pandas as pd
 from datetime import datetime
-from typing import List, Dict
+from typing import Dict
 
 # Project paths
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))

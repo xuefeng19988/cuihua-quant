@@ -4,7 +4,6 @@ Phase 87: 压力测试系统 (Stress Testing System)
 极端场景模拟与组合韧性评估
 """
 
-from __future__ import annotations
 
 from typing import Dict, List, Optional
 from dataclasses import dataclass

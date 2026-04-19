@@ -4,7 +4,6 @@ Phase 90: 因子择时系统 (Factor Timing System)
 动态因子权重调整，捕捉因子轮动机会
 """
 
-from __future__ import annotations
 
 from typing import Dict, List, Optional
 from dataclasses import dataclass

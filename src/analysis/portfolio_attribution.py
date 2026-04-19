@@ -4,9 +4,8 @@ Phase 86: 组合归因分析系统 (Portfolio Attribution Analysis)
 Brinson 归因模型：资产配置、个股选择、交互效应
 """
 
-from __future__ import annotations
 
-from typing import Dict, List, Optional
+from typing import Dict, List
 from dataclasses import dataclass
 
 

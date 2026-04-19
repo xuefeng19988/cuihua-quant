@@ -4,9 +4,8 @@ Phase 104: 策略市场框架 (Strategy Marketplace)
 插件化策略生态系统
 """
 
-from __future__ import annotations
 
-from typing import Dict, List, Optional, Callable
+from typing import Dict, List, Optional
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum

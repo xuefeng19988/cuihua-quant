@@ -9,7 +9,7 @@ import hashlib
 import secrets
 import time
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
+from typing import Dict, List
 from functools import wraps
 
 # Project paths

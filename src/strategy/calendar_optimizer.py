@@ -4,9 +4,8 @@ Phase 92: 交易日历优化系统 (Trading Calendar Optimization)
 利用季节性效应优化交易时机
 """
 
-from __future__ import annotations
 
-from typing import Dict, List, Optional
+from typing import Dict, List
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum

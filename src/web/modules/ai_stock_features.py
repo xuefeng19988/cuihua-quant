@@ -9,7 +9,7 @@ import httpx
 import asyncio
 import time
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict
 from flask import Blueprint, request
 from src.web.response_helpers import ok, error, bad_request
 

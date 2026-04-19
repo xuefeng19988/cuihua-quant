@@ -7,7 +7,7 @@
     <div v-if="result" style="margin-top:16px;">
       <el-card>
         <div slot="header">📊 AI 市场总结</div>
-        <div class="summary-content" v-html="formatResult(result.content)" />
+        <div class="summary-content" v-html="sanitizeHTML(formatResult(result.content))" />
         <div v-if="result.usage" style="margin-top:12px;font-size:12px;color:#909399;">
           用量: {{ result.usage.total_tokens }} tokens
         </div>
@@ -20,8 +20,10 @@
 
 <script>
 import request from '@/utils/request'
+import sanitizeMixin from '@/mixins/sanitize'
 
 export default {
+  mixins: [sanitizeMixin],
   name: 'AIMarketSummary',
   data() {
     return { loading: false, result: null, error: '' }

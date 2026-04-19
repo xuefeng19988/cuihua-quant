@@ -5,7 +5,7 @@ Frontend and backend performance optimizations.
 
 import os
 import sys
-from typing import Dict, List, Optional, Callable
+from typing import Dict, List, Callable
 from functools import lru_cache
 import time
 

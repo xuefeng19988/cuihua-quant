@@ -4,7 +4,6 @@ Phase 91: 组合再平衡引擎 (Portfolio Rebalancing Engine)
 最优再平衡策略，最小化交易成本
 """
 
-from __future__ import annotations
 
 from typing import Dict, List, Optional
 from dataclasses import dataclass

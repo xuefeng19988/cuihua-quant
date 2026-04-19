@@ -5,7 +5,7 @@ Position sizing, stop-loss, take-profit, and drawdown protection.
 
 import os
 import yaml
-from typing import Dict, List
+from typing import Dict
 from datetime import datetime
 
 # Project paths

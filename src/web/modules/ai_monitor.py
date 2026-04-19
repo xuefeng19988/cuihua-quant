@@ -6,7 +6,7 @@ WebSocket 实时监控 + 异动推送
 import time
 import random
 import threading
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 from datetime import datetime
 from flask import Blueprint, request
 from src.web.response_helpers import ok, error

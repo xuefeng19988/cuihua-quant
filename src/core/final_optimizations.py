@@ -12,7 +12,7 @@ import logging
 import yaml
 import traceback
 from datetime import datetime
-from typing import Dict, List, Optional, Any, Callable
+from typing import Dict, List, Any, Callable
 from functools import wraps
 from pathlib import Path
 

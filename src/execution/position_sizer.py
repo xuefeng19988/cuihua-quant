@@ -4,7 +4,6 @@ Phase 81: 智能仓位管理系统 (Intelligent Position Sizing)
 基于多维度信号的动态仓位调整
 """
 
-from __future__ import annotations
 
 from typing import Dict, Optional, List
 from dataclasses import dataclass

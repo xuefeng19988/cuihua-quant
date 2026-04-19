@@ -4,7 +4,6 @@ Phase 78: AI 策略助手 (AI Strategy Advisor)
 基于规则和市场状态的自动策略推荐系统
 """
 
-from __future__ import annotations
 
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass

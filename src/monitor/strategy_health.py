@@ -4,7 +4,6 @@ Phase 84: 策略健康度监控系统 (Strategy Health Monitor)
 实时监控策略运行状态和绩效指标
 """
 
-from __future__ import annotations
 
 from typing import Dict, List, Optional
 from dataclasses import dataclass, field

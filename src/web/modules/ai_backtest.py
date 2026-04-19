@@ -6,7 +6,7 @@ AI 描述策略 → 自动生成参数 → 执行回测 → 返回结果
 import re
 import json
 import asyncio
-from typing import Dict, List, Optional
+from typing import Dict
 from datetime import datetime
 from flask import Blueprint, request
 from src.web.response_helpers import ok, error, bad_request

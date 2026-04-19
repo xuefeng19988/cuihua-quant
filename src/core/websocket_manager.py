@@ -8,7 +8,7 @@ import sys
 import json
 import asyncio
 import time
-from typing import Dict, List, Set, Optional
+from typing import Dict, List, Set
 from datetime import datetime
 
 # Project paths

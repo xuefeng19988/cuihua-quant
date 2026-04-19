@@ -4,7 +4,6 @@ Phase 80: 性能基准测试 (Performance Benchmarking)
 系统性能监控与对比分析
 """
 
-from __future__ import annotations
 
 import time
 import psutil

@@ -20,7 +20,7 @@
               <el-button type="primary" @click="runStockPick" :loading="pickLoading">🔍 开始选股</el-button>
             </el-form-item>
           </el-form>
-          <div v-if="pickResult" class="pick-result" v-html="formatText(pickResult)" />
+          <div v-if="pickResult" class="pick-result" v-html="sanitizeHTML(formatText(pickResult))" />
           <el-empty v-else description="选择风格并点击开始选股" />
         </el-card>
       </el-tab-pane>
@@ -40,7 +40,7 @@
               <el-button type="primary" @click="runAnomaly" :loading="anomalyLoading">🔍 解读</el-button>
             </el-form-item>
           </el-form>
-          <div v-if="anomalyResult" class="anomaly-result" v-html="formatText(anomalyResult)" />
+          <div v-if="anomalyResult" class="anomaly-result" v-html="sanitizeHTML(formatText(anomalyResult))" />
           <el-empty v-else description="输入股票代码并点击解读" />
         </el-card>
       </el-tab-pane>
@@ -50,7 +50,7 @@
         <el-card>
           <div slot="header">📊 持仓 AI 诊断</div>
           <el-button type="primary" size="small" @click="runPortfolioDiagnosis" :loading="portfolioLoading">🔍 诊断持仓</el-button>
-          <div v-if="portfolioResult" class="portfolio-result" v-html="formatText(portfolioResult)" />
+          <div v-if="portfolioResult" class="portfolio-result" v-html="sanitizeHTML(formatText(portfolioResult))" />
           <el-empty v-else description="点击诊断持仓" />
         </el-card>
       </el-tab-pane>
@@ -63,7 +63,7 @@
           <div v-if="newsResults.length">
             <el-collapse v-model="activeNews">
               <el-collapse-item v-for="(n, i) in newsResults" :key="i" :title="n.title" :name="i">
-                <div v-html="formatText(n.analysis)" />
+                <div v-html="sanitizeHTML(formatText(n.analysis))" />
               </el-collapse-item>
             </el-collapse>
           </div>
@@ -89,7 +89,7 @@
                 <span>研报: {{ researchForm.code }}</span>
                 <span style="float:right;font-size:12px;color:#909399;">{{ researchGeneratedAt }}</span>
               </div>
-              <div v-html="formatText(researchResult)" />
+              <div v-html="sanitizeHTML(formatText(researchResult))" />
             </el-card>
           </div>
           <el-empty v-else description="输入股票代码并生成研报" />
@@ -111,7 +111,7 @@
           <div v-if="riskResult">
             <el-alert :title="`风险等级: ${riskResult.risk_level}`" :type="riskResult.risk_level === '高' ? 'error' : riskResult.risk_level === '中' ? 'warning' : 'success'" show-icon style="margin-bottom:12px;" />
             <el-card>
-              <div v-html="formatText(riskResult.advice)" />
+              <div v-html="sanitizeHTML(formatText(riskResult.advice))" />
             </el-card>
           </div>
           <el-empty v-else description="输入股票代码并检查风险" />
@@ -130,7 +130,7 @@
               <el-button type="primary" @click="runSectorAnalysis" :loading="sectorLoading">🔍 分析板块</el-button>
             </el-form-item>
           </el-form>
-          <div v-if="sectorResult" class="sector-result" v-html="formatText(sectorResult)" />
+          <div v-if="sectorResult" class="sector-result" v-html="sanitizeHTML(formatText(sectorResult))" />
           <el-empty v-else description="输入板块名称并分析" />
         </el-card>
       </el-tab-pane>
@@ -140,7 +140,7 @@
         <el-card>
           <div slot="header">📝 AI 交易日志</div>
           <el-button type="primary" size="small" @click="runJournal" :loading="journalLoading">📝 生成日志</el-button>
-          <div v-if="journalResult" class="journal-result" v-html="formatText(journalResult)" />
+          <div v-if="journalResult" class="journal-result" v-html="sanitizeHTML(formatText(journalResult))" />
           <el-empty v-else description="点击生成今日交易日志" />
         </el-card>
       </el-tab-pane>
@@ -150,8 +150,10 @@
 
 <script>
 import request from '@/utils/request'
+import sanitizeMixin from '@/mixins/sanitize'
 
 export default {
+  mixins: [sanitizeMixin],
   name: 'AIStockFeatures',
   data() {
     return {

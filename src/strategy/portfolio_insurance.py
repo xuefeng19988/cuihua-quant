@@ -4,7 +4,6 @@ Phase 94: 组合保险策略 (Portfolio Insurance Strategies)
 CPPI/TIPP 保本策略，保护组合本金
 """
 
-from __future__ import annotations
 
 from typing import Dict, Optional
 from dataclasses import dataclass

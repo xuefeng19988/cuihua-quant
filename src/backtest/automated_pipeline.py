@@ -4,7 +4,6 @@ Phase 79: 自动化回测流水线 (Automated Backtesting Pipeline)
 一键回测所有策略，自动生成对比报告
 """
 
-from __future__ import annotations
 
 import time
 from typing import Dict, List, Optional

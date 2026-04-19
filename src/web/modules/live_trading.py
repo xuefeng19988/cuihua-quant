@@ -8,7 +8,6 @@ import json
 import threading
 from flask import Blueprint, request, jsonify
 from src.web.response_helpers import ok, error, bad_request
-from typing import Dict, Optional
 
 live_trading_bp = Blueprint('live_trading', __name__)
 

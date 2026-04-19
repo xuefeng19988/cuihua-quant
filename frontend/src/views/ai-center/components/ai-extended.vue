@@ -17,7 +17,7 @@
                   <el-col :span="6"><el-statistic title="胜率" :value="backtestResult.win_rate" suffix="%" /></el-col>
                 </el-row>
                 <div id="backtest-chart" style="width:100%;height:250px;margin-top:16px;"></div>
-                <div v-if="backtestResult.ai_analysis" style="margin-top:12px;padding:12px;background:#f5f7fa;border-radius:8px;" v-html="formatText(backtestResult.ai_analysis)" />
+                <div v-if="backtestResult.ai_analysis" style="margin-top:12px;padding:12px;background:#f5f7fa;border-radius:8px;" v-html="sanitizeHTML(formatText(backtestResult.ai_analysis))" />
               </div>
             </el-card>
           </el-col>
@@ -66,7 +66,7 @@
               <el-input v-model="kbQuery" placeholder="输入问题，如：贵州茅台的投资逻辑是什么？" @keyup.enter.native="askKnowledge" />
               <el-button type="primary" @click="askKnowledge" :loading="kbLoading" style="margin-top:8px;">🔍 搜索</el-button>
               <div v-if="kbAnswer" style="margin-top:16px;">
-                <el-card><div slot="header">回答</div><div v-html="formatText(kbAnswer)" /></el-card>
+                <el-card><div slot="header">回答</div><div v-html="sanitizeHTML(formatText(kbAnswer))" /></el-card>
                 <div v-if="kbSources.length" style="margin-top:8px;">
                   <div style="font-size:12px;color:#909399;margin-bottom:4px;">来源:</div>
                   <el-tag v-for="s in kbSources" :key="s.id" size="mini" style="margin-right:4px;">{{ s.title }} ({{ s.score }})</el-tag>
@@ -125,7 +125,7 @@
           <el-button type="primary" @click="askProxy" :loading="proxyLoading">🚀 发送 (自动降级)</el-button>
           <div v-if="proxyAnswer" style="margin-top:12px;padding:12px;background:#f5f7fa;border-radius:8px;">
             <div style="font-size:12px;color:#909399;">使用: {{ proxyProvider }}</div>
-            <div v-html="formatText(proxyAnswer)" />
+            <div v-html="sanitizeHTML(formatText(proxyAnswer))" />
           </div>
         </el-card>
       </el-tab-pane>
@@ -151,8 +151,10 @@
 <script>
 import * as echarts from 'echarts'
 import request from '@/utils/request'
+import sanitizeMixin from '@/mixins/sanitize'
 
 export default {
+  mixins: [sanitizeMixin],
   name: 'AIExtendedFeatures',
   data() {
     return {

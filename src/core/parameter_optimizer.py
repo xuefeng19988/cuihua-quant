@@ -4,9 +4,8 @@ Phase 98: 策略参数自动调优 (Strategy Parameter Auto-Optimization)
 贝叶斯优化策略参数
 """
 
-from __future__ import annotations
 
-from typing import Dict, List, Optional, Tuple, Callable
+from typing import Dict, List, Optional, Callable
 from dataclasses import dataclass
 import random
 

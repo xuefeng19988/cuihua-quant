@@ -34,7 +34,7 @@
                 <el-statistic title="置信度" :value="aiAnalysis.confidence" suffix="%" />
               </el-col>
             </el-row>
-            <div class="ai-text" v-html="formatText(aiAnalysis.content)" />
+            <div class="ai-text" v-html="sanitizeHTML(formatText(aiAnalysis.content))" />
           </div>
           <el-empty v-else description="AI 分析结果将显示在这里" />
         </el-card>
@@ -59,8 +59,10 @@
 <script>
 import * as echarts from 'echarts'
 import request from '@/utils/request'
+import sanitizeMixin from '@/mixins/sanitize'
 
 export default {
+  mixins: [sanitizeMixin],
   name: 'StockAIAnalysis',
   props: { code: String, name: String },
   data() {

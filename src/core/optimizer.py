@@ -11,7 +11,7 @@ import hashlib
 import pickle
 import pandas as pd
 import numpy as np
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict
 from datetime import datetime
 
 # Project paths

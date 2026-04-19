@@ -153,57 +153,6 @@ def get_db_engine():
 
 # ========== API 路由 ==========
 
-@app.route('/api/auth/check-init', methods=['GET'])
-def api_check_init():
-    """检查是否已初始化（有注册用户）"""
-    return jsonify({ 'code': 200, 'has_users': has_users() })
-
-@app.route('/api/auth/register', methods=['POST'])
-def api_register():
-    """用户注册"""
-    data = request.get_json() or {}
-    username = data.get('username', '').strip()
-    password = data.get('password', '').strip()
-    nickname = data.get('nickname', '').strip()
-    email = data.get('email', '').strip()
-    success, msg = register_user(username, password, nickname or username, email)
-    if success:
-        token = generate_token()
-        session['api_token'] = token
-        session['username'] = username
-        return jsonify({ 'code': 200, 'token': token, 'message': msg })
-    return jsonify({ 'code': 400, 'message': msg })
-
-@app.route('/api/auth/login', methods=['POST'])
-def api_login():
-    data = request.get_json() or {}
-    username = data.get('username', '').strip()
-    password = data.get('password', '').strip()
-    if check_auth(username, password):
-        token = generate_token()
-        session['api_token'] = token
-        session['username'] = username
-        user = get_user_info(username)
-        return jsonify({ 'code': 200, 'token': token, 'data': user })
-    return jsonify({ 'code': 400, 'message': '用户名或密码错误' })
-
-@app.route('/api/auth/info', methods=['GET'])
-@token_required
-def api_auth_info():
-    username = session.get('username', '')
-    if not username:
-        return jsonify({ 'code': 401, 'message': '未登录' })
-    return jsonify({ 'code': 200, **get_user_info(username) })
-
-@app.route('/api/auth/logout', methods=['POST'])
-def api_logout():
-    session.clear()
-    return jsonify({ 'code': 200 })
-
-@app.route('/api/dashboard', methods=['GET'])
-@token_required
-def api_dashboard():
-    sn = get_stock_names()
     gainers, losers, heatmap_date = [], [], '--'
     engine = get_db_engine()
     if engine:
@@ -1145,7 +1094,7 @@ def api_reports():
     })
 
 
-@app.route('/api/articles', methods=['GET'])
+@app.route('/api/trendradar/articles', methods=['GET'])
 @token_required
 def api_articles():
     """文章信息 - 从TrendRadar数据库获取 (Phase 167: 优化版)"""
@@ -3840,33 +3789,6 @@ def api_stock_score_batch():
     except Exception as e:
         return error(message=str(e))
 
-
-@app.route('/api/cache/stats', methods=['GET'])
-@token_required
-def api_cache_stats():
-    """缓存统计 (Phase 268)"""
-    stats = {
-        'simple_cache': {
-            'entries': len(_api_cache),
-            'ttl_entries': len(_api_cache_ttl)
-        }
-    }
-    
-    if _has_advanced_cache:
-        stats['advanced_cache'] = advanced_cache.to_dict()
-    
-    return ok(data=stats)
-
-
-@app.route('/api/cache/clear', methods=['POST'])
-@token_required
-def api_cache_clear_advanced():
-    """清空高级缓存 (Phase 268)"""
-    if _has_advanced_cache:
-        advanced_cache.clear()
-    _api_cache.clear()
-    _api_cache_ttl.clear()
-    return ok(message='缓存已清空')
 
 
 # ========== Phase 274: 模块化路由集成 ==========

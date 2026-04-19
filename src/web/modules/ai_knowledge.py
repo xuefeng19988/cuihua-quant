@@ -6,7 +6,7 @@ Phase 303: AI 知识库 (RAG 增强)
 import os
 import json
 import hashlib
-from typing import Dict, List, Optional
+from typing import List
 from datetime import datetime
 from flask import Blueprint, request
 from src.web.response_helpers import ok, error, bad_request

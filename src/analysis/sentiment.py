@@ -12,7 +12,7 @@ import sqlite3
 import pandas as pd
 from datetime import datetime, timedelta
 from collections import Counter
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict
 from dataclasses import dataclass
 from enum import Enum
 

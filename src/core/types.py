@@ -1,7 +1,7 @@
 """
 Core module - Type definitions and common utilities.
 """
-from typing import Dict, List, Optional, Any, Tuple, Union
+from typing import Dict
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum

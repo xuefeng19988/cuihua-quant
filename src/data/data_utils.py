@@ -6,7 +6,7 @@ Common data processing utilities.
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
-from typing import Dict, List
+from typing import List
 
 def calculate_returns(prices: pd.Series) -> pd.Series:
     """Calculate daily returns."""

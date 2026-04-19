@@ -8,7 +8,7 @@ import sys
 import yaml
 import pandas as pd
 from datetime import datetime
-from typing import List, Dict, Optional
+from typing import List, Dict
 from dataclasses import dataclass, field
 
 # Project paths

@@ -8,7 +8,7 @@ import sys
 import yaml
 import pandas as pd
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import List
 
 # 项目根目录（所有模块统一使用）
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

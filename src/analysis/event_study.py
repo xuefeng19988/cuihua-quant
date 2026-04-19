@@ -4,7 +4,6 @@ Phase 85: 事件研究框架 (Event Study Framework)
 分析特定事件（财报、政策、黑天鹅）对市场的影响
 """
 
-from __future__ import annotations
 
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass

@@ -4,7 +4,6 @@ Phase 88: 策略生命周期管理系统 (Strategy Lifecycle Management)
 从研发到退役的完整策略管理
 """
 
-from __future__ import annotations
 
 from typing import Dict, List, Optional
 from dataclasses import dataclass, field

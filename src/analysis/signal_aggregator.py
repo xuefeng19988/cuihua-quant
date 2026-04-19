@@ -4,7 +4,6 @@ Phase 108: 智能信号聚合器 (Intelligent Signal Aggregator)
 多信号融合与决策引擎
 """
 
-from __future__ import annotations
 
 from typing import Dict, List, Optional
 from dataclasses import dataclass

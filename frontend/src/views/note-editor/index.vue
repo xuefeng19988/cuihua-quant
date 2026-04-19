@@ -124,7 +124,7 @@
 
         <!-- 预览模式 -->
         <div v-show="editorMode === 'preview'" class="preview-wrapper">
-          <div class="preview-content" v-html="previewContent"></div>
+          <div class="preview-content" v-html="sanitizeHTML(previewContent)"></div>
         </div>
       </div>
 
@@ -177,7 +177,7 @@
 
     <!-- 预览对话框 -->
     <el-dialog title="文章预览" :visible.sync="previewVisible" width="70%" top="5vh">
-      <div class="preview-dialog-content" v-html="previewContent"></div>
+      <div class="preview-dialog-content" v-html="sanitizeHTML(previewContent)"></div>
     </el-dialog>
 
     <!-- 历史版本对话框 -->
@@ -223,8 +223,10 @@
 <script>
 import request from '@/utils/request'
 import E from 'wangeditor'
+import sanitizeMixin from '@/mixins/sanitize'
 
 export default {
+  mixins: [sanitizeMixin],
   name: 'NoteEditor',
   data() {
     return {

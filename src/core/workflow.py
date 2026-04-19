@@ -9,7 +9,7 @@ import time
 import yaml
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Callable
+from typing import Dict, List, Callable
 from enum import Enum
 
 # Project paths

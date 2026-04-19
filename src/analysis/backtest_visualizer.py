@@ -4,7 +4,6 @@ Phase 103: 回测可视化器 (Backtest Visualizer)
 交互式回测结果展示
 """
 
-from __future__ import annotations
 
 from typing import Dict, List, Optional
 from dataclasses import dataclass
