@@ -23,6 +23,9 @@
       <el-tab-pane label="🚀 深度集成" name="extended">
         <ai-extended-features />
       </el-tab-pane>
+      <el-tab-pane label="📊 AI图表" name="chart-demo">
+        <ai-chart-demo />
+      </el-tab-pane>
     </el-tabs>
   </div>
 </template>
@@ -35,10 +38,11 @@ import AIMarketSummary from './components/ai-market-summary.vue'
 import LLMConfigManager from './components/llm-config-manager.vue'
 import AIStockFeatures from './components/ai-stock-features.vue'
 import AIExtendedFeatures from './components/ai-extended.vue'
+import AIChartDemo from './components/ai-chart-demo.vue'
 
 export default {
   name: 'AICenter',
-  components: { AIChat, AIStockAnalyze, AINoteAnalyze, AIMarketSummary, LLMConfigManager, AIStockFeatures, AIExtendedFeatures },
+  components: { AIChat, AIStockAnalyze, AINoteAnalyze, AIMarketSummary, LLMConfigManager, AIStockFeatures, AIExtendedFeatures, AIChartDemo },
   data() { return { activeTab: 'chat' } },
   watch: {
     '$route.query.tab': { handler(v) { if (v) this.activeTab = v }, immediate: true },
