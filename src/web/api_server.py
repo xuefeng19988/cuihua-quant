@@ -3665,6 +3665,7 @@ def api_stock_ranking():
         limit = int(request.args.get('limit', 50))
         market = request.args.get('market', '')  # A/HK
         min_score = int(request.args.get('min_score', 0))
+        sort_by = request.args.get('sort_by', 'score')  # score/trend/momentum/valuation/quality/growth
         
         # 获取所有最新股票
         stocks = get_stock_codes()
@@ -3698,8 +3699,11 @@ def api_stock_ranking():
                 'change': stock_data['change']
             })
         
-        # 按评分排序
-        rankings.sort(key=lambda x: x['score'], reverse=True)
+        # 按指定维度排序
+        if sort_by in ('trend', 'momentum', 'valuation', 'quality', 'growth'):
+            rankings.sort(key=lambda x: x['scores'].get(sort_by, 0), reverse=True)
+        else:
+            rankings.sort(key=lambda x: x['score'], reverse=True)
         rankings = rankings[:limit]
         
         # 添加排名

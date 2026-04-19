@@ -4,30 +4,40 @@
     <el-card style="margin-bottom:20px;">
       <div slot="header"><span>🏆 股票评分排行榜</span></div>
       <el-row :gutter="16" align="middle">
-        <el-col :span="5">
+        <el-col :span="4">
           <el-select v-model="marketFilter" size="mini" @change="loadRanking" style="width:100%;">
             <el-option label="全部市场" value="" />
             <el-option label="A股" value="A" />
             <el-option label="港股" value="HK" />
           </el-select>
         </el-col>
-        <el-col :span="5">
+        <el-col :span="4">
           <el-select v-model="gradeFilter" size="mini" @change="loadRanking" style="width:100%;">
             <el-option label="全部评级" value="" />
             <el-option label="A+ / A" value="A" />
             <el-option label="B+ / B" value="B" />
             <el-option label="C+ / C" value="C" />
-          </el-option>
+          </el-select>
         </el-col>
-        <el-col :span="5">
+        <el-col :span="4">
           <el-select v-model="limitFilter" size="mini" @change="loadRanking" style="width:100%;">
             <el-option label="Top 20" :value="20" />
             <el-option label="Top 50" :value="50" />
             <el-option label="Top 100" :value="100" />
           </el-select>
         </el-col>
-        <el-col :span="5">
-          <el-input v-model="searchCode" size="mini" placeholder="搜索代码/名称" clearable @keyup.enter.native="filterBySearch" @clear="loadRanking" />
+        <el-col :span="4">
+          <el-select v-model="sortBy" size="mini" @change="loadRanking" style="width:100%;">
+            <el-option label="按总分" value="score" />
+            <el-option label="按趋势" value="trend" />
+            <el-option label="按动量" value="momentum" />
+            <el-option label="按估值" value="valuation" />
+            <el-option label="按质量" value="quality" />
+            <el-option label="按成长" value="growth" />
+          </el-select>
+        </el-col>
+        <el-col :span="4">
+          <el-input v-model="searchCode" size="mini" placeholder="搜索代码/名称" clearable @input="filterBySearch" />
         </el-col>
         <el-col :span="4">
           <el-button type="primary" size="mini" @click="loadRanking" :loading="loading">🔄 刷新</el-button>
@@ -37,35 +47,63 @@
 
     <!-- 统计概览 -->
     <el-row v-if="rankings.length" :gutter="16" style="margin-bottom:20px;">
-      <el-col :span="6">
+      <el-col :span="4">
         <div class="stat-card">
           <div class="stat-value">{{ rankings.length }}</div>
           <div class="stat-label">上榜股票</div>
         </div>
       </el-col>
-      <el-col :span="6">
+      <el-col :span="4">
         <div class="stat-card">
           <div class="stat-value text-up">{{ summary.avg_score }}</div>
           <div class="stat-label">平均评分</div>
         </div>
       </el-col>
-      <el-col :span="6">
+      <el-col :span="4">
         <div class="stat-card">
           <div class="stat-value" style="color:#26a69a;">{{ summary.max_score }}</div>
           <div class="stat-label">最高评分</div>
         </div>
       </el-col>
-      <el-col :span="6">
+      <el-col :span="4">
         <div class="stat-card">
           <div class="stat-value" style="color:#ef5350;">{{ summary.min_score }}</div>
           <div class="stat-label">最低评分</div>
         </div>
       </el-col>
+      <el-col :span="4">
+        <div class="stat-card">
+          <div class="stat-value" style="color:#409EFF;">{{ summary.gradeA }}</div>
+          <div class="stat-label">A级+数量</div>
+        </div>
+      </el-col>
+      <el-col :span="4">
+        <div class="stat-card">
+          <div class="stat-value text-warn">{{ summary.gradeC }}</div>
+          <div class="stat-label">C级及以下</div>
+        </div>
+      </el-col>
+    </el-row>
+
+    <!-- 评分分布直方图 -->
+    <el-row v-if="rankings.length" :gutter="16" style="margin-bottom:20px;">
+      <el-col :span="12">
+        <el-card class="dark-card">
+          <div slot="header"><span>📊 评分分布</span></div>
+          <div id="score-distribution-chart" style="width:100%;height:250px;"></div>
+        </el-card>
+      </el-col>
+      <el-col :span="12">
+        <el-card class="dark-card">
+          <div slot="header"><span>🎯 维度均值对比</span></div>
+          <div id="dim-average-chart" style="width:100%;height:250px;"></div>
+        </el-card>
+      </el-col>
     </el-row>
 
     <!-- 排名表格 -->
-    <el-card>
-      <el-table :data="displayRankings" stripe size="small" 
+    <el-card class="dark-card">
+      <el-table :data="displayRankings" stripe size="small"
         :row-class-name="tableRowClassName"
         @row-click="goToDetail" style="cursor:pointer;">
         <el-table-column label="排名" width="65" align="center">
@@ -73,7 +111,7 @@
             <span class="rank-badge" :class="'rank-' + row.rank">{{ row.rank }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="股票" min-width="160">
+        <el-table-column label="股票" min-width="150">
           <template slot-scope="{ row }">
             <div class="stock-cell">
               <span class="stock-name">{{ row.name }}</span>
@@ -81,62 +119,57 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="总分" width="85" align="center" sortable :sort-method="sortByScore">
+        <el-table-column label="总分" width="75" align="center" sortable>
           <template slot-scope="{ row }">
             <span class="score-big" :class="scoreColor(row.score)">{{ row.score }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="评级" width="65" align="center">
+        <el-table-column label="评级" width="60" align="center">
           <template slot-scope="{ row }">
             <el-tag size="mini" :type="gradeType(row.grade)" effect="dark">{{ row.grade }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="建议" width="80" align="center">
+        <el-table-column label="百分位" width="65" align="center">
           <template slot-scope="{ row }">
-            <span class="rec-text">{{ row.recommendation }}</span>
+            <span class="percentile-text">{{ row.percentile }}%</span>
           </template>
         </el-table-column>
-        <el-table-column label="百分位" width="80" align="center" sortable :sort-method="sortByPercentile">
-          <template slot-scope="{ row }">
-            <span>{{ row.percentile }}%</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="趋势" width="70" align="center" sortable :sort-method="sortByDim('trend')">
+        <el-table-column label="趋势" width="58" align="center">
           <template slot-scope="{ row }">
             <span :class="row.scores.trend >= 60 ? 'text-up' : 'text-down'">{{ row.scores.trend }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="动量" width="70" align="center" sortable :sort-method="sortByDim('momentum')">
+        <el-table-column label="动量" width="58" align="center">
           <template slot-scope="{ row }">
             <span :class="row.scores.momentum >= 60 ? 'text-up' : 'text-down'">{{ row.scores.momentum }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="估值" width="70" align="center" sortable :sort-method="sortByDim('valuation')">
+        <el-table-column label="估值" width="58" align="center">
           <template slot-scope="{ row }">
             <span :class="row.scores.valuation >= 60 ? 'text-up' : 'text-down'">{{ row.scores.valuation }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="质量" width="70" align="center" sortable :sort-method="sortByDim('quality')">
+        <el-table-column label="质量" width="58" align="center">
           <template slot-scope="{ row }">
             <span :class="row.scores.quality >= 60 ? 'text-up' : 'text-down'">{{ row.scores.quality }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="成长" width="70" align="center" sortable :sort-method="sortByDim('growth')">
+        <el-table-column label="成长" width="58" align="center">
           <template slot-scope="{ row }">
             <span :class="row.scores.growth >= 60 ? 'text-up' : 'text-down'">{{ row.scores.growth }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="价格" width="90" align="right" sortable :sort-method="sortByPrice">
+        <el-table-column label="价格" width="80" align="right">
           <template slot-scope="{ row }">{{ row.price.toFixed(2) }}</template>
         </el-table-column>
-        <el-table-column label="涨跌" width="80" align="center" sortable :sort-method="sortByChange">
+        <el-table-column label="涨跌" width="70" align="center">
           <template slot-scope="{ row }">
             <span :class="row.change >= 0 ? 'text-up' : 'text-down'">
               {{ row.change >= 0 ? '+' : '' }}{{ row.change }}%
             </span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="80" align="center">
+        <el-table-column label="操作" width="70" align="center">
           <template slot-scope="{ row }">
             <el-button size="mini" type="text" @click.stop="showScore(row)">详情</el-button>
           </template>
@@ -145,7 +178,7 @@
     </el-card>
 
     <!-- 评分详情弹窗 -->
-    <el-dialog title="📊 评分详情" :visible.sync="scoreDialogVisible" width="500px" custom-class="dark-dialog">
+    <el-dialog title="📊 评分详情" :visible.sync="scoreDialogVisible" width="600px" custom-class="dark-dialog">
       <scoring-panel v-if="scoreDialogCode" :code="scoreDialogCode" />
     </el-dialog>
   </div>
@@ -154,6 +187,7 @@
 <script>
 import request from '@/utils/request'
 import ScoringPanel from '@/components/scoring-panel/index.vue'
+import * as echarts from 'echarts'
 
 export default {
   name: 'ScoringDashboard',
@@ -161,22 +195,23 @@ export default {
   data() {
     return {
       rankings: [],
-      summary: { avg_score: 0, max_score: 0, min_score: 0 },
+      filteredRankings: [],
+      summary: { avg_score: 0, max_score: 0, min_score: 0, gradeA: 0, gradeC: 0 },
       marketFilter: '',
       gradeFilter: '',
       limitFilter: 50,
+      sortBy: 'score',
       searchCode: '',
       loading: false,
       scoreDialogVisible: false,
-      scoreDialogCode: ''
+      scoreDialogCode: '',
+      distChart: null,
+      dimAvgChart: null
     }
   },
   computed: {
     displayRankings() {
-      let list = [...this.rankings]
-      if (this.gradeFilter) {
-        list = list.filter(r => r.grade.startsWith(this.gradeFilter))
-      }
+      let list = [...this.filteredRankings]
       if (this.searchCode) {
         const q = this.searchCode.toLowerCase()
         list = list.filter(r => r.code.toLowerCase().includes(q) || (r.name && r.name.toLowerCase().includes(q)))
@@ -185,24 +220,120 @@ export default {
     }
   },
   created() { this.loadRanking() },
+  mounted() {
+    this.distChart = echarts.init(document.getElementById('score-distribution-chart'))
+    this.dimAvgChart = echarts.init(document.getElementById('dim-average-chart'))
+    window.addEventListener('resize', this.handleResize)
+  },
+  beforeDestroy() {
+    window.removeEventListener('resize', this.handleResize)
+    if (this.distChart) this.distChart.dispose()
+    if (this.dimAvgChart) this.dimAvgChart.dispose()
+  },
   methods: {
+    handleResize() {
+      this.distChart?.resize()
+      this.dimAvgChart?.resize()
+    },
+
     async loadRanking() {
       this.loading = true
       try {
         const params = { limit: this.limitFilter }
         if (this.marketFilter) params.market = this.marketFilter
+        if (this.sortBy && this.sortBy !== 'score') params.sort_by = this.sortBy
         const { data } = await request.get('/api/stock-ranking', { params })
         if (data.code === 200) {
           this.rankings = data.data.rankings
           this.summary = {
             avg_score: data.data.avg_score,
             max_score: data.data.max_score,
-            min_score: data.data.min_score
+            min_score: data.data.min_score,
+            gradeA: this.rankings.filter(r => r.grade.startsWith('A')).length,
+            gradeC: this.rankings.filter(r => r.grade.startsWith('C') || r.grade === 'D').length
           }
+          this.applyFilters()
+          this.renderCharts()
         }
       } catch (e) {} finally { this.loading = false }
     },
+
+    applyFilters() {
+      let list = [...this.rankings]
+      if (this.gradeFilter) {
+        list = list.filter(r => r.grade.startsWith(this.gradeFilter))
+      }
+      this.filteredRankings = list
+    },
+
     filterBySearch() { /* computed handles it */ },
+
+    renderCharts() {
+      this.renderDistributionChart()
+      this.renderDimAvgChart()
+    },
+
+    renderDistributionChart() {
+      if (!this.distChart || !this.rankings.length) return
+      // 评分分布区间
+      const ranges = ['0-20', '21-40', '41-60', '61-70', '71-80', '81-90', '91-100']
+      const counts = [0, 0, 0, 0, 0, 0, 0]
+      const colors = ['#ef5350', '#ef5350', '#E6A23C', '#E6A23C', '#409EFF', '#26a69a', '#26a69a']
+      this.rankings.forEach(r => {
+        const s = r.score
+        if (s <= 20) counts[0]++
+        else if (s <= 40) counts[1]++
+        else if (s <= 60) counts[2]++
+        else if (s <= 70) counts[3]++
+        else if (s <= 80) counts[4]++
+        else if (s <= 90) counts[5]++
+        else counts[6]++
+      })
+      this.distChart.setOption({
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        grid: { left: '3%', right: '4%', bottom: '3%', top: '10%', containLabel: true },
+        xAxis: { type: 'category', data: ranges, axisLabel: { color: '#d1d4dc', fontSize: 11 } },
+        yAxis: { type: 'value', axisLabel: { color: '#d1d4dc' }, splitLine: { lineStyle: { color: '#2a2a3e' } } },
+        series: [{
+          type: 'bar',
+          data: counts.map((c, i) => ({
+            value: c,
+            itemStyle: { color: colors[i] }
+          })),
+          label: { show: true, position: 'top', color: '#d1d4dc', fontSize: 11 },
+          barWidth: '50%'
+        }]
+      }, true)
+    },
+
+    renderDimAvgChart() {
+      if (!this.dimAvgChart || !this.rankings.length) return
+      const dims = ['trend', 'momentum', 'volatility', 'volume', 'valuation', 'quality', 'growth', 'sentiment']
+      const labels = ['趋势', '动量', '波动', '成交量', '估值', '质量', '成长', '情绪']
+      const avgs = dims.map(d => {
+        const total = this.rankings.reduce((sum, r) => sum + (r.scores[d] || 0), 0)
+        return Math.round(total / this.rankings.length)
+      })
+      const colors = avgs.map(v => v >= 60 ? '#26a69a' : v >= 45 ? '#E6A23C' : '#ef5350')
+      this.dimAvgChart.setOption({
+        tooltip: { trigger: 'axis' },
+        grid: { left: '3%', right: '4%', bottom: '3%', top: '10%', containLabel: true },
+        xAxis: { type: 'category', data: labels, axisLabel: { color: '#d1d4dc', fontSize: 11 } },
+        yAxis: { type: 'value', min: 0, max: 100, axisLabel: { color: '#d1d4dc' }, splitLine: { lineStyle: { color: '#2a2a3e' } } },
+        series: [{
+          type: 'bar',
+          data: avgs.map((v, i) => ({ value: v, itemStyle: { color: colors[i] } })),
+          label: { show: true, position: 'top', color: '#d1d4dc', fontSize: 11 },
+          barWidth: '50%',
+          markLine: {
+            data: [{ yAxis: 60, name: '及格线' }],
+            lineStyle: { color: '#E6A23C', type: 'dashed' },
+            label: { color: '#E6A23C', formatter: '及格 60' }
+          }
+        }]
+      }, true)
+    },
+
     goToDetail(row) {
       this.$router.push({ path: '/stock-detail', query: { code: row.code } })
     },
@@ -225,12 +356,7 @@ export default {
       if (grade.startsWith('B')) return 'primary'
       if (grade.startsWith('C')) return 'warning'
       return 'danger'
-    },
-    sortByScore(a, b) { return a.score - b.score },
-    sortByPercentile(a, b) { return a.percentile - b.percentile },
-    sortByDim(dim) { return (a, b) => a.scores[dim] - b.scores[dim] },
-    sortByPrice(a, b) { return a.price - b.price },
-    sortByChange(a, b) { return a.change - b.change }
+    }
   }
 }
 </script>
@@ -255,20 +381,21 @@ export default {
 .stock-name { font-weight: 600; color: #d1d4dc; }
 .stock-code { color: #606266; font-size: 12px; }
 .score-big { font-weight: 700; font-size: 16px; }
-.rec-text { font-size: 12px; color: #d1d4dc; }
+.percentile-text { color: #909399; font-size: 12px; }
 .text-up { color: #26a69a; }
 .text-down { color: #ef5350; }
 .text-warn { color: #E6A23C; }
 
+.dark-card { background: #1a1a2e !important; border: 1px solid #2a2a3e !important; }
+.dark-card ::v-deep .el-card__header { border-bottom: 1px solid #2a2a3e !important; color: #d1d4dc; background: #1a1a2e; }
+.dark-card ::v-deep .el-table { background: #1a1a2e; color: #d1d4dc; }
+.dark-card ::v-deep .el-table th { background: #2a2a3e !important; color: #d1d4dc !important; }
+.dark-card ::v-deep .el-table tr { background: #1a1a2e; }
+.dark-card ::v-deep .el-table--striped .el-table__body tr.el-table__row--striped td { background: #1e1e35; }
+
 /* 行高亮 */
 ::v-deep .rank-first-row { background: rgba(255,215,0,0.08) !important; }
 ::v-deep .rank-good-row { background: rgba(38,166,154,0.05) !important; }
-
-/* 表格暗色 */
-::v-deep .el-table { background: #1a1a2e; color: #d1d4dc; }
-::v-deep .el-table th { background: #2a2a3e !important; color: #d1d4dc !important; }
-::v-deep .el-table tr { background: #1a1a2e; }
-::v-deep .el-table--striped .el-table__body tr.el-table__row--striped td { background: #1e1e35; }
 
 /* 弹窗暗色 */
 ::v-deep .dark-dialog { background: #1a1a2e !important; }
