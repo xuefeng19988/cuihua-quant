@@ -3828,3 +3828,18 @@ app.register_blueprint(ai_knowledge_bp)
 app.register_blueprint(ai_stream_bp)
 app.register_blueprint(ai_proxy_bp)
 app.register_blueprint(prompt_templates_bp)
+
+# ========== Phase 314-320: AI 全面融合 ==========
+from src.web.modules.ai_stock_v2 import ai_stock_v2_bp
+from src.web.modules.ai_deep_analysis import ai_deep_analysis_bp
+from src.web.modules.ai_chart_enhanced import ai_chart_enhanced_bp
+from src.web.modules.ai_note_enhanced import ai_note_enhanced_bp
+from src.web.modules.ai_system_fusion import ai_system_fusion_bp
+from src.web.modules.ai_research import ai_research_bp
+
+app.register_blueprint(ai_stock_v2_bp)
+app.register_blueprint(ai_deep_analysis_bp)
+app.register_blueprint(ai_chart_enhanced_bp)
+app.register_blueprint(ai_note_enhanced_bp)
+app.register_blueprint(ai_system_fusion_bp)
+app.register_blueprint(ai_research_bp)
