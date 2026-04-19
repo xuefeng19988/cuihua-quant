@@ -68,11 +68,11 @@ class AdvancedCache:
     # TTL 常量 (秒)
     TTL_STOCK_LIST = 300       # 股票列表 5分钟
     TTL_QUOTE = 30             # 实时行情 30秒
-    TL_SCORE = 120             # 评分 2分钟
-    TL_RANKING = 180           # 排行 3分钟
+    TTL_SCORE = 120             # 评分 2分钟
+    TTL_RANKING = 180           # 排行 3分钟
     TTL_CHART = 300            # 图表 5分钟
     TTL_STATIC = 3600          # 静态数据 1小时
-    TL_DEFAULT = 300           # 默认 5分钟
+    TTL_DEFAULT = 300           # 默认 5分钟
 
     def __init__(self, max_items=5000, max_memory_mb=256):
         self._cache = OrderedDict()
