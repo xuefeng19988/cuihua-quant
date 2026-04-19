@@ -3891,3 +3891,18 @@ try:
     register_all_routes(app, _route_helpers)
 except Exception as e:
     print(f"模块化路由注册跳过: {e}")
+
+# ========== Phase 301-310: AI 深度集成 ==========
+from src.web.modules.ai_backtest import ai_backtest_bp
+from src.web.modules.ai_monitor import ai_monitor_bp
+from src.web.modules.ai_knowledge import ai_knowledge_bp
+from src.web.modules.ai_stream import ai_stream_bp
+from src.web.modules.ai_proxy import ai_proxy_bp
+from src.web.modules.prompt_templates import prompt_templates_bp
+
+app.register_blueprint(ai_backtest_bp)
+app.register_blueprint(ai_monitor_bp)
+app.register_blueprint(ai_knowledge_bp)
+app.register_blueprint(ai_stream_bp)
+app.register_blueprint(ai_proxy_bp)
+app.register_blueprint(prompt_templates_bp)
