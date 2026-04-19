@@ -201,7 +201,7 @@ class AdvancedVisualization:
         for code in codes:
             try:
                 df = pd.read_sql(
-                    f"SELECT close_price FROM stock_daily WHERE code='{code}' ORDER BY date",
+f"SELECT close_price FROM stock_daily WHERE code=:code ORDER BY date",
                     self.engine
                 )
                 if len(df) >= 30:

@@ -162,7 +162,7 @@ def api_futu_quote(code):
         engine = get_db_engine()
         if engine:
             with engine.connect() as conn:
-                result = conn.execute(text(f"SELECT close_price FROM stock_daily WHERE code='{code}' ORDER BY date DESC LIMIT 1"))
+                result = conn.execute(text("SELECT close_price FROM stock_daily WHERE code=:code ORDER BY date DESC LIMIT 1"), {'code': code})
                 row = result.fetchone()
                 if not row:
                     return jsonify({'code': 404, 'message': '股票不存在'})
@@ -229,7 +229,7 @@ def api_futu_kline(code):
         engine = get_db_engine()
         if engine:
             with engine.connect() as conn:
-                result = conn.execute(text(f"SELECT * FROM stock_daily WHERE code='{code}' ORDER BY date DESC LIMIT {days}"))
+                result = conn.execute(text("SELECT * FROM stock_daily WHERE code=:code ORDER BY date DESC LIMIT :days"), {'code': code, 'days': days})
                 rows = result.fetchall()
                 if rows:
                     kline_data = []

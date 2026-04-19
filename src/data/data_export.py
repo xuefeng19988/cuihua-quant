@@ -88,11 +88,15 @@ class DataExporter:
         
     def export_stock_data(self, code: str, engine, start_date: str = None, end_date: str = None, format: str = 'csv') -> str:
         """Export stock data to specified format."""
-        query = f"SELECT * FROM stock_daily WHERE code='{code}'"
+        from sqlalchemy import text
+        query = "SELECT * FROM stock_daily WHERE code=:code"
+        params = {'code': code}
         if start_date:
-            query += f" AND date >= '{start_date}'"
+            query += " AND date >= :start_date"
+            params['start_date'] = start_date
         if end_date:
-            query += f" AND date <= '{end_date}'"
+            query += " AND date <= :end_date"
+            params['end_date'] = end_date
         query += " ORDER BY date"
         
         df = pd.read_sql(query, engine)

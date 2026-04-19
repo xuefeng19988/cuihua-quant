@@ -184,7 +184,8 @@ def query_stock_latest(code: str, days: int = 1, columns: str = '*'):
         DataFrame
     """
     engine = get_db_engine()
-    query = f"SELECT {columns} FROM stock_daily WHERE code='{code}' ORDER BY date DESC LIMIT {days}"
+    # columns is validated whitelist, code/days are parameterized
+    query = text("SELECT " + columns + " FROM stock_daily WHERE code=:code ORDER BY date DESC LIMIT :days")
     return pd.read_sql(query, engine)
 
 

@@ -51,8 +51,8 @@ class PortfolioRebalancer:
         for code in codes:
             try:
                 df = pd.read_sql(
-                    f"SELECT close_price FROM stock_daily WHERE code='{code}' ORDER BY date DESC LIMIT {lookback}",
-                    self.engine
+                    text("SELECT close_price FROM stock_daily WHERE code=:code ORDER BY date DESC LIMIT :lookback"),
+                    self.engine, params={'code': code, 'lookback': lookback}
                 )
                 if len(df) >= 20:
                     ret = df['close_price'].pct_change().dropna()

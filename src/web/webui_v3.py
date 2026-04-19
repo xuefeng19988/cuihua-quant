@@ -1478,8 +1478,8 @@ def create_webui_v3():
             for code in page_codes:
                 try:
                     df = pd.read_sql(
-                        f"SELECT close_price FROM stock_daily WHERE code='{code}' ORDER BY date DESC LIMIT 2",
-                        engine
+                        text("SELECT close_price FROM stock_daily WHERE code=:code ORDER BY date DESC LIMIT 2"),
+                        engine, params={'code': code}
                     )
                     if len(df) >= 2:
                         price = df.iloc[0]['close_price']
@@ -1750,7 +1750,7 @@ def create_webui_v3():
             cp = bp
             if engine:
                 try:
-                    df = pd.read_sql(f"SELECT close_price FROM stock_daily WHERE code='{code}' ORDER BY date DESC LIMIT 1", engine)
+                    df = pd.read_sql(f"SELECT close_price FROM stock_daily WHERE code=:code ORDER BY date DESC LIMIT 1", engine)
                     if not df.empty: cp = df.iloc[0]['close_price']
                 except: pass
             mv = cp * qty; pnl = mv - cost; total_market += mv

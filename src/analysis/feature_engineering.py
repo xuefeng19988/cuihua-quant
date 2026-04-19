@@ -34,7 +34,7 @@ class FeatureEngineer:
         Extract all features for a single stock.
         """
         df = pd.read_sql(
-            f"SELECT * FROM stock_daily WHERE code='{code}' ORDER BY date ASC",
+f"SELECT * FROM stock_daily WHERE code=:code ORDER BY date ASC",
             self.engine
         )
         if df.empty or len(df) < 20:

@@ -50,7 +50,7 @@ class LSTMModel:
         """
         df = pd.read_sql(
             f"SELECT close_price, volume, turnover_rate FROM stock_daily "
-            f"WHERE code='{code}' ORDER BY date ASC",
+f"WHERE code=:code ORDER BY date ASC",
             self.engine
         )
         

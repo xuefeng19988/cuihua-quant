@@ -29,7 +29,7 @@ class FamaFrenchModel:
     def calculate_market_return(self, benchmark_code: str = 'SH.000300') -> pd.Series:
         """Calculate market excess returns using CSI 300 as benchmark."""
         df = pd.read_sql(
-            f"SELECT date, close_price FROM stock_daily WHERE code='{benchmark_code}' ORDER BY date",
+f"SELECT date, close_price FROM stock_daily WHERE code=:benchmark_code ORDER BY date",
             self.engine
         )
         if df.empty:
@@ -49,7 +49,7 @@ class FamaFrenchModel:
         returns = {}
         for code in codes:
             df = pd.read_sql(
-                f"SELECT date, close_price FROM stock_daily WHERE code='{code}' ORDER BY date",
+f"SELECT date, close_price FROM stock_daily WHERE code=:code ORDER BY date",
                 self.engine
             )
             if not df.empty:
@@ -76,7 +76,7 @@ class FamaFrenchModel:
         """
         # Get stock returns
         df = pd.read_sql(
-            f"SELECT date, close_price FROM stock_daily WHERE code='{stock_code}' ORDER BY date",
+f"SELECT date, close_price FROM stock_daily WHERE code=:stock_code ORDER BY date",
             self.engine
         )
         if df.empty:

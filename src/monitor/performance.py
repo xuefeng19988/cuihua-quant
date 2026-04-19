@@ -395,7 +395,7 @@ class PerformanceDashboard:
         lines = [f"📊 {label} 分析报告", "-" * 40]
         try:
             df = pd.read_sql(
-                f"SELECT * FROM stock_daily WHERE code='{code}' ORDER BY date DESC LIMIT 30",
+f"SELECT * FROM stock_daily WHERE code=:code ORDER BY date DESC LIMIT 30",
                 self.engine
             )
             if df.empty:

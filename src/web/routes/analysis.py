@@ -22,7 +22,7 @@ def register_analysis_routes(app, helpers):
 
         try:
             from sqlalchemy import text
-            query = f"SELECT date, open_price, high_price, low_price, close_price, volume FROM stock_daily WHERE code='{code}' ORDER BY date DESC LIMIT {days}"
+            query = text("SELECT date, open_price, high_price, low_price, close_price, volume FROM stock_daily WHERE code=:code ORDER BY date DESC LIMIT :days")
             df = pd.read_sql(text(query), engine)
             if df.empty:
                 return jsonify({'code': 404, 'message': '无数据'})
@@ -135,7 +135,7 @@ def register_analysis_routes(app, helpers):
             if 'min_volume' in data: conditions.append(f"volume >= {data['min_volume']}")
             
             where = ' AND '.join(conditions) if conditions else '1=1'
-            query = f"SELECT code, close_price, change_pct, volume FROM stock_daily WHERE date = (SELECT MAX(date) FROM stock_daily) AND {where} ORDER BY change_pct DESC LIMIT 100"
+            query = text(f"SELECT code, close_price, change_pct, volume FROM stock_daily WHERE date = (SELECT MAX(date) FROM stock_daily) AND {where} ORDER BY change_pct DESC LIMIT 100")
             result = pd.read_sql(text(query), engine)
             return jsonify({'code': 200, 'data': {'results': result.to_dict('records'), 'total': len(result)}})
         except Exception as e:

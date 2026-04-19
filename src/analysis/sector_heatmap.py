@@ -43,7 +43,7 @@ class SectorHeatmap:
         results = []
         for code in codes:
             df = pd.read_sql(
-                f"SELECT close_price FROM stock_daily WHERE code='{code}' "
+f"SELECT close_price FROM stock_daily WHERE code=:code "
                 f"ORDER BY date DESC LIMIT {period + 1}",
                 engine
             )

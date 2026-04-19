@@ -239,7 +239,7 @@ class PipelineValidator:
         if not stocks:
             return {'status': 'FAIL', 'message': 'No stocks configured'}
         codes_str = ','.join([f"'{c}'" for c in stocks])
-        query = f"SELECT code, COUNT(*) as cnt FROM stock_daily WHERE code IN ({codes_str}) GROUP BY code"
+        query = text("SELECT code, COUNT(*) as cnt FROM stock_daily WHERE code IN :codes GROUP BY code")
         try:
             df = pd.read_sql(query, self.engine)
             total_stocks = len(df)

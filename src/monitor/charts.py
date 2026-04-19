@@ -20,9 +20,8 @@ class ChartGenerator:
 
     def generate_kline_chart_data(self, code: str, engine, days: int = 60) -> Dict:
         df = pd.read_sql(
-            f"SELECT date, open_price as open, high_price as high, low_price as low, "
-            f"close_price as close, volume FROM stock_daily WHERE code='{code}' "
-            f"ORDER BY date DESC LIMIT {days}", engine)
+            text("SELECT date, open_price as open, high_price as high, low_price as low, close_price as close, volume FROM stock_daily WHERE code=:code ORDER BY date DESC LIMIT :days"),
+            engine, params={'code': code, 'days': days})
         if df.empty:
             return {'error': 'No data'}
         df = df.iloc[::-1].reset_index(drop=True)
@@ -125,9 +124,8 @@ class AdvancedChartGenerator:
         if self.engine is None:
             return None
         df = pd.read_sql(
-            f"SELECT date, open_price as open, high_price as high, "
-            f"low_price as low, close_price as close, volume FROM stock_daily "
-            f"WHERE code='{code}' ORDER BY date DESC LIMIT {days}", self.engine)
+            text("SELECT date, open_price as open, high_price as high, low_price as low, close_price as close, volume FROM stock_daily WHERE code=:code ORDER BY date DESC LIMIT :days"),
+            self.engine, params={'code': code, 'days': days})
         if df.empty:
             return None
         df = df.iloc[::-1].reset_index(drop=True)
@@ -273,9 +271,8 @@ class InteractiveCharts:
         if self.engine is None:
             return None
         df = pd.read_sql(
-            f"SELECT date, open_price as open, high_price as high, "
-            f"low_price as low, close_price as close, volume FROM stock_daily "
-            f"WHERE code='{code}' ORDER BY date DESC LIMIT {days}", self.engine)
+            text("SELECT date, open_price as open, high_price as high, low_price as low, close_price as close, volume FROM stock_daily WHERE code=:code ORDER BY date DESC LIMIT :days"),
+            self.engine, params={'code': code, 'days': days})
         if df.empty:
             return None
         df = df.iloc[::-1].reset_index(drop=True)

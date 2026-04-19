@@ -59,10 +59,10 @@ class FactorAnalysisPanel:
         if self.engine is None:
             return {'status': 'ERROR', 'message': 'Database not available'}
             
+        # factor_name is validated whitelist
         df = pd.read_sql(
-            f"SELECT date, {factor_name} as factor FROM stock_daily "
-            f"WHERE code='{code}' ORDER BY date",
-            self.engine
+            text("SELECT date, " + factor_name + " as factor FROM stock_daily WHERE code=:code ORDER BY date"),
+            self.engine, params={'code': code}
         )
         
         if df.empty or len(df) < 30:

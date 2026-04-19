@@ -181,7 +181,7 @@ class NewsSentimentFetcher:
                 conn.close()
                 return []
             table = tables[0][0]
-            cursor.execute(f"SELECT * FROM {table} LIMIT {limit}")
+            cursor.execute(f"SELECT * FROM :table LIMIT :limit")
             rows = cursor.fetchall()
             if not rows:
                 conn.close()

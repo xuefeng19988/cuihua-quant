@@ -30,7 +30,7 @@ class Alpha101Factors:
         df = pd.read_sql(
             f"SELECT date, open_price as open, high_price as high, low_price as low, "
             f"close_price as close, volume, turnover_rate FROM stock_daily "
-            f"WHERE code='{code}' ORDER BY date DESC LIMIT {days}",
+f"WHERE code=:code ORDER BY date DESC LIMIT :days",
             self.engine
         )
         if df.empty:

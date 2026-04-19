@@ -40,7 +40,7 @@ class DatabaseMigrator:
             # Get row counts
             counts = {}
             for table in tables:
-                cursor.execute(f"SELECT COUNT(*) FROM {table}")
+                cursor.execute(f"SELECT COUNT(*) FROM :table")
                 counts[table] = cursor.fetchone()[0]
                 
             conn.close()
@@ -77,7 +77,7 @@ class DatabaseMigrator:
             postgres_engine = create_engine(self.postgres_url)
             
             # Read from SQLite
-            df = pd.read_sql(f"SELECT * FROM {table}", sqlite_engine)
+            df = pd.read_sql(f"SELECT * FROM :table", sqlite_engine)
             
             if df.empty:
                 return {'status': 'WARN', 'message': f'No data in {table}'}
@@ -109,8 +109,8 @@ class DatabaseMigrator:
             postgres_engine = create_engine(self.postgres_url)
             
             # Count rows
-            sqlite_count = pd.read_sql(f"SELECT COUNT(*) as cnt FROM {table}", sqlite_engine).iloc[0]['cnt']
-            postgres_count = pd.read_sql(f"SELECT COUNT(*) as cnt FROM {table}", postgres_engine).iloc[0]['cnt']
+            sqlite_count = pd.read_sql(f"SELECT COUNT(*) as cnt FROM :table", sqlite_engine).iloc[0]['cnt']
+            postgres_count = pd.read_sql(f"SELECT COUNT(*) as cnt FROM :table", postgres_engine).iloc[0]['cnt']
             
             match = sqlite_count == postgres_count
             

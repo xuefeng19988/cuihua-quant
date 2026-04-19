@@ -54,7 +54,7 @@ class DataAccessLayer:
             return cached
             
         # Build query
-        query = f"SELECT * FROM stock_daily WHERE code='{code}'"
+        query = text("SELECT * FROM stock_daily WHERE code=:code")
         if start_date:
             query += f" AND date >= '{start_date}'"
         if end_date:

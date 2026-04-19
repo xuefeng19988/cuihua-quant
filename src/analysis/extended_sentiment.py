@@ -89,7 +89,7 @@ class ExtendedSentimentAnalyzer:
                 
                 if tables:
                     table = tables[0][0]
-                    cursor.execute(f"SELECT * FROM {table}")
+                    cursor.execute(f"SELECT * FROM :table")
                     rows = cursor.fetchall()
                     cols = [desc[0] for desc in cursor.description]
                     
