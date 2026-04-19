@@ -12,7 +12,8 @@ import secrets
 from datetime import datetime, timedelta
 from functools import wraps
 from flask import Flask, jsonify, request
-from src.web.response_helpers import ok, error, not_found, bad_request, send_from_directory, session
+from flask import send_from_directory, session
+from src.web.response_helpers import ok, error, not_found, bad_request
 
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, project_root)
@@ -550,6 +551,10 @@ def serve_vue(path):
     return jsonify({ 'code': 200, 'message': '前端未构建，请运行 cd frontend && npm run build' })
 
 # 注册模块蓝图
+from src.web.modules.auth import auth_bp
+from src.web.modules.reports import reports_bp
+from src.web.modules.visualization import viz_bp
+from src.web.modules.optimizer import optimizer_bp
 app.register_blueprint(auth_bp)
 app.register_blueprint(reports_bp)
 app.register_blueprint(viz_bp)
@@ -559,7 +564,11 @@ from src.web.modules.error_handler import ErrorHandler
 ErrorHandler.register(app)
 
 # 注: cache 和 rate_limit 可作为装饰器直接使用
+from src.web.modules.futu_quote import futu_bp
 app.register_blueprint(futu_bp)
+# Phase 276: 实盘交易模块
+from src.web.modules.live_trading import live_trading_bp
+app.register_blueprint(live_trading_bp)
 
 if __name__ == '__main__':
     sn = get_stock_names()  # 加载股票名称
