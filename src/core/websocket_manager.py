@@ -61,7 +61,7 @@ class WebSocketManager:
             if client_id in self.client_info:
                 self.client_info[client_id]['messages_sent'] += 1
             return True
-        except:
+        except Exception as e:
             await self.disconnect(client_id)
             return False
             

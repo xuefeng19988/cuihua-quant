@@ -54,7 +54,7 @@ class WebSocketServer:
         for client in self.clients:
             try:
                 await client.send(message_str)
-            except:
+            except Exception as e:
                 disconnected.add(client)
                 
         # Remove disconnected clients
@@ -95,7 +95,7 @@ class WebSocketServer:
                         await self.handle_message(websocket, data)
                     except json.JSONDecodeError:
                         pass
-            except:
+            except Exception as e:
                 pass
             finally:
                 await self.unregister(websocket)

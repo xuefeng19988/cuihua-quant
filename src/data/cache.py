@@ -45,7 +45,7 @@ class CacheManager:
                 data = self.redis_client.get(cache_key)
                 if data:
                     return json.loads(data)
-            except:
+            except Exception as e:
                 pass
                 
         # Memory cache fallback
@@ -70,7 +70,7 @@ class CacheManager:
                     json.dumps(value, default=str)
                 )
                 return True
-            except:
+            except Exception as e:
                 pass
                 
         # Memory cache fallback
@@ -88,7 +88,7 @@ class CacheManager:
             try:
                 self.redis_client.delete(cache_key)
                 return True
-            except:
+            except Exception as e:
                 pass
                 
         if cache_key in self.memory_cache:
@@ -102,7 +102,7 @@ class CacheManager:
             try:
                 self.redis_client.flushdb()
                 return True
-            except:
+            except Exception as e:
                 pass
                 
         self.memory_cache.clear()

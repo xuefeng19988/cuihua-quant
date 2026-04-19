@@ -73,7 +73,7 @@ class DataQualityChecker:
                 if not rule_func(df):
                     results['violations'].append(rule_name)
                     violations += 1
-            except:
+            except Exception as e:
                 results['violations'].append(f"{rule_name}_error")
                 violations += 1
                 
@@ -204,7 +204,8 @@ class DataQualityChecker:
         lines.append(f"\n⏰ 时效性")
         lines.append(f"  最新数据: {time.get('latest_date', 'N/A')}")
         lines.append(f"  距今天数: {time.get('days_since_latest', 'N/A')}")
-        lines.append(f"  数据缺口: {'✅' if not time.get('has_gaps') else f\"❌ {time['gap_count']} 个\"}")
+        gap_status = '✅' if not time.get('has_gaps') else f"❌ {time['gap_count']} 个"
+        lines.append(f"  数据缺口: {gap_status}")
             
         out = report['outliers']
         if out['outliers']:

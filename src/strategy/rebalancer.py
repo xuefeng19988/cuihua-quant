@@ -57,7 +57,7 @@ class PortfolioRebalancer:
                 if len(df) >= 20:
                     ret = df['close_price'].pct_change().dropna()
                     vols[code] = max(ret.std() * np.sqrt(252), 0.1)
-            except:
+            except Exception as e:
                 vols[code] = 0.2
                 
         if not vols:

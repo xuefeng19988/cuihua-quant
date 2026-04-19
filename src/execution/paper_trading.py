@@ -67,7 +67,7 @@ class PaperTradingSimulator:
                 self.trade_history = state.get('trade_history', [])
                 self.start_date = state.get('start_date', self.start_date)
                 self.daily_pnl = state.get('daily_pnl', [])
-            except:
+            except Exception as e:
                 pass
                 
     def _save_state(self):

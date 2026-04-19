@@ -23,7 +23,7 @@ class QueryOptimizer:
             try:
                 from src.data.database import get_db_engine
                 self.engine = get_db_engine()
-            except:
+            except Exception as e:
                 pass
                 
         # Query cache

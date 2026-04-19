@@ -125,7 +125,7 @@ class FutuSync:
             time_str = str(row['time_key'])[:10] # YYYY-MM-DD
             try:
                 trade_date = datetime.strptime(time_str, '%Y-%m-%d').date()
-            except:
+            except Exception as e:
                 continue
 
             rows_to_insert.append(StockDaily(

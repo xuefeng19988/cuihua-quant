@@ -25,7 +25,7 @@ class FactorAnalysisPanel:
         try:
             from src.data.database import get_db_engine
             self.engine = get_db_engine()
-        except:
+        except Exception as e:
             pass
             
     def compute_ic(self, factor_values: pd.Series, forward_returns: pd.Series) -> float:

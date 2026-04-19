@@ -902,7 +902,7 @@ def api_screener():
                         'volume': vol,
                         'market': 'A' if code.startswith(('SH.', 'SZ.')) else 'HK'
                     })
-            except:
+            except Exception as e:
                 pass
 
     # 排序
@@ -2967,7 +2967,7 @@ def api_health():
             from sqlalchemy import text
             with engine.connect() as conn:
                 conn.execute(text('SELECT 1'))
-    except:
+    except Exception as e:
         db_ok = False
     return jsonify({
         'code': 200,
@@ -3536,7 +3536,7 @@ def _build_stock_score_data(code, engine):
     import pandas as pd
     
     # 获取最新行情
-    latest = pd.read_sql(text(f"SELECT * FROM stock_daily WHERE code='{code}' ORDER BY date DESC LIMIT 1"), engine)
+    latest = pd.read_sql(text("SELECT * FROM stock_daily WHERE code=:code ORDER BY date DESC LIMIT 1"), engine, params={'code': code})
     if latest.empty:
         return None
     
@@ -3544,7 +3544,7 @@ def _build_stock_score_data(code, engine):
     price = float(row['close_price'])
     
     # 获取历史数据计算均线
-    history = pd.read_sql(text(f"SELECT close_price, volume, turnover, change_pct, turnover_rate FROM stock_daily WHERE code='{code}' ORDER BY date DESC LIMIT 250"), engine)
+    history = pd.read_sql(text("SELECT close_price, volume, turnover, change_pct, turnover_rate FROM stock_daily WHERE code=:code ORDER BY date DESC LIMIT 250"), engine, params={'code': code})
     
     # 计算均线
     closes = history['close_price'].values if len(history) > 0 else [price]

@@ -26,7 +26,7 @@ class DataAccessLayer:
             try:
                 from src.data.database import get_db_engine
                 self.engine = get_db_engine()
-            except:
+            except Exception as e:
                 pass
                 
     @retry(RetryConfig(max_attempts=2, delay=0.5))

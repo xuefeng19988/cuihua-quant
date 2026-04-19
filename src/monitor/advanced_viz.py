@@ -23,7 +23,7 @@ class AdvancedVisualization:
         try:
             from src.data.database import get_db_engine
             self.engine = get_db_engine()
-        except:
+        except Exception as e:
             pass
             
     def generate_scatter_plot(self, x_data: List, y_data: List, 
@@ -208,7 +208,7 @@ class AdvancedVisualization:
                     returns = df['close_price'].pct_change().dropna()
                     x_data.append(returns.std() * np.sqrt(252) * 100)  # Annualized vol
                     y_data.append(((df.iloc[-1]['close_price'] / df.iloc[0]['close_price']) - 1) * 100)  # Total return
-            except:
+            except Exception as e:
                 pass
                 
         if not x_data:

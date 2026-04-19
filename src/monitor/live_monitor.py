@@ -119,7 +119,7 @@ class LiveTradingMonitor:
         for callback in self.alert_callbacks:
             try:
                 callback(alert)
-            except:
+            except Exception as e:
                 pass
                 
     def _trigger_kill_switch(self, reason: str):
@@ -127,7 +127,7 @@ class LiveTradingMonitor:
         for callback in self.kill_switch_callbacks:
             try:
                 callback(reason)
-            except:
+            except Exception as e:
                 pass
                 
     def get_status(self) -> Dict:

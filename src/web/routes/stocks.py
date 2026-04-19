@@ -44,12 +44,12 @@ def register_stock_routes(app, helpers):
                 return jsonify({'code': 500, 'message': '数据库未连接'})
             
             # 基本信息
-            info = pd.read_sql(text(f"SELECT * FROM stock_info WHERE code='{code}'"), engine)
+            info = pd.read_sql(text("SELECT * FROM stock_info WHERE code=:code"), engine, params={'code': code})
             if info.empty:
                 return jsonify({'code': 404, 'message': '股票不存在'})
             
             # 最新行情
-            latest = pd.read_sql(text(f"SELECT * FROM stock_daily WHERE code='{code}' ORDER BY date DESC LIMIT 1"), engine)
+            latest = pd.read_sql(text("SELECT * FROM stock_daily WHERE code=:code ORDER BY date DESC LIMIT 1"), engine, params={'code': code})
             
             return jsonify({
                 'code': 200,

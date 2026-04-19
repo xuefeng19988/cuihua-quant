@@ -60,7 +60,7 @@ class ArticleManager:
         try:
             with open(cfg_path, 'r') as f:
                 cfg = yaml.safe_load(f)
-        except:
+        except Exception as e:
             cfg = {}
 
         keywords = {}
@@ -118,7 +118,7 @@ class ArticleManager:
                 try:
                     datetime.strptime(date_str, '%Y-%m-%d')
                     dates.append(date_str)
-                except:
+                except Exception as e:
                     continue
         return dates
 
@@ -212,7 +212,7 @@ class ArticleManager:
         try:
             start = datetime.strptime(start_date, '%Y-%m-%d')
             end = datetime.strptime(end_date, '%Y-%m-%d')
-        except:
+        except Exception as e:
             return [], 0
 
         current = start

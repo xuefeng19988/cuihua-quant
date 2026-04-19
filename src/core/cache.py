@@ -82,7 +82,7 @@ class QueryCache:
                     return item['value']
                 else:
                     os.remove(file_path)
-            except:
+            except Exception as e:
                 pass
                 
         return None
@@ -119,7 +119,7 @@ class QueryCache:
             with open(file_path, 'wb') as f:
                 pickle.dump(item, f)
             return True
-        except:
+        except Exception as e:
             return False
             
     def _set_memory(self, key: str, value: Any, ttl: int) -> None:
@@ -152,7 +152,7 @@ class QueryCache:
             try:
                 os.remove(file_path)
                 return True
-            except:
+            except Exception as e:
                 pass
         return False
         
@@ -172,7 +172,7 @@ class QueryCache:
                     try:
                         os.remove(os.path.join(self.cache_dir, filename))
                         count += 1
-                    except:
+                    except Exception as e:
                         pass
                         
         return count

@@ -77,7 +77,7 @@ def verify_remember_token(token):
     try:
         if datetime.fromisoformat(expires) < datetime.now():
             return None
-    except:
+    except Exception as e:
         return None
     # 验证哈希
     token_hash = hashlib.sha256(token.encode()).hexdigest()
@@ -1099,7 +1099,7 @@ def create_webui_v3():
                             names[code] = name
                     elif isinstance(item, str) and item not in names:
                         names[item] = ''
-        except:
+        except Exception as e:
             pass
         return names
 
@@ -1115,7 +1115,7 @@ def create_webui_v3():
                     code = item.get('code', item) if isinstance(item, dict) else item
                     if code and code not in codes:
                         codes.append(code)
-        except:
+        except Exception as e:
             pass
         return codes
 
@@ -1295,7 +1295,7 @@ def create_webui_v3():
             data = monitor.check_data_freshness()
             disk = monitor.check_disk_space()
             is_ok = futu['status'] == 'OK' and data['status'] == 'OK'
-        except:
+        except Exception as e:
             is_ok = True
             futu = {'status': 'OK', 'message': '未连接'}
             data = {'status': 'OK', 'message': '数据正常'}
@@ -1305,7 +1305,7 @@ def create_webui_v3():
             from src.data.database import get_db_engine
             engine = get_db_engine()
             count = pd.read_sql("SELECT COUNT(*) as cnt FROM stock_daily", engine).iloc[0]['cnt']
-        except:
+        except Exception as e:
             count = 0
 
         # 热力图：涨跌排行
@@ -1333,7 +1333,7 @@ def create_webui_v3():
                 for _, row in df.nsmallest(5, 'change').iterrows():
                     c = row['code']
                     top_losers.append({'code': c, 'name': stock_names.get(c, ''), 'price': f"{row['close_price']:.2f}", 'change': row['change']})
-        except:
+        except Exception as e:
             pass
 
         gainers_rows = ''.join(f"""<tr><td><span class="badge badge-warning">{g['code']}</span></td><td>{g['name']}</td><td>¥{g['price']}</td><td style="color:var(--success);font-weight:600">+{g['change']:.2f}%</td></tr>""" for g in top_gainers) if top_gainers else '<tr><td colspan="4" style="text-align:center;color:var(--text-secondary)">暂无数据</td></tr>'
@@ -1494,9 +1494,9 @@ def create_webui_v3():
                         'price': f"{price:.2f}" if isinstance(price, (int, float)) else price,
                         'change': round(change, 2)
                     })
-                except:
+                except Exception as e:
                     stocks_data.append({'code': code, 'name': stock_names.get(code, ''), 'price': '-', 'change': 0})
-        except:
+        except Exception as e:
             for code in page_codes:
                 stocks_data.append({'code': code, 'name': stock_names.get(code, ''), 'price': '-', 'change': 0})
 
@@ -1576,7 +1576,7 @@ def create_webui_v3():
                     signals = df.to_dict('records')
                     for s in signals:
                         s['name'] = stock_names.get(s.get('code', ''), '')
-            except:
+            except Exception as e:
                 pass
 
         if signals:
@@ -1684,7 +1684,7 @@ def create_webui_v3():
                 from src.monitor.charts import AdvancedChartGenerator
                 charts = AdvancedChartGenerator()
                 chart_html = charts.generate_kline_with_indicators(code, int(days))
-            except:
+            except Exception as e:
                 chart_html = None
 
         content = f"""
@@ -1742,7 +1742,7 @@ def create_webui_v3():
         try:
             from src.data.database import get_db_engine
             engine = get_db_engine()
-        except:
+        except Exception as e:
             engine = None
         total_market = 0; total_cost = 0; pos_rows = []
         for i, pos in enumerate(positions):
@@ -2717,7 +2717,7 @@ def create_webui_v3():
         try:
             from src.monitor.system_monitor import SystemMonitor
             return jsonify(SystemMonitor().generate_health_report())
-        except:
+        except Exception as e:
             return jsonify({'status': 'ok', 'version': 'v3.1.0'})
 
     @app.route('/api/stocks')

@@ -37,7 +37,7 @@ class CacheEntry:
     def size_bytes(self) -> int:
         try:
             return len(pickle.dumps(self.value))
-        except:
+        except Exception as e:
             return 0
 
 

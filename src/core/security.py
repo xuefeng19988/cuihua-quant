@@ -80,7 +80,7 @@ class InputValidator:
         try:
             datetime.strptime(date_str, '%Y-%m-%d')
             return True
-        except:
+        except Exception as e:
             return False
             
     @staticmethod
@@ -93,7 +93,7 @@ class InputValidator:
             if max_val is not None and num > max_val:
                 return False
             return True
-        except:
+        except Exception as e:
             return False
 
 

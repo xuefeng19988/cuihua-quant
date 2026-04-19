@@ -166,7 +166,7 @@ def api_futu_quote(code):
                 row = result.fetchone()
                 if not row:
                     return jsonify({'code': 404, 'message': '股票不存在'})
-    except:
+    except Exception as e:
         pass
     
     name = f"股票{code}"

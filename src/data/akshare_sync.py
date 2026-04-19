@@ -147,7 +147,7 @@ class AKShareSync:
                 # Handle date format
                 date_str = str(row['date'])[:10]
                 trade_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-            except:
+            except Exception as e:
                 continue
 
             rows_to_insert.append(StockDaily(

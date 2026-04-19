@@ -67,7 +67,7 @@ class EnhancedErrorHandler:
         try:
             with open(self.log_file, 'a', encoding='utf-8') as f:
                 f.write(json.dumps(error_info, ensure_ascii=False) + '\n')
-        except:
+        except Exception as e:
             pass
             
     def get_error_summary(self) -> Dict:
@@ -246,7 +246,7 @@ class ConfigManagerV2:
                 yaml.dump(self._configs[config_name], f, 
                          default_flow_style=False, allow_unicode=True)
             return True
-        except:
+        except Exception as e:
             return False
             
     def reload(self, config_name: str = None):
