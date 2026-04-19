@@ -17,6 +17,9 @@
       <el-tab-pane label="⚙️ 模型管理" name="config">
         <llm-config-manager />
       </el-tab-pane>
+      <el-tab-pane label="🤖 股票 AI" name="stock-ai">
+        <ai-stock-features />
+      </el-tab-pane>
     </el-tabs>
   </div>
 </template>
@@ -27,10 +30,11 @@ import AIStockAnalyze from './components/ai-stock-analyze.vue'
 import AINoteAnalyze from './components/ai-note-analyze.vue'
 import AIMarketSummary from './components/ai-market-summary.vue'
 import LLMConfigManager from './components/llm-config-manager.vue'
+import AIStockFeatures from './components/ai-stock-features.vue'
 
 export default {
   name: 'AICenter',
-  components: { AIChat, AIStockAnalyze, AINoteAnalyze, AIMarketSummary, LLMConfigManager },
+  components: { AIChat, AIStockAnalyze, AINoteAnalyze, AIMarketSummary, LLMConfigManager, AIStockFeatures },
   data() { return { activeTab: 'chat' } },
   watch: {
     '$route.query.tab': { handler(v) { if (v) this.activeTab = v }, immediate: true },

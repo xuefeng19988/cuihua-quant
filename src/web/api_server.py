@@ -575,6 +575,9 @@ app.register_blueprint(ai_bp)
 # Phase 279: LLM 管理模块
 from src.web.modules.llm_mgmt import llm_mgmt_bp
 app.register_blueprint(llm_mgmt_bp)
+# Phase 282-294: AI × 股票深度对接
+from src.web.modules.ai_stock_features import ai_stock_bp
+app.register_blueprint(ai_stock_bp)
 
 if __name__ == '__main__':
     sn = get_stock_names()  # 加载股票名称
