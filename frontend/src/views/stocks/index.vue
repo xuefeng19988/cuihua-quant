@@ -113,9 +113,10 @@
         </el-table-column>
         <el-table-column prop="volume" label="成交量" width="100"><template slot-scope="{ row }">{{ (row.volume/10000).toFixed(0) }}万</template></el-table-column>
         <el-table-column prop="sector" label="板块" width="80" />
-        <el-table-column label="操作" width="120" fixed="right">
+        <el-table-column label="操作" width="180" fixed="right">
           <template slot-scope="{ row }">
             <el-button size="mini" @click.stop="goToDetail(row)">详情</el-button>
+            <el-button size="mini" type="warning" @click.stop="aiAnalyze(row)">🤖 AI</el-button>
             <el-button size="mini" type="danger" @click.stop="removeStock(row)">🗑️</el-button>
           </template>
         </el-table-column>
@@ -302,6 +303,9 @@ export default {
       } catch (e) { this.$message.error('删除失败') }
     },
     goToDetail(stock) { this.$router.push(`/stock-detail/${stock.code}`) },
+    aiAnalyze(stock) {
+      this.$router.push({ path: '/ai-center/stock', query: { code: stock.code, name: stock.name } })
+    },
     refresh() { this.fetchStocks(); this.$message.success('已刷新') },
     batchImport() { this.$message.info('导入功能开发中') },
     batchExport() {

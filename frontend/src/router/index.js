@@ -41,6 +41,14 @@ export const constantRoutes = [
     { path: 'data-quality', name: 'DataQuality', component: () => import('@/views/data-quality/index'), meta: { title: '数据质量', icon: 'el-icon-circle-check' } },
     { path: 'notes', name: 'Notes', component: () => import('@/views/notes/index'), meta: { title: '笔记管理', icon: 'el-icon-edit-outline' } }
   ]},
+  // Phase 280: AI 中心 - 整合 LLM、个股分析、笔记分析
+  { path: '/ai-center', component: Layout, redirect: '/ai-center/chat', name: 'AICenter', meta: { title: 'AI 中心', icon: 'el-icon-magic-stick' }, children: [
+    { path: 'chat', name: 'AIChat', component: () => import('@/views/ai-center/index'), meta: { title: '🤖 AI 对话', icon: 'el-icon-chat-dot-round' } },
+    { path: 'stock', name: 'AIStock', component: () => import('@/views/ai-center/index'), meta: { title: '📈 AI 个股', icon: 'el-icon-trend-charts' } },
+    { path: 'note', name: 'AINote', component: () => import('@/views/ai-center/index'), meta: { title: '📝 AI 笔记', icon: 'el-icon-edit-outline' } },
+    { path: 'market', name: 'AIMarket', component: () => import('@/views/ai-center/index'), meta: { title: '📊 市场总结', icon: 'el-icon-s-data' } },
+    { path: 'config', name: 'AIConfig', component: () => import('@/views/ai-center/index'), meta: { title: '⚙️ 模型管理', icon: 'el-icon-setting' } }
+  ]},
   { path: '/notifications', component: Layout, children: [{ path: '', name: 'Notifications', component: () => import('@/views/notifications/index'), meta: { title: '通知中心', icon: 'el-icon-bell' } }] },
   { path: '/stock-detail', component: Layout, children: [{ path: '', name: 'StockDetail', component: () => import('@/views/stock-detail/index'), meta: { title: '个股详情', icon: 'el-icon-info' } }] },
   { path: '/stock-detail/:id', component: Layout, children: [{ path: '', name: 'StockDetailById', component: () => import('@/views/stock-detail/index'), meta: { title: '个股详情', icon: 'el-icon-info' } }] },

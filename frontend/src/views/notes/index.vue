@@ -103,7 +103,7 @@
         <el-table-column prop="views" label="浏览" width="70" />
         <el-table-column prop="likes" label="点赞" width="70" />
         <el-table-column prop="updated_at" label="更新时间" width="160"><template slot-scope="{ row }">{{ new Date(row.updated_at).toLocaleString('zh-CN') }}</template></el-table-column>
-        <el-table-column label="操作" width="150" fixed="right"><template slot-scope="{ row }"><el-button size="mini" @click="editArticle(row)">✏️</el-button><el-button size="mini" type="success" @click="togglePublish(row)" v-if="row.status === 'draft'">🚀</el-button><el-button size="mini" type="danger" @click="deleteArticle(row)">🗑️</el-button></template></el-table-column>
+        <el-table-column label="操作" width="200" fixed="right"><template slot-scope="{ row }"><el-button size="mini" @click="editArticle(row)">✏️</el-button><el-button size="mini" type="warning" @click="aiAnalyze(row)">🤖 AI</el-button><el-button size="mini" type="success" @click="togglePublish(row)" v-if="row.status === 'draft'">🚀</el-button><el-button size="mini" type="danger" @click="deleteArticle(row)">🗑️</el-button></template></el-table-column>
       </el-table>
     </el-card>
 
@@ -159,6 +159,9 @@ export default {
         if (data.code === 200) { this.articles = data.data.articles; this.total = data.data.total; this.stats = data.data.stats || this.stats }
       } catch (e) { this.$message.error('获取笔记失败') }
       finally { this.loading = false }
+    },
+    aiAnalyze(note) {
+      this.$router.push({ path: '/ai-center/note', query: { id: note.id, title: note.title } })
     },
     async fetchTags() {
       try { const { data } = await request.get('/api/notes/tags'); if (data.code === 200) this.tags = data.data.tags || [] } catch (e) {}
