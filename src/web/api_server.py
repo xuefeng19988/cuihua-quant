@@ -624,7 +624,6 @@ def api_backtest():
 @app.route('/api/watchlist', methods=['GET', 'POST', 'DELETE'])
 @token_required
 def api_watchlist():
-    import json
     wl_path = os.path.join(project_root, 'config', 'watchlist.json')
     if request.method == 'GET':
         if os.path.exists(wl_path):
@@ -663,7 +662,6 @@ def api_watchlist():
 @token_required
 def api_stock_groups():
     """股票分组管理 (Phase 126)"""
-    import json
     groups_path = os.path.join(project_root, 'config', 'stock_groups.json')
 
     def load_groups():
@@ -753,11 +751,9 @@ def api_export(format):
             return Response(output.getvalue(), mimetype='text/csv',
                 headers={'Content-Disposition': f'attachment; filename=stock_{code or "all"}_{days}d.csv'})
         elif format == 'excel':
-            import io
             output = io.BytesIO()
             df.to_excel(output, index=False, engine='openpyxl')
             output.seek(0)
-            from flask import Response
             return Response(output.read(), mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                 headers={'Content-Disposition': f'attachment; filename=stock_{code or "all"}_{days}d.xlsx'})
         return jsonify({ 'code': 400, 'message': '不支持的格式，支持: json/csv/excel' })
@@ -787,7 +783,6 @@ def api_stream_quotes():
             yield f"data: {json.dumps(quotes)}\n\n"
             time.sleep(3)
     
-    from flask import Response
     return Response(generate(), mimetype='text/event-stream', headers={
         'Cache-Control': 'no-cache',
         'X-Accel-Buffering': 'no'
@@ -981,12 +976,10 @@ def api_performance():
 @token_required
 def api_equity_curve():
     """收益曲线数据 (Phase 127)"""
-    import random
     random.seed(42)
 
     days = int(request.args.get('days', 90))
     dates = []
-    from datetime import datetime, timedelta
     for i in range(days - 1, -1, -1):
         d = datetime.now() - timedelta(days=i)
         dates.append(d.strftime('%Y-%m-%d'))
@@ -1338,7 +1331,6 @@ def api_stock_import():
     """批量导入股票 (Phase 131) - CSV格式"""
     try:
         import csv
-        import io
         data = request.get_json() or {}
         csv_text = data.get('csv', '')
         if not csv_text:
@@ -1452,7 +1444,6 @@ def api_data_quality():
 @token_required
 def api_notifications():
     """通知中心 (Phase 134)"""
-    import json
     notify_path = os.path.join(project_root, 'data', 'notifications.json')
 
     if request.method == 'POST':
@@ -1472,7 +1463,6 @@ def api_notifications():
         with open(notify_path, 'r') as f:
             notifs = json.load(f)
     else:
-        from datetime import datetime, timedelta
         notifs = [
             {'id': 1, 'type': 'alert', 'title': '贵州茅台涨幅超3%', 'message': 'SH.600519 今日涨幅达3.2%', 'time': (datetime.now() - timedelta(hours=2)).isoformat(), 'read': False},
             {'id': 2, 'type': 'signal', 'title': '买入信号: 比亚迪', 'message': 'RSI超卖 + MACD金叉', 'time': (datetime.now() - timedelta(hours=5)).isoformat(), 'read': False},
@@ -1568,7 +1558,6 @@ def api_sector_rotation():
 @token_required
 def api_fund_flow():
     """资金流向分析 (Phase 139)"""
-    import random
     random.seed(42)
 
     codes = get_stock_codes()[:15]
@@ -1601,7 +1590,6 @@ def api_fund_flow():
 @token_required
 def api_financial_data(code):
     """财务数据展示 (Phase 140)"""
-    import random
     random.seed(hash(code) % 10000)
 
     return jsonify({
@@ -1653,7 +1641,6 @@ def api_chart_export():
 @token_required
 def api_trade_simulator():
     """实盘模拟交易 (Phase 142)"""
-    import json
     trade_path = os.path.join(project_root, 'data', 'trade_sim.json')
 
     def load_trades():
@@ -1736,7 +1723,6 @@ def api_trade_simulator():
 @token_required
 def api_alert_config():
     """技术指标预警配置 (Phase 143)"""
-    import json
     config_path = os.path.join(project_root, 'data', 'alert_config.json')
 
     if request.method == 'POST':
@@ -1773,7 +1759,6 @@ def api_strategy_backtest():
         start_date = data.get('start_date', '2025-01-01')
         end_date = data.get('end_date', '2026-04-18')
 
-        import random
         random.seed(42)
         # 模拟回测结果
         trades = []
@@ -1904,7 +1889,6 @@ def api_macro_data():
 @token_required
 def api_market_sentiment():
     """市场情绪指标 (Phase 148)"""
-    import random
     random.seed(42)
     return jsonify({
         'code': 200,
@@ -1950,7 +1934,6 @@ def api_trade_calendar():
 @token_required
 def api_custom_dashboard():
     """自定义仪表板 (Phase 150)"""
-    import json
     dash_path = os.path.join(project_root, 'data', 'dashboard_config.json')
 
     if request.method == 'POST':
@@ -1980,7 +1963,6 @@ def api_custom_dashboard():
 @token_required
 def api_option_chain():
     """期权链数据 (Phase 151)"""
-    import random
     random.seed(42)
     underlying = request.args.get('underlying', '510050.SH')
 
@@ -2044,7 +2026,6 @@ def api_ws_status():
 @token_required
 def api_ai_stock_pick():
     """AI智能选股 (Phase 156)"""
-    import random
     random.seed(42)
 
     if request.method == 'POST':
@@ -2114,7 +2095,6 @@ def api_i18n_config():
 @token_required
 def api_scatter_data():
     """散点图数据 (Phase 163)"""
-    import random
     random.seed(42)
     points = []
     for _ in range(50):
@@ -2285,8 +2265,6 @@ def api_notes():
 @token_required
 def api_note_detail(note_id):
     """笔记详情/更新/删除 (数据库存储)"""
-    from src.data.database import get_db_engine, Notes
-    from sqlalchemy.orm import sessionmaker
 
     engine = get_db_engine()
     if not engine:
@@ -2366,8 +2344,6 @@ def api_notes_upload():
 @token_required
 def api_notes_tags():
     """获取所有标签 (数据库查询)"""
-    from src.data.database import get_db_engine, Notes
-    from sqlalchemy.orm import sessionmaker
 
     engine = get_db_engine()
     if not engine:
@@ -2411,8 +2387,6 @@ def api_backup_create():
                 zf.write(stocks_path, 'config/stocks.yaml')
 
             # 2. 笔记数据
-            from src.data.database import get_db_engine, Notes
-            from sqlalchemy.orm import sessionmaker
             engine = get_db_engine()
             if engine:
                 Session = sessionmaker(bind=engine)
@@ -2478,7 +2452,6 @@ def api_backup_create():
 @token_required
 def api_backup_list():
     """备份列表"""
-    import json
     backup_dir = os.path.join(project_root, 'backups')
     index_path = os.path.join(backup_dir, 'backup_index.json')
 
@@ -2583,8 +2556,6 @@ def api_backup_restore(filename):
             # 2. 恢复笔记
             if 'data/notes.json' in zf.namelist():
                 notes_json = json.loads(zf.read('data/notes.json'))
-                from src.data.database import get_db_engine, Notes
-                from sqlalchemy.orm import sessionmaker
                 engine = get_db_engine()
                 if engine:
                     Session = sessionmaker(bind=engine)
@@ -2619,7 +2590,6 @@ def api_backup_restore(filename):
 @token_required
 def api_backup_delete(filename):
     """删除备份"""
-    import json
     backup_path = os.path.join(project_root, 'backups', filename)
     if not os.path.exists(backup_path):
         return not_found(message='备份文件不存在')
@@ -2656,7 +2626,6 @@ def api_realtime_status():
 @token_required
 def api_strategy_upgrade():
     """策略回测引擎升级 (Phase 171)"""
-    import random
     random.seed(42)
 
     if request.method == 'POST':
@@ -2686,7 +2655,6 @@ def api_strategy_upgrade():
 @token_required
 def api_us_hk_data():
     """美股/港股数据 (Phase 172)"""
-    import random
     random.seed(42)
     return ok(data={
         'hk_stocks': [
@@ -2706,7 +2674,6 @@ def api_us_hk_data():
 @token_required
 def api_users():
     """多用户系统 (Phase 173)"""
-    import json
     users_path = os.path.join(project_root, 'data', 'users.json')
 
     if request.method == 'POST':
@@ -2780,7 +2747,6 @@ def api_ai_report():
 @token_required
 def api_sentiment_engine():
     """情绪分析引擎 (Phase 176)"""
-    import random
     random.seed(42)
     return ok(data={
         'overall_score': round(random.uniform(40, 80), 2),
@@ -2984,7 +2950,6 @@ def api_health():
         engine = get_db_engine()
         db_ok = engine is not None
         if db_ok:
-            from sqlalchemy import text
             with engine.connect() as conn:
                 conn.execute(text('SELECT 1'))
     except Exception as e:
@@ -3006,8 +2971,6 @@ def api_health():
 @token_required
 def api_db_indexes():
     """数据库索引优化 (Phase 190)"""
-    from src.data.database import get_db_engine
-    from sqlalchemy import text
     engine = get_db_engine()
     if not engine:
         return error(message='数据库未连接')
@@ -3143,7 +3106,6 @@ def api_data_market():
 def api_note_articles():
     """笔记文章列表/创建 (公众号风格)"""
     from src.data.database import NoteArticles
-    from sqlalchemy.orm import sessionmaker
     engine = get_db_engine()
     if not engine:
         return error(message='数据库未连接')
@@ -3255,8 +3217,6 @@ def api_note_articles():
 @token_required
 def api_note_article_detail(article_id):
     """笔记文章详情/更新/删除"""
-    from src.data.database import NoteArticles
-    from sqlalchemy.orm import sessionmaker
     engine = get_db_engine()
     if not engine:
         return error(message='数据库未连接')
@@ -3329,8 +3289,6 @@ def api_note_article_detail(article_id):
 @token_required
 def api_article_like(article_id):
     """文章点赞"""
-    from src.data.database import NoteArticles
-    from sqlalchemy.orm import sessionmaker
     engine = get_db_engine()
     Session = sessionmaker(bind=engine)
     session = Session()
@@ -3352,8 +3310,6 @@ def api_article_like(article_id):
 @token_required
 def api_categories():
     """分类管理"""
-    from src.data.database import NoteArticles
-    from sqlalchemy.orm import sessionmaker
     engine = get_db_engine()
     Session = sessionmaker(bind=engine)
     session = Session()
@@ -3388,18 +3344,11 @@ def api_categories():
         session.close()
 
 # 导入新模块
-from src.web.modules.auth import auth_bp
-from src.web.modules.reports import reports_bp
-from src.web.modules.visualization import viz_bp
-from src.web.modules.optimizer import optimizer_bp
 from src.web.modules.cache import cache, cached
 from src.web.modules.rate_limiter import rate_limit
-from src.web.modules.futu_quote import futu_bp
 
 
 # ========== Phase 268: 高级缓存集成 ==========
-from functools import wraps
-import time
 
 _api_cache = {}
 _api_cache_ttl = {}
@@ -3498,7 +3447,6 @@ def api_clear_cache():
 # ========== 响应压缩 ==========
 from flask import make_response
 import gzip
-import io
 
 @app.after_request
 def compress_response(response):
@@ -3552,8 +3500,6 @@ def api_docs():
 
 def _build_stock_score_data(code, engine):
     """从数据库构建评分所需数据 (Phase 267 增强版)"""
-    from sqlalchemy import text
-    import pandas as pd
     
     # 获取最新行情
     latest = pd.read_sql(text("SELECT * FROM stock_daily WHERE code=:code ORDER BY date DESC LIMIT 1"), engine, params={'code': code})
@@ -3644,7 +3590,6 @@ def _build_stock_score_data(code, engine):
 @token_required
 def api_stock_kline(code):
     """个股K线数据 + 历史行情 (Phase 280: AI 对接)"""
-    from sqlalchemy import text
     days = request.args.get('days', 60, type=int)
     engine = get_db_engine()
     if not engine:
@@ -3682,7 +3627,6 @@ def api_stock_score(code):
     """获取股票综合评分 (Phase 267 增强: 8维度 + 百分位 + 强/弱项)"""
     try:
         from src.web.modules.stock_scorer import StockScorer
-        from src.data.database import get_db_engine
         
         engine = get_db_engine()
         if not engine:
@@ -3717,9 +3661,7 @@ def api_stock_score(code):
 def api_stock_ranking():
     """获取股票排名 (Phase 268 优化: 批量查询替代 N+1)"""
     try:
-        from src.web.modules.stock_scorer import StockScorer
         from src.web.modules.batch_scorer import batch_build_score_data
-        from src.data.database import get_db_engine
         
         engine = get_db_engine()
         if not engine:
@@ -3800,8 +3742,6 @@ def api_stock_ranking():
 def api_stock_compare():
     """股票对比评分分析 (Phase 267 新增)"""
     try:
-        from src.web.modules.stock_scorer import StockScorer
-        from src.data.database import get_db_engine
         
         engine = get_db_engine()
         if not engine:
@@ -3817,7 +3757,6 @@ def api_stock_compare():
         sn = get_stock_names()
         
         # Phase 268 优化: 批量查询替代 N+1
-        from src.web.modules.batch_scorer import batch_build_score_data
         batch_data = batch_build_score_data(codes, engine)
         
         stock_list = []
@@ -3851,8 +3790,6 @@ def api_stock_compare():
 def api_scoring_dashboard():
     """评分面板数据 (Phase 267 新增)"""
     try:
-        from src.web.modules.stock_scorer import StockScorer
-        from src.data.database import get_db_engine
         
         engine = get_db_engine()
         if not engine:
@@ -3880,7 +3817,6 @@ def api_scoring_dashboard():
             })
         
         # 获取同行业其他股票做对比 (Phase 268 优化: 批量查询)
-        from src.web.modules.batch_scorer import batch_build_score_data
         all_codes = get_stock_codes()[:100]  # 取前100只做行业对比
         batch_data = batch_build_score_data(all_codes, engine)
         
@@ -3929,9 +3865,6 @@ def api_scoring_dashboard():
 def api_stock_score_batch():
     """批量评分 (Phase 268: 仅2条SQL搞定所有股票)"""
     try:
-        from src.web.modules.stock_scorer import StockScorer
-        from src.web.modules.batch_scorer import batch_build_score_data
-        from src.data.database import get_db_engine
         
         engine = get_db_engine()
         if not engine:
