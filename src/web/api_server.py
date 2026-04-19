@@ -254,7 +254,7 @@ def api_stocks():
         price, change = '-', 0
         if engine:
             try:
-                df = pd.read_sql(f"SELECT close_price FROM stock_daily WHERE code='{code}' ORDER BY date DESC LIMIT 2", engine)
+                df = pd.read_sql(text("SELECT close_price FROM stock_daily WHERE code=:code ORDER BY date DESC LIMIT 2"), engine, params={'code': code})
                 if len(df) >= 2:
                     price = df.iloc[0]['close_price']
                     change = round(((price - df.iloc[1]['close_price']) / df.iloc[1]['close_price']) * 100, 2)
@@ -323,7 +323,7 @@ def api_portfolio():
         cp = bp
         if engine:
             try:
-                df = pd.read_sql(f"SELECT close_price FROM stock_daily WHERE code='{code}' ORDER BY date DESC LIMIT 1", engine)
+                df = pd.read_sql(text("SELECT close_price FROM stock_daily WHERE code=:code ORDER BY date DESC LIMIT 1"), engine, params={'code': code})
                 if not df.empty: cp = df.iloc[0]['close_price']
             except: pass
         mv = cp * qty
@@ -406,7 +406,7 @@ def api_charts():
         return jsonify({ 'code': 200, 'data': {} })
 
     try:
-        query = f"SELECT date, open_price, high_price, low_price, close_price, volume FROM stock_daily WHERE code='{code}' ORDER BY date DESC LIMIT {days}"
+        query = text("SELECT date, open_price, high_price, low_price, close_price, volume FROM stock_daily WHERE code=:code ORDER BY date DESC LIMIT :days")
         df = pd.read_sql(query, engine)
         if df.empty:
             return jsonify({ 'code': 404, 'message': '无数据' })
@@ -737,7 +737,7 @@ def api_export(format):
     days = int(request.args.get('days', 60))
     try:
         if code:
-            df = pd.read_sql(f"SELECT * FROM stock_daily WHERE code='{code}' ORDER BY date DESC LIMIT {days}", engine)
+            df = pd.read_sql(text("SELECT * FROM stock_daily WHERE code=:code ORDER BY date DESC LIMIT :days"), engine, params={'code': code, 'days': days})
         else:
             df = pd.read_sql("SELECT * FROM stock_daily ORDER BY date DESC LIMIT 1000", engine)
 
@@ -810,7 +810,7 @@ def api_stock_analysis(code):
     
     if engine:
         try:
-            df = pd.read_sql(f"SELECT * FROM stock_daily WHERE code='{code}' ORDER BY date DESC LIMIT 30", engine)
+            df = pd.read_sql(text("SELECT * FROM stock_daily WHERE code=:code ORDER BY date DESC LIMIT 30"), engine, params={'code': code})
             if not df.empty:
                 result['price'] = float(df.iloc[0]['close_price'])
                 result['volume'] = int(df.iloc[0]['volume']) if 'volume' in df.columns else 0
@@ -893,7 +893,7 @@ def api_screener():
                 continue
 
             try:
-                df = pd.read_sql(f"SELECT close_price, volume FROM stock_daily WHERE code='{code}' ORDER BY date DESC LIMIT 2", engine)
+                df = pd.read_sql(text("SELECT close_price, volume FROM stock_daily WHERE code=:code ORDER BY date DESC LIMIT 2"), engine, params={'code': code})
                 if len(df) >= 2:
                     price = float(df.iloc[0]['close_price'])
                     prev = float(df.iloc[1]['close_price'])
@@ -1399,7 +1399,7 @@ def api_data_quality():
 
         for code in codes:
             try:
-                df = pd.read_sql(f"SELECT * FROM stock_daily WHERE code='{code}' ORDER BY date", engine)
+                df = pd.read_sql(text("SELECT * FROM stock_daily WHERE code=:code ORDER BY date"), engine, params={'code': code})
                 total_records += len(df)
                 if df.empty:
                     issues.append({'code': code, 'issue': '无数据', 'severity': 'high'})
@@ -1536,7 +1536,7 @@ def api_sector_rotation():
         for stock in stocks:
             if engine:
                 try:
-                    df = pd.read_sql(f"SELECT close_price FROM stock_daily WHERE code='{stock['code']}' ORDER BY date DESC LIMIT 2", engine)
+                    df = pd.read_sql(text("SELECT close_price FROM stock_daily WHERE code=:code ORDER BY date DESC LIMIT 2"), engine, params={'code': stock['code']})
                     if len(df) >= 2:
                         c = round((float(df.iloc[0]['close_price']) - float(df.iloc[1]['close_price'])) / float(df.iloc[1]['close_price']) * 100, 2)
                         changes.append(c)
@@ -1850,7 +1850,7 @@ def api_industry_compare():
         for s in stocks:
             if engine:
                 try:
-                    df = pd.read_sql(f"SELECT close_price FROM stock_daily WHERE code='{s['code']}' ORDER BY date DESC LIMIT 2", engine)
+                    df = pd.read_sql(text("SELECT close_price FROM stock_daily WHERE code=:code ORDER BY date DESC LIMIT 2"), engine, params={'code': s['code']})
                     if len(df) >= 2:
                         change = round((float(df.iloc[0]['close_price']) - float(df.iloc[1]['close_price'])) / float(df.iloc[1]['close_price']) * 100, 2)
                         stock_data.append({'code': s['code'], 'name': s['name'], 'change': change})
@@ -2021,42 +2021,6 @@ def api_ws_status():
     """WebSocket状态 (Phase 153)"""
     return ok(data={'enabled': True, 'connected_clients': 0, 'message': 'WebSocket服务已就绪'})
 
-
-@app.route('/api/ai-stock-pick', methods=['GET', 'POST'])
-@token_required
-def api_ai_stock_pick():
-    """AI智能选股 (Phase 156)"""
-    random.seed(42)
-
-    if request.method == 'POST':
-        data = request.get_json() or {}
-        model = data.get('model', 'random_forest')
-        return jsonify({
-            'code': 200,
-            'data': {
-                'model': model,
-                'predictions': [
-                    {'code': 'SH.600519', 'name': '贵州茅台', 'score': 92.5, 'signal': '强烈买入', 'confidence': 0.85},
-                    {'code': 'SZ.300750', 'name': '宁德时代', 'score': 88.3, 'signal': '买入', 'confidence': 0.78},
-                    {'code': 'SZ.002594', 'name': '比亚迪', 'score': 85.1, 'signal': '买入', 'confidence': 0.72},
-                    {'code': 'SH.601318', 'name': '中国平安', 'score': 76.4, 'signal': '持有', 'confidence': 0.65},
-                    {'code': 'HK.00700', 'name': '腾讯控股', 'score': 82.7, 'signal': '买入', 'confidence': 0.80}
-                ],
-                'features': ['RSI', 'MACD', '成交量', '均线', '布林带'],
-                'accuracy': 0.78
-            }
-        })
-
-    return jsonify({
-        'code': 200,
-        'data': {
-            'models': [
-                {'name': 'Random Forest', 'accuracy': 0.78, 'description': '随机森林模型'},
-                {'name': 'XGBoost', 'accuracy': 0.82, 'description': '梯度提升树'},
-                {'name': 'LSTM', 'accuracy': 0.75, 'description': '长短期记忆网络'}
-            ]
-        }
-    })
 
 
 @app.route('/api/social/share', methods=['GET', 'POST'])
@@ -2725,43 +2689,6 @@ def api_pwa_config():
     })
 
 
-@app.route('/api/ai-report', methods=['GET', 'POST'])
-@token_required
-def api_ai_report():
-    """AI智能研报 (Phase 175)"""
-    if request.method == 'POST':
-        data = request.get_json() or {}
-        return ok(data={
-            'report_id': f'RPT{datetime.now().strftime("%Y%m%d%H%M")}',
-            'title': f'{data.get("stock", "贵州茅台")} 投资分析报告',
-            'generated_at': datetime.now().isoformat(),
-            'sections': ['公司概况', '财务分析', '技术面', '行业对比', '估值分析', '投资建议'],
-            'summary': f'基于多维数据分析，{data.get("stock", "该股票")}当前估值合理，建议关注。',
-            'rating': '买入',
-            'target_price': round(random.uniform(150, 200), 2)
-        })
-    return ok(data={'templates': ['个股研报', '行业研报', '市场周报']})
-
-
-@app.route('/api/sentiment-engine', methods=['GET'])
-@token_required
-def api_sentiment_engine():
-    """情绪分析引擎 (Phase 176)"""
-    random.seed(42)
-    return ok(data={
-        'overall_score': round(random.uniform(40, 80), 2),
-        'news_sentiment': round(random.uniform(0.3, 0.8), 3),
-        'social_sentiment': round(random.uniform(0.2, 0.7), 3),
-        'market_sentiment': round(random.uniform(0.4, 0.9), 3),
-        'top_positive': ['AI行业政策利好', '外资持续流入', '业绩超预期'],
-        'top_negative': ['美联储加息预期', '地缘政治风险'],
-        'trend': [
-            {'date': '2026-04-18', 'score': 65},
-            {'date': '2026-04-17', 'score': 58},
-            {'date': '2026-04-16', 'score': 52},
-            {'date': '2026-04-15', 'score': 72}
-        ]
-    })
 
 
 @app.route('/api/smart-alert', methods=['GET', 'POST'])
