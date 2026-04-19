@@ -11,7 +11,8 @@ import hashlib
 import secrets
 from datetime import datetime, timedelta
 from functools import wraps
-from flask import Flask, jsonify, request, send_from_directory, session
+from flask import Flask, jsonify, request
+from src.web.response_helpers import ok, error, not_found, bad_request, send_from_directory, session
 
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, project_root)
@@ -107,7 +108,7 @@ def token_required(f):
         if not token and 'api_token' in session:
             token = session['api_token']
         if not token:
-            return jsonify({'code': 401, 'message': '未登录'})
+            return error(message='未登录')
         # Simple token check
         session['api_token'] = token
         return f(*args, **kwargs)
@@ -534,7 +535,7 @@ def serve_note_image(filename):
     notes_dir = os.path.join(project_root, 'public', 'notes')
     if os.path.exists(os.path.join(notes_dir, filename)):
         return send_from_directory(notes_dir, filename)
-    return jsonify({'code': 404, 'message': '图片不存在'})
+    return not_found(message='图片不存在')
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
@@ -1010,7 +1011,7 @@ def api_equity_curve():
 def api_settings():
     """系统设置"""
     if request.method == 'POST':
-        return jsonify({'code': 200, 'message': '设置已保存'})
+        return ok(message='设置已保存')
     return jsonify({
         'code': 200,
         'data': {
@@ -1067,17 +1068,17 @@ def api_paramopt():
     """参数优化"""
     if request.method == 'POST':
         data = request.get_json() or {}
-        return jsonify({'code': 200, 'data': {
+        return ok(data={
             'results': [
                 {'params': 'window=20, threshold=0.05', 'return_pct': 12.3, 'sharpe': 1.45, 'max_dd': -6.2},
                 {'params': 'window=15, threshold=0.03', 'return_pct': 10.8, 'sharpe': 1.32, 'max_dd': -7.1},
                 {'params': 'window=30, threshold=0.08', 'return_pct': 9.5, 'sharpe': 1.18, 'max_dd': -5.8}
             ]
-        }})
-    return jsonify({'code': 200, 'data': {
+        })
+    return ok(data={
         'strategies': ['多因子策略', '动量策略', '均值回归策略'],
         'algorithms': ['grid', 'bayesian', 'genetic']
-    }})
+    })
 
 
 @app.route('/api/compliance', methods=['GET'])
@@ -1217,7 +1218,7 @@ def api_articles():
             'available_dates': dates[-30:] if dates else [],
         })
     except Exception as e:
-        return jsonify({'code': 500, 'message': str(e)}), 500
+        return error(message=str(e)), 500
 
 
 @app.route('/api/behavior', methods=['GET'])
@@ -1266,7 +1267,7 @@ def api_behavior():
             }
         })
     except Exception as e:
-        return jsonify({'code': 500, 'message': str(e)}), 500
+        return error(message=str(e)), 500
 
 
 @app.route('/api/events', methods=['GET'])
@@ -1308,7 +1309,7 @@ def api_events():
             }
         })
     except Exception as e:
-        return jsonify({'code': 500, 'message': str(e)}), 500
+        return error(message=str(e)), 500
 
 
 # ========== Phase 130+: 全量功能开发 ==========
@@ -1323,7 +1324,7 @@ def api_stock_import():
         data = request.get_json() or {}
         csv_text = data.get('csv', '')
         if not csv_text:
-            return jsonify({'code': 400, 'message': '请提供CSV数据'})
+            return bad_request(message='请提供CSV数据')
 
         cfg_path = os.path.join(project_root, 'config', 'stocks.yaml')
         with open(cfg_path, 'r') as f:
@@ -1348,9 +1349,9 @@ def api_stock_import():
         with open(cfg_path, 'w') as f:
             yaml.dump(cfg, f, allow_unicode=True, default_flow_style=False)
 
-        return jsonify({'code': 200, 'data': {'imported': imported, 'skipped': skipped}})
+        return ok(data={'imported': imported, 'skipped': skipped})
     except Exception as e:
-        return jsonify({'code': 500, 'message': str(e)}), 500
+        return error(message=str(e)), 500
 
 
 @app.route('/api/stock-export', methods=['GET'])
@@ -1368,9 +1369,9 @@ def api_stock_export():
                 stocks.append({'code': item.get('code', ''), 'name': item.get('name', '')})
             else:
                 stocks.append({'code': item, 'name': ''})
-        return jsonify({'code': 200, 'data': {'stocks': stocks, 'total': len(stocks)}})
+        return ok(data={'stocks': stocks, 'total': len(stocks)})
     except Exception as e:
-        return jsonify({'code': 500, 'message': str(e)}), 500
+        return error(message=str(e)), 500
 
 
 @app.route('/api/data-quality', methods=['GET'])
@@ -1380,7 +1381,7 @@ def api_data_quality():
     try:
         engine = get_db_engine()
         if not engine:
-            return jsonify({'code': 500, 'message': '数据库未连接'})
+            return error(message='数据库未连接')
 
         codes = get_stock_codes()[:20]
         issues = []
@@ -1426,7 +1427,7 @@ def api_data_quality():
             }
         })
     except Exception as e:
-        return jsonify({'code': 500, 'message': str(e)}), 500
+        return error(message=str(e)), 500
 
 
 @app.route('/api/notifications', methods=['GET', 'POST'])
@@ -1446,8 +1447,8 @@ def api_notifications():
                     n['read'] = True
                 with open(notify_path, 'w') as f:
                     json.dump(notifs, f, ensure_ascii=False)
-            return jsonify({'code': 200, 'message': '已全部标为已读'})
-        return jsonify({'code': 400, 'message': '无效操作'})
+            return ok(message='已全部标为已读')
+        return bad_request(message='无效操作')
 
     if os.path.exists(notify_path):
         with open(notify_path, 'r') as f:
@@ -1466,7 +1467,7 @@ def api_notifications():
             json.dump(notifs, f, ensure_ascii=False)
 
     unread = len([n for n in notifs if not n.get('read')])
-    return jsonify({'code': 200, 'data': {'notifications': notifs, 'unread': unread}})
+    return ok(data={'notifications': notifs, 'unread': unread})
 
 
 
@@ -1480,12 +1481,12 @@ def api_stock_detail(code):
     """个股详情 (Phase 137)"""
     engine = get_db_engine()
     if not engine:
-        return jsonify({'code': 500, 'message': '数据库未连接'})
+        return error(message='数据库未连接')
 
     try:
         df = pd.read_sql(f"SELECT * FROM stock_daily WHERE code='{code}' ORDER BY date DESC LIMIT 30", engine)
         if df.empty:
-            return jsonify({'code': 404, 'message': '无数据'})
+            return not_found(message='无数据')
 
         latest = df.iloc[0]
         prev = df.iloc[1] if len(df) > 1 else latest
@@ -1505,7 +1506,7 @@ def api_stock_detail(code):
             }
         })
     except Exception as e:
-        return jsonify({'code': 500, 'message': str(e)})
+        return error(message=str(e))
 
 
 @app.route('/api/sector-rotation', methods=['GET'])
@@ -1541,7 +1542,7 @@ def api_sector_rotation():
         })
 
     results.sort(key=lambda x: x['avg_change'], reverse=True)
-    return jsonify({'code': 200, 'data': {'sectors': results}})
+    return ok(data={'sectors': results})
 
 
 @app.route('/api/fund-flow', methods=['GET'])
@@ -1572,7 +1573,7 @@ def api_fund_flow():
         })
 
     results.sort(key=lambda x: x['net_total'], reverse=True)
-    return jsonify({'code': 200, 'data': {'flows': results}})
+    return ok(data={'flows': results})
 
 
 # ========== Phase 140+: 更多高级功能 ==========
@@ -1658,7 +1659,7 @@ def api_trade_simulator():
             qty = int(data.get('qty', 0))
             cost = price * qty
             if cost > sim['balance']:
-                return jsonify({'code': 400, 'message': '资金不足'})
+                return bad_request(message='资金不足')
 
             sim['balance'] -= cost
             # 查找已有持仓
@@ -1672,7 +1673,7 @@ def api_trade_simulator():
 
             sim['history'].append({'action': '买入', 'code': code, 'price': price, 'qty': qty, 'time': datetime.now().isoformat()})
             save_trades(sim)
-            return jsonify({'code': 200, 'message': f'买入成功: {code} {qty}股'})
+            return ok(message=f'买入成功: {code} {qty}股')
 
         elif action == 'sell':
             code = data.get('code', '')
@@ -1680,7 +1681,7 @@ def api_trade_simulator():
             qty = int(data.get('qty', 0))
             pos = next((p for p in sim['positions'] if p['code'] == code), None)
             if not pos or pos['qty'] < qty:
-                return jsonify({'code': 400, 'message': '持仓不足'})
+                return bad_request(message='持仓不足')
 
             sim['balance'] += price * qty
             pos['qty'] -= qty
@@ -1689,9 +1690,9 @@ def api_trade_simulator():
 
             sim['history'].append({'action': '卖出', 'code': code, 'price': price, 'qty': qty, 'time': datetime.now().isoformat()})
             save_trades(sim)
-            return jsonify({'code': 200, 'message': f'卖出成功: {code} {qty}股'})
+            return ok(message=f'卖出成功: {code} {qty}股')
 
-        return jsonify({'code': 400, 'message': '无效操作'})
+        return bad_request(message='无效操作')
 
     # GET
     sim = load_trades()
@@ -1724,11 +1725,11 @@ def api_alert_config():
         os.makedirs(os.path.dirname(config_path), exist_ok=True)
         with open(config_path, 'w') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
-        return jsonify({'code': 200, 'message': '预警配置已保存'})
+        return ok(message='预警配置已保存')
 
     if os.path.exists(config_path):
         with open(config_path, 'r') as f:
-            return jsonify({'code': 200, 'data': json.load(f)})
+            return ok(data=json.load(f))
 
     defaults = {
         'alerts': [
@@ -1738,7 +1739,7 @@ def api_alert_config():
             {'code': 'SZ.300750', 'name': '宁德时代', 'type': 'macd_golden_cross', 'value': 0, 'enabled': True}
         ]
     }
-    return jsonify({'code': 200, 'data': defaults})
+    return ok(data=defaults)
 
 
 # ========== Phase 144+: 全量高级功能 ==========
@@ -1855,7 +1856,7 @@ def api_industry_compare():
             avg_change = round(sum(s['change'] for s in stock_data) / len(stock_data), 2)
             results.append({'industry': industry, 'avg_change': avg_change, 'stocks': stock_data})
 
-    return jsonify({'code': 200, 'data': {'industries': results}})
+    return ok(data={'industries': results})
 
 
 @app.route('/api/macro-data', methods=['GET'])
@@ -1938,11 +1939,11 @@ def api_custom_dashboard():
         os.makedirs(os.path.dirname(dash_path), exist_ok=True)
         with open(dash_path, 'w') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
-        return jsonify({'code': 200, 'message': '仪表板配置已保存'})
+        return ok(message='仪表板配置已保存')
 
     if os.path.exists(dash_path):
         with open(dash_path, 'r') as f:
-            return jsonify({'code': 200, 'data': json.load(f)})
+            return ok(data=json.load(f))
 
     return jsonify({
         'code': 200,
@@ -2017,7 +2018,7 @@ def api_strategy_market():
 @token_required
 def api_ws_status():
     """WebSocket状态 (Phase 153)"""
-    return jsonify({'code': 200, 'data': {'enabled': True, 'connected_clients': 0, 'message': 'WebSocket服务已就绪'}})
+    return ok(data={'enabled': True, 'connected_clients': 0, 'message': 'WebSocket服务已就绪'})
 
 
 @app.route('/api/ai-stock-pick', methods=['GET', 'POST'])
@@ -2063,7 +2064,7 @@ def api_ai_stock_pick():
 def api_social_share():
     """社交分享 (Phase 157)"""
     if request.method == 'POST':
-        return jsonify({'code': 200, 'message': '分享成功'})
+        return ok(message='分享成功')
 
     return jsonify({
         'code': 200,
@@ -2104,7 +2105,7 @@ def api_scatter_data():
             'size': random.randint(10, 100),
             'label': f'股票{_+1}'
         })
-    return jsonify({'code': 200, 'data': {'points': points}})
+    return ok(data={'points': points})
 
 
 @app.route('/api/news-sentiment', methods=['GET'])
@@ -2177,7 +2178,7 @@ def api_notes():
 
     engine = get_db_engine()
     if not engine:
-        return jsonify({'code': 500, 'message': '数据库未连接'})
+        return error(message='数据库未连接')
 
     Session = sessionmaker(bind=engine)
     session = Session()
@@ -2256,7 +2257,7 @@ def api_notes():
 
     except Exception as e:
         session.rollback()
-        return jsonify({'code': 500, 'message': str(e)})
+        return error(message=str(e))
     finally:
         session.close()
 
@@ -2270,7 +2271,7 @@ def api_note_detail(note_id):
 
     engine = get_db_engine()
     if not engine:
-        return jsonify({'code': 500, 'message': '数据库未连接'})
+        return error(message='数据库未连接')
 
     Session = sessionmaker(bind=engine)
     session = Session()
@@ -2278,7 +2279,7 @@ def api_note_detail(note_id):
     try:
         note = session.query(Notes).filter(Notes.id == note_id).first()
         if not note:
-            return jsonify({'code': 404, 'message': '笔记不存在'})
+            return not_found(message='笔记不存在')
 
         if request.method == 'GET':
             return jsonify({
@@ -2303,16 +2304,16 @@ def api_note_detail(note_id):
             note.tags = ','.join(data.get('tags', note.tags.split(',') if note.tags else []))
             note.updated_at = datetime.now()
             session.commit()
-            return jsonify({'code': 200, 'message': '笔记更新成功'})
+            return ok(message='笔记更新成功')
 
         elif request.method == 'DELETE':
             session.delete(note)
             session.commit()
-            return jsonify({'code': 200, 'message': '笔记删除成功'})
+            return ok(message='笔记删除成功')
 
     except Exception as e:
         session.rollback()
-        return jsonify({'code': 500, 'message': str(e)})
+        return error(message=str(e))
     finally:
         session.close()
 
@@ -2322,11 +2323,11 @@ def api_note_detail(note_id):
 def api_notes_upload():
     """笔记图片上传"""
     if 'file' not in request.files:
-        return jsonify({'code': 400, 'message': '没有文件'})
+        return bad_request(message='没有文件')
 
     file = request.files['file']
     if file.filename == '':
-        return jsonify({'code': 400, 'message': '没有选择文件'})
+        return bad_request(message='没有选择文件')
 
     # 保存文件
     upload_dir = os.path.join(project_root, 'public', 'notes')
@@ -2339,7 +2340,7 @@ def api_notes_upload():
     file.save(filepath)
 
     url = f"/public/notes/{filename}"
-    return jsonify({'code': 200, 'data': {'url': url, 'filename': filename}})
+    return ok(data={'url': url, 'filename': filename})
 
 
 @app.route('/api/notes/tags', methods=['GET'])
@@ -2351,7 +2352,7 @@ def api_notes_tags():
 
     engine = get_db_engine()
     if not engine:
-        return jsonify({'code': 500, 'message': '数据库未连接'})
+        return error(message='数据库未连接')
 
     Session = sessionmaker(bind=engine)
     session = Session()
@@ -2362,9 +2363,9 @@ def api_notes_tags():
         for n in notes:
             if n.tags:
                 tags.update(n.tags.split(','))
-        return jsonify({'code': 200, 'data': {'tags': sorted(list(tags))}})
+        return ok(data={'tags': sorted(list(tags))})
     except Exception as e:
-        return jsonify({'code': 500, 'message': str(e)})
+        return error(message=str(e))
     finally:
         session.close()
 
@@ -2448,10 +2449,10 @@ def api_backup_create():
         with open(backup_info_path, 'w') as f:
             json.dump(index, f, ensure_ascii=False, indent=2)
 
-        return jsonify({'code': 200, 'data': {'filename': f"{backup_name}.zip", 'size_mb': round(file_size / (1024*1024), 2)}, 'message': '备份创建成功'})
+        return ok(data={'filename': f"{backup_name}.zip", 'size_mb': round(file_size / (1024*1024), 2)}, message='备份创建成功')
 
     except Exception as e:
-        return jsonify({'code': 500, 'message': f'备份失败: {str(e)}'})
+        return error(message=f'备份失败: {str(e)}')
 
 
 @app.route('/api/backup/list', methods=['GET'])
@@ -2463,7 +2464,7 @@ def api_backup_list():
     index_path = os.path.join(backup_dir, 'backup_index.json')
 
     if not os.path.exists(index_path):
-        return jsonify({'code': 200, 'data': {'backups': [], 'total': 0, 'page': 1, 'total_pages': 1}})
+        return ok(data={'backups': [], 'total': 0, 'page': 1, 'total_pages': 1})
 
     with open(index_path, 'r') as f:
         index = json.load(f)
@@ -2495,7 +2496,7 @@ def api_backup_download(filename):
     from flask import send_file
     backup_path = os.path.join(project_root, 'backups', filename)
     if not os.path.exists(backup_path):
-        return jsonify({'code': 404, 'message': '备份文件不存在'})
+        return not_found(message='备份文件不存在')
     return send_file(backup_path, as_attachment=True, download_name=filename)
 
 
@@ -2504,11 +2505,11 @@ def api_backup_download(filename):
 def api_backup_upload():
     """上传备份文件"""
     if 'file' not in request.files:
-        return jsonify({'code': 400, 'message': '没有文件'})
+        return bad_request(message='没有文件')
 
     file = request.files['file']
     if not file.filename.endswith('.zip'):
-        return jsonify({'code': 400, 'message': '只支持.zip备份文件'})
+        return bad_request(message='只支持.zip备份文件')
 
     backup_dir = os.path.join(project_root, 'backups')
     os.makedirs(backup_dir, exist_ok=True)
@@ -2540,7 +2541,7 @@ def api_backup_upload():
         with open(index_path, 'w') as f:
             json.dump(index, f, ensure_ascii=False, indent=2)
 
-    return jsonify({'code': 200, 'message': '备份文件上传成功'})
+    return ok(message='备份文件上传成功')
 
 
 @app.route('/api/backup/restore/<filename>', methods=['POST'])
@@ -2550,7 +2551,7 @@ def api_backup_restore(filename):
     import zipfile
     backup_path = os.path.join(project_root, 'backups', filename)
     if not os.path.exists(backup_path):
-        return jsonify({'code': 404, 'message': '备份文件不存在'})
+        return not_found(message='备份文件不存在')
 
     try:
         with zipfile.ZipFile(backup_path, 'r') as zf:
@@ -2589,10 +2590,10 @@ def api_backup_restore(filename):
             if 'config/stock_groups.json' in zf.namelist():
                 zf.extract('config/stock_groups.json', project_root)
 
-        return jsonify({'code': 200, 'message': '备份恢复成功'})
+        return ok(message='备份恢复成功')
 
     except Exception as e:
-        return jsonify({'code': 500, 'message': f'恢复失败: {str(e)}'})
+        return error(message=f'恢复失败: {str(e)}')
 
 
 @app.route('/api/backup/delete/<filename>', methods=['DELETE'])
@@ -2602,7 +2603,7 @@ def api_backup_delete(filename):
     import json
     backup_path = os.path.join(project_root, 'backups', filename)
     if not os.path.exists(backup_path):
-        return jsonify({'code': 404, 'message': '备份文件不存在'})
+        return not_found(message='备份文件不存在')
 
     os.remove(backup_path)
 
@@ -2615,7 +2616,7 @@ def api_backup_delete(filename):
         with open(index_path, 'w') as f:
             json.dump(index, f, ensure_ascii=False, indent=2)
 
-    return jsonify({'code': 200, 'message': '备份删除成功'})
+    return ok(message='备份删除成功')
 
 
 # ========== Phase 170+: 全量剩余功能一次性开发 ==========
@@ -2624,12 +2625,12 @@ def api_backup_delete(filename):
 @token_required
 def api_realtime_status():
     """实时推送状态 (Phase 170)"""
-    return jsonify({'code': 200, 'data': {
+    return ok(data={
         'websocket_enabled': True,
         'connected_clients': 0,
         'push_types': ['quotes', 'signals', 'notifications', 'alerts'],
         'message': '实时推送服务已就绪'
-    }})
+    })
 
 
 @app.route('/api/strategy/upgrade', methods=['GET', 'POST'])
@@ -2641,7 +2642,7 @@ def api_strategy_upgrade():
 
     if request.method == 'POST':
         data = request.get_json() or {}
-        return jsonify({'code': 200, 'data': {
+        return ok(data={
             'backtest_id': f'BT{random.randint(10000, 99999)}',
             'multi_stock': True,
             'slippage': data.get('slippage', 0.01),
@@ -2654,12 +2655,12 @@ def api_strategy_upgrade():
                 'win_rate': round(random.uniform(55, 72), 2),
                 'profit_loss_ratio': round(random.uniform(1.5, 3.0), 2)
             }
-        }})
+        })
 
-    return jsonify({'code': 200, 'data': {
+    return ok(data={
         'features': ['多股票组合', '滑点模拟', '手续费', '动态仓位', '风控规则'],
         'supported_markets': ['A股', '港股', '美股']
-    }})
+    })
 
 
 @app.route('/api/us-hk-data', methods=['GET'])
@@ -2668,7 +2669,7 @@ def api_us_hk_data():
     """美股/港股数据 (Phase 172)"""
     import random
     random.seed(42)
-    return jsonify({'code': 200, 'data': {
+    return ok(data={
         'hk_stocks': [
             {'code': 'HK.00700', 'name': '腾讯控股', 'price': round(random.uniform(350, 450), 2), 'change': round(random.uniform(-3, 5), 2)},
             {'code': 'HK.09988', 'name': '阿里巴巴', 'price': round(random.uniform(80, 120), 2), 'change': round(random.uniform(-3, 5), 2)},
@@ -2679,7 +2680,7 @@ def api_us_hk_data():
             {'code': 'MSFT', 'name': '微软', 'price': round(random.uniform(380, 420), 2), 'change': round(random.uniform(-3, 5), 2)},
             {'code': 'NVDA', 'name': '英伟达', 'price': round(random.uniform(800, 950), 2), 'change': round(random.uniform(-3, 5), 2)}
         ]
-    }})
+    })
 
 
 @app.route('/api/users', methods=['GET', 'POST'])
@@ -2707,7 +2708,7 @@ def api_users():
         users['users'].append(new_user)
         with open(users_path, 'w') as f:
             json.dump(users, f, ensure_ascii=False, indent=2)
-        return jsonify({'code': 200, 'data': new_user, 'message': '用户创建成功'})
+        return ok(data=new_user, message='用户创建成功')
 
     if os.path.exists(users_path):
         with open(users_path, 'r') as f:
@@ -2718,14 +2719,14 @@ def api_users():
             {'id': 2, 'username': 'trader1', 'role': 'trader', 'status': 'active'},
             {'id': 3, 'username': 'viewer1', 'role': 'viewer', 'status': 'active'}
         ]}
-    return jsonify({'code': 200, 'data': users})
+    return ok(data=users)
 
 
 @app.route('/api/pwa/config', methods=['GET'])
 @token_required
 def api_pwa_config():
     """移动端PWA配置 (Phase 174)"""
-    return jsonify({'code': 200, 'data': {
+    return ok(data={
         'name': '翠花量化',
         'short_name': 'CuiHua',
         'description': '专业量化交易系统',
@@ -2735,7 +2736,7 @@ def api_pwa_config():
         'icons': [{'src': '/logo-192.png', 'sizes': '192x192', 'type': 'image/png'}],
         'offline_support': True,
         'push_notifications': True
-    }})
+    })
 
 
 @app.route('/api/ai-report', methods=['GET', 'POST'])
@@ -2744,7 +2745,7 @@ def api_ai_report():
     """AI智能研报 (Phase 175)"""
     if request.method == 'POST':
         data = request.get_json() or {}
-        return jsonify({'code': 200, 'data': {
+        return ok(data={
             'report_id': f'RPT{datetime.now().strftime("%Y%m%d%H%M")}',
             'title': f'{data.get("stock", "贵州茅台")} 投资分析报告',
             'generated_at': datetime.now().isoformat(),
@@ -2752,8 +2753,8 @@ def api_ai_report():
             'summary': f'基于多维数据分析，{data.get("stock", "该股票")}当前估值合理，建议关注。',
             'rating': '买入',
             'target_price': round(random.uniform(150, 200), 2)
-        }})
-    return jsonify({'code': 200, 'data': {'templates': ['个股研报', '行业研报', '市场周报']}})
+        })
+    return ok(data={'templates': ['个股研报', '行业研报', '市场周报']})
 
 
 @app.route('/api/sentiment-engine', methods=['GET'])
@@ -2762,7 +2763,7 @@ def api_sentiment_engine():
     """情绪分析引擎 (Phase 176)"""
     import random
     random.seed(42)
-    return jsonify({'code': 200, 'data': {
+    return ok(data={
         'overall_score': round(random.uniform(40, 80), 2),
         'news_sentiment': round(random.uniform(0.3, 0.8), 3),
         'social_sentiment': round(random.uniform(0.2, 0.7), 3),
@@ -2775,7 +2776,7 @@ def api_sentiment_engine():
             {'date': '2026-04-16', 'score': 52},
             {'date': '2026-04-15', 'score': 72}
         ]
-    }})
+    })
 
 
 @app.route('/api/smart-alert', methods=['GET', 'POST'])
@@ -2783,8 +2784,8 @@ def api_sentiment_engine():
 def api_smart_alert():
     """智能预警系统 (Phase 177)"""
     if request.method == 'POST':
-        return jsonify({'code': 200, 'message': '预警规则已创建'})
-    return jsonify({'code': 200, 'data': {
+        return ok(message='预警规则已创建')
+    return ok(data={
         'alerts': [
             {'id': 1, 'type': 'price_break', 'condition': 'SH.600519 > 1800', 'status': 'active', 'triggered': False},
             {'id': 2, 'type': 'volume_surge', 'condition': 'SZ.002594 成交量>2倍均值', 'status': 'active', 'triggered': True},
@@ -2795,28 +2796,28 @@ def api_smart_alert():
             'last_check': datetime.now().isoformat(),
             'anomalies_detected': 2
         }
-    }})
+    })
 
 
 @app.route('/api/strategy-recommender', methods=['GET'])
 @token_required
 def api_strategy_recommender():
     """策略推荐引擎 (Phase 178)"""
-    return jsonify({'code': 200, 'data': {
+    return ok(data={
         'user_profile': {'risk_level': 'medium', 'preferred_markets': ['A股', '港股'], 'trading_style': 'swing'},
         'recommendations': [
             {'strategy': '双均线策略', 'match_score': 92, 'reason': '符合您的中风险偏好'},
             {'strategy': 'RSI反转策略', 'match_score': 85, 'reason': '适合波段操作风格'},
             {'strategy': '布林带突破', 'match_score': 78, 'reason': '历史回测表现优秀'}
         ]
-    }})
+    })
 
 
 @app.route('/api/community/stats', methods=['GET'])
 @token_required
 def api_community_stats():
     """策略市场社区 (Phase 180)"""
-    return jsonify({'code': 200, 'data': {
+    return ok(data={
         'total_strategies': 128,
         'total_users': 456,
         'total_shares': 892,
@@ -2824,31 +2825,31 @@ def api_community_stats():
             {'strategy': 'AI量化选股', 'author': '翠花AI', 'likes': 256, 'subs': 89},
             {'strategy': '高频套利策略', 'author': '量化达人', 'likes': 198, 'subs': 67}
         ]
-    }})
+    })
 
 
 @app.route('/api/data-viz/config', methods=['GET'])
 @token_required
 def api_data_viz():
     """数据可视化增强 (Phase 181)"""
-    return jsonify({'code': 200, 'data': {
+    return ok(data={
         'chart_types': ['K线图', '热力图', '散点图', '3D曲面图', '桑基图', '雷达图'],
         'interactive': True,
         'export_formats': ['PNG', 'SVG', 'PDF']
-    }})
+    })
 
 
 @app.route('/api/auto-trade/status', methods=['GET'])
 @token_required
 def api_auto_trade():
     """自动化交易接口 (Phase 182)"""
-    return jsonify({'code': 200, 'data': {
+    return ok(data={
         'connected': False,
         'broker': '未连接',
         'account': '-',
         'balance': 0,
         'message': '自动化交易功能需要对接券商API'
-    }})
+    })
 
 
 @app.route('/api/risk-engine', methods=['GET', 'POST'])
@@ -2856,8 +2857,8 @@ def api_auto_trade():
 def api_risk_engine():
     """风控规则引擎 (Phase 183)"""
     if request.method == 'POST':
-        return jsonify({'code': 200, 'message': '风控规则已更新'})
-    return jsonify({'code': 200, 'data': {
+        return ok(message='风控规则已更新')
+    return ok(data={
         'rules': [
             {'id': 1, 'name': '单只股票最大仓位', 'condition': '≤ 20%', 'status': 'active'},
             {'id': 2, 'name': '组合最大回撤', 'condition': '≤ 15%', 'status': 'active'},
@@ -2865,7 +2866,7 @@ def api_risk_engine():
         ],
         'current_risk_score': 35,
         'risk_level': 'low'
-    }})
+    })
 
 
 @app.route('/api/scheduler', methods=['GET', 'POST'])
@@ -2873,21 +2874,21 @@ def api_risk_engine():
 def api_scheduler():
     """定时任务调度 (Phase 184)"""
     if request.method == 'POST':
-        return jsonify({'code': 200, 'message': '定时任务已创建'})
-    return jsonify({'code': 200, 'data': {
+        return ok(message='定时任务已创建')
+    return ok(data={
         'tasks': [
             {'id': 1, 'name': '每日数据同步', 'schedule': '每天 09:00', 'status': 'active', 'last_run': '2026-04-18 09:00'},
             {'id': 2, 'name': '周报生成', 'schedule': '每周五 17:00', 'status': 'active', 'last_run': '2026-04-17 17:00'},
             {'id': 3, 'name': '自动备份', 'schedule': '每天 23:00', 'status': 'active', 'last_run': '2026-04-17 23:00'}
         ]
-    }})
+    })
 
 
 @app.route('/api/perf-monitor', methods=['GET'])
 @token_required
 def api_perf_monitor():
     """性能监控面板 (Phase 185)"""
-    return jsonify({'code': 200, 'data': {
+    return ok(data={
         'cpu_usage': 45.2,
         'memory_usage': 62.8,
         'disk_usage': 38.5,
@@ -2895,14 +2896,14 @@ def api_perf_monitor():
         'active_users': 3,
         'requests_per_min': 45,
         'uptime': '15天 8小时 32分'
-    }})
+    })
 
 
 @app.route('/api/log-analyzer', methods=['GET'])
 @token_required
 def api_log_analyzer():
     """日志分析系统 (Phase 186)"""
-    return jsonify({'code': 200, 'data': {
+    return ok(data={
         'total_logs': 15420,
         'error_count': 12,
         'warning_count': 85,
@@ -2910,38 +2911,38 @@ def api_log_analyzer():
             {'time': '2026-04-18 14:32', 'level': 'ERROR', 'message': '数据库连接超时'},
             {'time': '2026-04-18 12:15', 'level': 'WARNING', 'message': 'API请求频率过高'}
         ]
-    }})
+    })
 
 
 @app.route('/api/sync-service', methods=['GET'])
 @token_required
 def api_sync_service():
     """数据同步服务 (Phase 187)"""
-    return jsonify({'code': 200, 'data': {
+    return ok(data={
         'enabled': True,
         'last_sync': datetime.now().isoformat(),
         'devices': 2,
         'sync_items': {'notes': 15, 'strategies': 3, 'watchlist': 38}
-    }})
+    })
 
 
 @app.route('/api/api-gateway', methods=['GET'])
 @token_required
 def api_gateway():
     """API网关 (Phase 188)"""
-    return jsonify({'code': 200, 'data': {
+    return ok(data={
         'rate_limit': {'limit': 1000, 'remaining': 985, 'reset': '2026-04-18 16:00'},
         'total_requests_today': 15420,
         'avg_response_time': 125,
         'error_rate': 0.08
-    }})
+    })
 
 
 @app.route('/api/docker/status', methods=['GET'])
 @token_required
 def api_docker():
     """Docker编排 (Phase 189)"""
-    return jsonify({'code': 200, 'data': {
+    return ok(data={
         'containers': [
             {'name': 'cuihua-web', 'status': 'running', 'port': 5000},
             {'name': 'cuihua-db', 'status': 'running', 'port': 5432},
@@ -2949,7 +2950,7 @@ def api_docker():
         ],
         'compose_version': '3.8',
         'auto_restart': True
-    }})
+    })
 
 
 # ========== Phase 190+: 全量优化与增强 ==========
@@ -2990,7 +2991,7 @@ def api_db_indexes():
     from sqlalchemy import text
     engine = get_db_engine()
     if not engine:
-        return jsonify({'code': 500, 'message': '数据库未连接'})
+        return error(message='数据库未连接')
 
     if request.method == 'POST':
         with engine.connect() as conn:
@@ -3000,11 +3001,11 @@ def api_db_indexes():
                 conn.execute(text('CREATE INDEX IF NOT EXISTS idx_stock_daily_code ON stock_daily(code)'))
                 conn.execute(text('CREATE INDEX IF NOT EXISTS idx_stock_daily_date ON stock_daily(date)'))
                 conn.commit()
-                return jsonify({'code': 200, 'message': '索引创建成功'})
+                return ok(message='索引创建成功')
             except Exception as e:
-                return jsonify({'code': 500, 'message': str(e)})
+                return error(message=str(e))
 
-    return jsonify({'code': 200, 'data': {
+    return ok(data={
         'indexes': [
             {'table': 'notes', 'column': 'title', 'type': 'BTREE'},
             {'table': 'notes', 'column': 'created_at', 'type': 'BTREE'},
@@ -3012,7 +3013,7 @@ def api_db_indexes():
             {'table': 'stock_daily', 'column': 'date', 'type': 'BTREE'}
         ],
         'status': 'optimized'
-    }})
+    })
 
 
 @app.route('/api/cache/config', methods=['GET', 'POST'])
@@ -3020,21 +3021,21 @@ def api_db_indexes():
 def api_cache_config():
     """API缓存配置 (Phase 191)"""
     if request.method == 'POST':
-        return jsonify({'code': 200, 'message': '缓存配置已更新'})
-    return jsonify({'code': 200, 'data': {
+        return ok(message='缓存配置已更新')
+    return ok(data={
         'enabled': True,
         'ttl': 300,
         'hit_rate': 78.5,
         'cached_endpoints': ['/api/stocks', '/api/articles', '/api/heatmap'],
         'memory_usage': '12.5MB'
-    }})
+    })
 
 
 @app.route('/api/shortcuts', methods=['GET'])
 @token_required
 def api_shortcuts():
     """快捷键配置 (Phase 202)"""
-    return jsonify({'code': 200, 'data': {
+    return ok(data={
         'shortcuts': [
             {'key': 'Ctrl+K', 'action': '全局搜索', 'scope': '全局'},
             {'key': 'Ctrl+N', 'action': '新建笔记', 'scope': '笔记管理'},
@@ -3043,14 +3044,14 @@ def api_shortcuts():
             {'key': 'F5', 'action': '刷新数据', 'scope': '全局'},
             {'key': 'Esc', 'action': '关闭弹窗', 'scope': '全局'}
         ]
-    }})
+    })
 
 
 @app.route('/api/onboarding', methods=['GET'])
 @token_required
 def api_onboarding():
     """新手引导 (Phase 204)"""
-    return jsonify({'code': 200, 'data': {
+    return ok(data={
         'steps': [
             {'title': '欢迎使用翠花量化', 'desc': '专业量化交易分析平台'},
             {'title': '股票池管理', 'desc': '添加你关注的股票'},
@@ -3059,7 +3060,7 @@ def api_onboarding():
             {'title': '开始交易', 'desc': '模拟盘练习交易'}
         ],
         'completed': False
-    }})
+    })
 
 
 @app.route('/api/webhook', methods=['GET', 'POST'])
@@ -3067,20 +3068,20 @@ def api_onboarding():
 def api_webhook():
     """Webhook支持 (Phase 215)"""
     if request.method == 'POST':
-        return jsonify({'code': 200, 'message': 'Webhook触发成功'})
-    return jsonify({'code': 200, 'data': {
+        return ok(message='Webhook触发成功')
+    return ok(data={
         'webhooks': [
             {'id': 1, 'url': 'https://example.com/alert', 'events': ['signal', 'alert'], 'active': True},
             {'id': 2, 'url': 'https://example.com/notify', 'events': ['trade'], 'active': False}
         ]
-    }})
+    })
 
 
 @app.route('/api/plugins', methods=['GET'])
 @token_required
 def api_plugins():
     """插件系统 (Phase 217)"""
-    return jsonify({'code': 200, 'data': {
+    return ok(data={
         'installed': [
             {'name': 'AKShare数据源', 'version': '1.0.0', 'enabled': True},
             {'name': '富途行情', 'version': '1.0.0', 'enabled': True},
@@ -3090,30 +3091,30 @@ def api_plugins():
             {'name': 'Wind数据源', 'version': '1.0.0', 'installed': False},
             {'name': '同花顺行情', 'version': '1.0.0', 'installed': False}
         ]
-    }})
+    })
 
 
 @app.route('/api/sdk/info', methods=['GET'])
 @token_required
 def api_sdk_info():
     """SDK信息 (Phase 214)"""
-    return jsonify({'code': 200, 'data': {
+    return ok(data={
         'python': {'version': '1.0.0', 'install': 'pip install cuihua-quant', 'docs': '/docs/python-sdk'},
         'javascript': {'version': '1.0.0', 'install': 'npm install @cuihua/sdk', 'docs': '/docs/js-sdk'}
-    }})
+    })
 
 
 @app.route('/api/data-market', methods=['GET'])
 @token_required
 def api_data_market():
     """数据市场 (Phase 216)"""
-    return jsonify({'code': 200, 'data': {
+    return ok(data={
         'sources': [
             {'name': 'Wind万得', 'type': 'A股/港股/美股', 'price': '免费', 'status': 'available'},
             {'name': '同花顺iFinD', 'type': 'A股全市场', 'price': '免费', 'status': 'available'},
             {'name': 'Choice数据', 'type': '宏观/行业', 'price': '免费', 'status': 'available'}
         ]
-    }})
+    })
 
 
 # ========== Phase 218: 公众号风格笔记系统 ==========
@@ -3126,7 +3127,7 @@ def api_note_articles():
     from sqlalchemy.orm import sessionmaker
     engine = get_db_engine()
     if not engine:
-        return jsonify({'code': 500, 'message': '数据库未连接'})
+        return error(message='数据库未连接')
 
     Session = sessionmaker(bind=engine)
     session = Session()
@@ -3149,7 +3150,7 @@ def api_note_articles():
                 article.published_at = datetime.now()
             session.add(article)
             session.commit()
-            return jsonify({'code': 200, 'data': {'id': article.id}, 'message': '文章创建成功'})
+            return ok(data={'id': article.id}, message='文章创建成功')
 
         # GET - 列表
         query = session.query(NoteArticles)
@@ -3226,7 +3227,7 @@ def api_note_articles():
 
     except Exception as e:
         session.rollback()
-        return jsonify({'code': 500, 'message': str(e)})
+        return error(message=str(e))
     finally:
         session.close()
 
@@ -3239,7 +3240,7 @@ def api_note_article_detail(article_id):
     from sqlalchemy.orm import sessionmaker
     engine = get_db_engine()
     if not engine:
-        return jsonify({'code': 500, 'message': '数据库未连接'})
+        return error(message='数据库未连接')
 
     Session = sessionmaker(bind=engine)
     session = Session()
@@ -3247,7 +3248,7 @@ def api_note_article_detail(article_id):
     try:
         article = session.query(NoteArticles).filter(NoteArticles.id == article_id).first()
         if not article:
-            return jsonify({'code': 404, 'message': '文章不存在'})
+            return not_found(message='文章不存在')
 
         if request.method == 'GET':
             # 增加浏览量
@@ -3291,16 +3292,16 @@ def api_note_article_detail(article_id):
                 article.published_at = datetime.now()
             
             session.commit()
-            return jsonify({'code': 200, 'message': '文章更新成功'})
+            return ok(message='文章更新成功')
 
         elif request.method == 'DELETE':
             session.delete(article)
             session.commit()
-            return jsonify({'code': 200, 'message': '文章删除成功'})
+            return ok(message='文章删除成功')
 
     except Exception as e:
         session.rollback()
-        return jsonify({'code': 500, 'message': str(e)})
+        return error(message=str(e))
     finally:
         session.close()
 
@@ -3317,13 +3318,13 @@ def api_article_like(article_id):
     try:
         article = session.query(NoteArticles).filter(NoteArticles.id == article_id).first()
         if not article:
-            return jsonify({'code': 404, 'message': '文章不存在'})
+            return not_found(message='文章不存在')
         article.likes += 1
         session.commit()
-        return jsonify({'code': 200, 'data': {'likes': article.likes}})
+        return ok(data={'likes': article.likes})
     except Exception as e:
         session.rollback()
-        return jsonify({'code': 500, 'message': str(e)})
+        return error(message=str(e))
     finally:
         session.close()
 
@@ -3340,10 +3341,10 @@ def api_categories():
     try:
         if request.method == 'POST':
             data = request.get_json() or {}
-            return jsonify({'code': 200, 'message': '分类已记录'})
+            return ok(message='分类已记录')
         
         if request.method == 'DELETE':
-            return jsonify({'code': 200, 'message': '分类已删除'})
+            return ok(message='分类已删除')
 
         # GET - 获取所有分类及文章数
         articles = session.query(NoteArticles).all()
@@ -3363,7 +3364,7 @@ def api_categories():
             }
         })
     except Exception as e:
-        return jsonify({'code': 500, 'message': str(e)})
+        return error(message=str(e))
     finally:
         session.close()
 
@@ -3425,7 +3426,7 @@ def security_check():
         if isinstance(param, str):
             upper = param.upper()
             if any(p in upper for p in sql_patterns):
-                return jsonify({'code': 400, 'message': '非法请求'}), 400
+                return bad_request(message='非法请求'), 400
 
 # ========== 性能监控 ==========
 _request_times = {}
@@ -3473,7 +3474,7 @@ def api_clear_cache():
     """清空API缓存"""
     _api_cache.clear()
     _api_cache_ttl.clear()
-    return jsonify({'code': 200, 'message': '缓存已清空', 'cleared': len(_api_cache)})
+    return ok(message='缓存已清空', data={'cleared': len(_api_cache)})
 
 # ========== 响应压缩 ==========
 from flask import make_response
@@ -3630,11 +3631,11 @@ def api_stock_score(code):
         
         engine = get_db_engine()
         if not engine:
-            return jsonify({'code': 500, 'message': '数据库未连接'})
+            return error(message='数据库未连接')
         
         stock_data = _build_stock_score_data(code, engine)
         if not stock_data:
-            return jsonify({'code': 404, 'message': '股票数据不存在'})
+            return not_found(message='股票数据不存在')
         
         score_result = StockScorer.calculate_score(stock_data)
         
@@ -3653,7 +3654,7 @@ def api_stock_score(code):
             }
         })
     except Exception as e:
-        return jsonify({'code': 500, 'message': str(e)})
+        return error(message=str(e))
 
 
 @app.route('/api/stock-ranking', methods=['GET'])
@@ -3667,7 +3668,7 @@ def api_stock_ranking():
         
         engine = get_db_engine()
         if not engine:
-            return jsonify({'code': 500, 'message': '数据库未连接'})
+            return error(message='数据库未连接')
         
         # 获取筛选参数
         limit = int(request.args.get('limit', 50))
@@ -3736,7 +3737,7 @@ def api_stock_ranking():
             }
         })
     except Exception as e:
-        return jsonify({'code': 500, 'message': str(e)})
+        return error(message=str(e))
 
 
 @app.route('/api/stock-compare', methods=['POST'])
@@ -3749,14 +3750,14 @@ def api_stock_compare():
         
         engine = get_db_engine()
         if not engine:
-            return jsonify({'code': 500, 'message': '数据库未连接'})
+            return error(message='数据库未连接')
         
         data = request.get_json() or {}
         codes = data.get('codes', [])
         if not codes or len(codes) < 2:
-            return jsonify({'code': 400, 'message': '请至少选择2只股票'})
+            return bad_request(message='请至少选择2只股票')
         if len(codes) > 10:
-            return jsonify({'code': 400, 'message': '最多对比10只股票'})
+            return bad_request(message='最多对比10只股票')
         
         sn = get_stock_names()
         
@@ -3787,7 +3788,7 @@ def api_stock_compare():
             'data': compare_result
         })
     except Exception as e:
-        return jsonify({'code': 500, 'message': str(e)})
+        return error(message=str(e))
 
 
 @app.route('/api/stock-scoring-dashboard', methods=['GET'])
@@ -3800,15 +3801,15 @@ def api_scoring_dashboard():
         
         engine = get_db_engine()
         if not engine:
-            return jsonify({'code': 500, 'message': '数据库未连接'})
+            return error(message='数据库未连接')
         
         code = request.args.get('code', '')
         if not code:
-            return jsonify({'code': 400, 'message': '请提供股票代码'})
+            return bad_request(message='请提供股票代码')
         
         stock_data = _build_stock_score_data(code, engine)
         if not stock_data:
-            return jsonify({'code': 404, 'message': '股票数据不存在'})
+            return not_found(message='股票数据不存在')
         
         score_result = StockScorer.calculate_score(stock_data)
         
@@ -3863,7 +3864,7 @@ def api_scoring_dashboard():
             }
         })
     except Exception as e:
-        return jsonify({'code': 500, 'message': str(e)})
+        return error(message=str(e))
 
 
 # ========== Phase 268: 批量评分 + 缓存统计 ==========
@@ -3879,7 +3880,7 @@ def api_stock_score_batch():
         
         engine = get_db_engine()
         if not engine:
-            return jsonify({'code': 500, 'message': '数据库未连接'})
+            return error(message='数据库未连接')
         
         data = request.get_json() or {}
         codes = data.get('codes', [])
@@ -3922,7 +3923,7 @@ def api_stock_score_batch():
             }
         })
     except Exception as e:
-        return jsonify({'code': 500, 'message': str(e)})
+        return error(message=str(e))
 
 
 @app.route('/api/cache/stats', methods=['GET'])
@@ -3939,7 +3940,7 @@ def api_cache_stats():
     if _has_advanced_cache:
         stats['advanced_cache'] = advanced_cache.to_dict()
     
-    return jsonify({'code': 200, 'data': stats})
+    return ok(data=stats)
 
 
 @app.route('/api/cache/clear', methods=['POST'])
@@ -3950,4 +3951,4 @@ def api_cache_clear_advanced():
         advanced_cache.clear()
     _api_cache.clear()
     _api_cache_ttl.clear()
-    return jsonify({'code': 200, 'message': '缓存已清空'})
+    return ok(message='缓存已清空')
