@@ -30,6 +30,7 @@
         <el-tab-pane label="📋 财务" name="financials" />
         <el-tab-pane label="🎯 评分" name="scoring" />
         <el-tab-pane label="📊 分析" name="analysis" />
+        <el-tab-pane label="🤖 AI" name="ai" />
         <el-tab-pane label="📰 新闻" name="news" />
       </el-tabs>
     </div>
@@ -227,6 +228,90 @@
       </el-row>
     </div>
 
+    <!-- AI 解读 Tab -->
+    <div v-show="activeTab === 'ai'" class="tab-content">
+      <el-row :gutter="16">
+        <!-- 左侧: 股票数据面板 -->
+        <el-col :span="10">
+          <el-card class="futu-card">
+            <div slot="header">
+              <span>📊 实时数据</span>
+              <el-button size="mini" style="float:right;" @click="loadStockDataForAI" :loading="loadingData">🔄 刷新</el-button>
+            </div>
+            <div class="stock-data-panel">
+              <el-descriptions :column="2" border size="small">
+                <el-descriptions-item label="股票代码">{{ stockInfo.code }}</el-descriptions-item>
+                <el-descriptions-item label="股票名称">{{ stockInfo.name }}</el-descriptions-item>
+                <el-descriptions-item label="最新价">{{ stockInfo.price }}</el-descriptions-item>
+                <el-descriptions-item label="涨跌幅">
+                  <span :class="priceChange >= 0 ? 'up' : 'down'">{{ priceChangePercent }}%</span>
+                </el-descriptions-item>
+                <el-descriptions-item label="成交量">{{ stockInfo.volume || '-' }}</el-descriptions-item>
+                <el-descriptions-item label="成交额">{{ stockInfo.turnover || '-' }}</el-descriptions-item>
+                <el-descriptions-item label="5日 均线">{{ stockData.ma5 || '-' }}</el-descriptions-item>
+                <el-descriptions-item label="20日 均线">{{ stockData.ma20 || '-' }}</el-descriptions-item>
+                <el-descriptions-item label="60日 均线">{{ stockData.ma60 || '-' }}</el-descriptions-item>
+                <el-descriptions-item label="评分">{{ stockData.score || '-' }}/100</el-descriptions-item>
+              </el-descriptions>
+
+              <div style="margin-top:16px;">
+                <div style="font-size:13px;font-weight:bold;margin-bottom:8px;">📈 近10日走势</div>
+                <div class="mini-chart">
+                  <div v-for="(p, i) in recentPrices" :key="i" class="chart-bar"
+                    :class="p.up ? 'up-bar' : 'down-bar'"
+                    :style="{ height: p.height + '%' }">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </el-card>
+        </el-col>
+
+        <!-- 右侧: AI 对话 -->
+        <el-col :span="14">
+          <el-card class="futu-card">
+            <div slot="header">
+              <span>🤖 AI 解读</span>
+              <el-button size="mini" type="primary" style="float:right;" @click="autoAnalyze" :loading="aiLoading">
+                🔍 自动分析
+              </el-button>
+            </div>
+            <div class="ai-chat-area">
+              <!-- 快捷问题 -->
+              <div class="quick-questions">
+                <el-button size="mini" round @click="askQuick('这只股票近期走势如何？')">📈 走势分析</el-button>
+                <el-button size="mini" round @click="askQuick('这只股票估值是否合理？')">💰 估值分析</el-button>
+                <el-button size="mini" round @click="askQuick('这只股票有哪些风险？')">⚠️ 风险提示</el-button>
+                <el-button size="mini" round @click="askQuick('给出买卖建议')">🎯 买卖建议</el-button>
+              </div>
+
+              <div class="chat-messages" ref="aiChatRef">
+                <div v-for="(msg, idx) in aiMessages" :key="idx" class="chat-msg" :class="msg.role">
+                  <div class="msg-bubble">
+                    <span class="msg-role">{{ msg.role === 'user' ? '🧑' : '🤖' }}</span>
+                    <div class="msg-content" v-html="formatMsg(msg.content)" />
+                  </div>
+                </div>
+                <div v-if="aiLoading" class="chat-msg ai">
+                  <div class="msg-bubble">
+                    <span class="msg-role">🤖</span>
+                    <div class="msg-content">分析中...</div>
+                  </div>
+                </div>
+                <el-empty v-if="!aiMessages.length && !aiLoading" description="点击上方快捷问题或输入自定义问题" :image-size="60" />
+              </div>
+
+              <div class="chat-input">
+                <el-input v-model="aiInput" placeholder="输入关于这只股票的问题..."
+                  @keyup.enter.native="sendAiMessage" :disabled="aiLoading" size="small" />
+                <el-button type="primary" size="small" @click="sendAiMessage" :loading="aiLoading" style="margin-top:6px;">发送</el-button>
+              </div>
+            </div>
+          </el-card>
+        </el-col>
+      </el-row>
+    </div>
+
     <!-- 新闻 Tab -->
     <div v-show="activeTab === 'news'" class="tab-content">
       <el-card class="futu-card">
@@ -312,7 +397,15 @@ export default {
       supportResistance: [],
 
       // 相关新闻
-      relatedNews: []
+      relatedNews: [],
+
+      // AI 解读
+      stockData: { ma5: null, ma20: null, ma60: null, score: null },
+      recentPrices: [],
+      aiMessages: [],
+      aiInput: '',
+      aiLoading: false,
+      loadingData: false
     }
   },
   created() {
@@ -571,6 +664,139 @@ export default {
       if (Math.abs(num) >= 100000000) return (num / 100000000).toFixed(2) + '亿'
       if (Math.abs(num) >= 10000) return (num / 10000).toFixed(2) + '万'
       return num.toFixed(0)
+    },
+
+    // ========== AI 解读 ==========
+    async loadStockDataForAI() {
+      this.loadingData = true
+      try {
+        // 获取历史K线数据
+        const { data } = await request.get(`/api/stock-kline/${this.selectedCode}`, {
+          params: { days: 30 }
+        })
+        if (data.code === 200 && data.data.kline) {
+          const kline = data.data.kline
+          const closes = kline.map(k => k.close).filter(v => v)
+          const volumes = kline.map(k => k.volume).filter(v => v)
+          
+          // 计算均线
+          if (closes.length >= 5) {
+            const ma5 = closes.slice(-5).reduce((a, b) => a + b, 0) / 5
+            this.stockData.ma5 = ma5.toFixed(2)
+          }
+          if (closes.length >= 20) {
+            const ma20 = closes.slice(-20).reduce((a, b) => a + b, 0) / 20
+            this.stockData.ma20 = ma20.toFixed(2)
+          }
+          if (closes.length >= 60) {
+            const ma60 = closes.slice(-60).reduce((a, b) => a + b, 0) / 60
+            this.stockData.ma60 = ma60.toFixed(2)
+          }
+
+          // 近10日走势
+          const recent = closes.slice(-10)
+          if (recent.length > 0) {
+            const min = Math.min(...recent)
+            const max = Math.max(...recent)
+            const range = max - min || 1
+            this.recentPrices = recent.map((p, i) => {
+              const prev = i > 0 ? recent[i - 1] : p
+              return {
+                price: p,
+                up: p >= prev,
+                height: ((p - min) / range) * 80 + 20
+              }
+            })
+          }
+
+          this.stockData.history = closes.slice(-30).map((c, i) => ({
+            date: kline[kline.length - 30 + i]?.date || '',
+            close: c.toFixed(2)
+          }))
+        }
+
+        // 获取评分
+        try {
+          const { data: sd } = await request.get(`/api/stock-score/${this.selectedCode}`)
+          if (sd.code === 200) {
+            this.stockData.score = sd.data?.total_score || sd.data?.score || '-'
+          }
+        } catch (e) { /* ignore */ }
+
+        this.stockInfo.code = this.selectedCode
+        this.stockInfo.name = this.stockInfo.name || this.selectedCode
+        this.$message.success('数据已刷新')
+      } catch (e) {
+        this.$message.error('获取数据失败')
+      } finally {
+        this.loadingData = false
+      }
+    },
+
+    askQuick(question) {
+      this.aiMessages.push({ role: 'user', content: question })
+      this.sendAiQuery(question)
+    },
+
+    async sendAiMessage() {
+      const q = this.aiInput.trim()
+      if (!q || this.aiLoading) return
+      this.aiMessages.push({ role: 'user', content: q })
+      this.aiInput = ''
+      this.sendAiQuery(q)
+    },
+
+    async autoAnalyze() {
+      const q = `请全面分析 ${this.stockInfo.name || this.selectedCode} (${this.selectedCode})，包括：走势分析、估值评估、风险提示和买卖建议。`
+      this.aiMessages.push({ role: 'user', content: q })
+      this.sendAiQuery(q)
+    },
+
+    async sendAiQuery(question) {
+      this.aiLoading = true
+      // 确保有数据
+      if (!this.stockData.history) {
+        await this.loadStockDataForAI()
+      }
+
+      const context = this.buildStockContext()
+      try {
+        const { data } = await request.post('/api/ai/chat', {
+          question: `关于股票 ${this.stockInfo.name || this.selectedCode} 的数据如下：\n${context}\n\n请回答：${question}`
+        })
+        if (data.code === 200) {
+          this.aiMessages.push({ role: 'ai', content: data.data.content })
+        } else {
+          this.aiMessages.push({ role: 'ai', content: '❌ ' + data.message })
+        }
+      } catch (e) {
+        this.aiMessages.push({ role: 'ai', content: '❌ 请求失败: ' + e.message })
+      } finally {
+        this.aiLoading = false
+        this.$nextTick(() => {
+          const el = this.$refs.aiChatRef
+          if (el) el.scrollTop = el.scrollHeight
+        })
+      }
+    },
+
+    buildStockContext() {
+      const lines = []
+      lines.push(`股票: ${this.stockInfo.name || ''} (${this.stockInfo.code || this.selectedCode})`)
+      lines.push(`最新价: ${this.stockInfo.price || '-'}`)
+      lines.push(`涨跌幅: ${this.priceChangePercent}%`)
+      if (this.stockData.ma5) lines.push(`5日均线: ${this.stockData.ma5}`)
+      if (this.stockData.ma20) lines.push(`20日均线: ${this.stockData.ma20}`)
+      if (this.stockData.ma60) lines.push(`60日均线: ${this.stockData.ma60}`)
+      if (this.stockData.score) lines.push(`综合评分: ${this.stockData.score}/100`)
+      if (this.stockData.history && this.stockData.history.length) {
+        lines.push(`近30日收盘价: ${this.stockData.history.map(h => h.close).join(', ')}`)
+      }
+      return lines.join('\n')
+    },
+
+    formatMsg(text) {
+      return text.replace(/\n/g, '<br/>')
     }
   }
 }
@@ -674,4 +900,23 @@ export default {
 .news-title { margin: 0; font-size: 14px; color: #d1d4dc; }
 .news-summary { color: #909399; font-size: 12px; margin: 4px 0; line-height: 1.4; }
 .news-footer { display: flex; justify-content: space-between; color: #606266; font-size: 11px; }
+
+/* AI 解读 */
+.stock-data-panel { font-size: 13px; }
+.mini-chart { display: flex; align-items: flex-end; height: 60px; gap: 3px; padding: 4px 0; }
+.chart-bar { flex: 1; border-radius: 2px 2px 0 0; min-height: 4px; transition: height 0.3s; }
+.up-bar { background: #26a69a; }
+.down-bar { background: #ef5350; }
+
+.ai-chat-area { display: flex; flex-direction: column; height: 500px; }
+.quick-questions { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.chat-messages { flex: 1; overflow-y: auto; padding: 8px 0; }
+.chat-msg { margin-bottom: 10px; display: flex; }
+.chat-msg.user { justify-content: flex-end; }
+.chat-msg.ai { justify-content: flex-start; }
+.msg-bubble { max-width: 85%; padding: 8px 12px; border-radius: 10px; background: #2a2a3e; font-size: 13px; }
+.chat-msg.user .msg-bubble { background: #1a3a5c; }
+.msg-role { margin-right: 6px; font-size: 12px; }
+.msg-content { line-height: 1.6; white-space: pre-wrap; color: #d1d4dc; }
+.chat-input { border-top: 1px solid #2a2a3e; padding-top: 10px; }
 </style>

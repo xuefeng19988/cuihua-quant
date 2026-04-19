@@ -1494,12 +1494,13 @@ def api_notifications():
 @token_required
 def api_stock_detail(code):
     """个股详情 (Phase 137)"""
+    from sqlalchemy import text
     engine = get_db_engine()
     if not engine:
         return error(message='数据库未连接')
 
     try:
-        df = pd.read_sql(f"SELECT * FROM stock_daily WHERE code='{code}' ORDER BY date DESC LIMIT 30", engine)
+        df = pd.read_sql(text("SELECT * FROM stock_daily WHERE code=:code ORDER BY date DESC LIMIT 30"), engine, params={'code': code})
         if df.empty:
             return not_found(message='无数据')
 
@@ -3634,6 +3635,42 @@ def _build_stock_score_data(code, engine):
         'northbound': northbound,
         'main_net_inflow': main_flow
     }
+
+
+@app.route('/api/stock-kline/<code>', methods=['GET'])
+@token_required
+def api_stock_kline(code):
+    """个股K线数据 + 历史行情 (Phase 280: AI 对接)"""
+    from sqlalchemy import text
+    days = request.args.get('days', 60, type=int)
+    engine = get_db_engine()
+    if not engine:
+        return error(message='数据库未连接')
+
+    try:
+        query = text("SELECT date, open_price, high_price, low_price, close_price, volume, turnover, change_pct, turnover_rate FROM stock_daily WHERE code=:code ORDER BY date DESC LIMIT :days")
+        df = pd.read_sql(query, engine, params={'code': code, 'days': days})
+        if df.empty:
+            return not_found(message='无数据')
+
+        df = df.iloc[::-1].reset_index(drop=True)
+        kline = []
+        for _, row in df.iterrows():
+            kline.append({
+                'date': str(row['date']),
+                'open': float(row.get('open_price', 0)),
+                'high': float(row.get('high_price', 0)),
+                'low': float(row.get('low_price', 0)),
+                'close': float(row.get('close_price', 0)),
+                'volume': int(row.get('volume', 0)),
+                'turnover': float(row.get('turnover', 0)),
+                'change_pct': float(row.get('change_pct', 0)),
+                'turnover_rate': float(row.get('turnover_rate', 0)),
+            })
+
+        return ok(data={'code': code, 'kline': kline, 'days': len(kline)})
+    except Exception as e:
+        return error(message=str(e))
 
 
 @app.route('/api/stock-score/<code>', methods=['GET'])
