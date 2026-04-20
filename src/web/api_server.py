@@ -14,6 +14,7 @@ import json
 import hashlib
 import secrets
 from datetime import datetime, timedelta
+import time
 from functools import wraps
 from flask import Flask, jsonify, request
 from flask import send_from_directory, session
@@ -21,7 +22,7 @@ from src.web.response_helpers import ok, error, not_found, bad_request
 
 import pandas as pd
 
-app = Flask(__name__, static_folder=os.path.join(project_root, 'frontend', 'dist'), static_url_path='')
+app = Flask(__name__, static_folder=os.path.join(project_root, 'frontend', 'dist'), static_url_path='/static')
 app.config['SECRET_KEY'] = 'cuihua-quant-api-secret'
 
 # ========== 配置加载 ==========
@@ -488,17 +489,7 @@ def serve_note_image(filename):
         return send_from_directory(notes_dir, filename)
     return not_found(message='图片不存在')
 
-@app.route('/', defaults={'path': ''})
-@app.route('/<path:path>')
-def serve_vue(path):
-    if path and path.startswith('static/'):
-        return send_from_directory(app.static_folder, path)
-    if path and '.' in path:
-        return send_from_directory(app.static_folder, path)
-    index_path = os.path.join(app.static_folder, 'index.html')
-    if os.path.exists(index_path):
-        return send_from_directory(app.static_folder, 'index.html')
-    return jsonify({ 'code': 200, 'message': '前端未构建，请运行 cd frontend && npm run build' })
+
 
 # 注册模块蓝图
 from src.web.modules.auth import auth_bp
@@ -529,12 +520,7 @@ app.register_blueprint(llm_mgmt_bp)
 from src.web.modules.ai_stock_features import ai_stock_bp
 app.register_blueprint(ai_stock_bp)
 
-if __name__ == '__main__':
-    sn = get_stock_names()  # 加载股票名称
-    print("🦜 翠花量化 API Server 启动中...")
-    print("📡 API: http://127.0.0.1:5000/api")
-    print("🌐 Vue: http://127.0.0.1:5000")
-    app.run(host='0.0.0.0', port=5000, debug=False)
+
 
 @app.route('/api/backtest', methods=['GET', 'POST'])
 @token_required
@@ -3844,3 +3830,24 @@ app.register_blueprint(ai_chart_enhanced_bp)
 app.register_blueprint(ai_note_enhanced_bp)
 app.register_blueprint(ai_system_fusion_bp)
 app.register_blueprint(ai_research_bp)
+
+# SPA fallback - 必须在最后注册，避免拦截 API 路由
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve_vue(path):
+    print(f"serve_vue called with path: {path}")
+    if path and path.startswith('static/'):
+        return send_from_directory(app.static_folder, path)
+    if path and '.' in path:
+        return send_from_directory(app.static_folder, path)
+    index_path = os.path.join(app.static_folder, 'index.html')
+    if os.path.exists(index_path):
+        return send_from_directory(app.static_folder, 'index.html')
+    return jsonify({ 'code': 200, 'message': '前端未构建，请运行 cd frontend && npm run build' })
+
+if __name__ == '__main__':
+    sn = get_stock_names()  # 加载股票名称
+    print("🦜 翠花量化 API Server 启动中...")
+    print("📡 API: http://127.0.0.1:5000/api")
+    print("🌐 Vue: http://127.0.0.1:5000")
+    app.run(host='0.0.0.0', port=5000, debug=False)
