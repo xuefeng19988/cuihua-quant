@@ -129,6 +129,14 @@ export default {
     .logo-icon-text { font-size: 24px; }
   }
 
+  .el-scrollbar {
+    height: calc(100vh - 50px);
+  }
+
+  ::v-deep .el-scrollbar__wrap {
+    overflow-x: hidden;
+  }
+
   ::v-deep .el-menu { border-right: none; }
   ::v-deep .el-submenu__title:hover, ::v-deep .el-menu-item:hover { background-color: #263445 !important; }
   ::v-deep .el-menu-item.is-active { background-color: #409EFF !important; color: #fff !important; }
