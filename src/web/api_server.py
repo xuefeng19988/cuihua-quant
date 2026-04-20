@@ -22,7 +22,7 @@ from src.web.response_helpers import ok, error, not_found, bad_request
 
 import pandas as pd
 
-app = Flask(__name__, static_folder=os.path.join(project_root, 'frontend', 'dist'), static_url_path='/static')
+app = Flask(__name__, static_folder=os.path.join(project_root, 'frontend', 'dist'), static_url_path='/')
 app.config['SECRET_KEY'] = 'cuihua-quant-api-secret'
 
 # ========== 配置加载 ==========
