@@ -800,6 +800,14 @@ def api_stats():
     
     return jsonify({ 'code': 200, 'data': stats })
 
+@app.route('/api/dashboard', methods=['GET'])
+
+def api_dashboard():
+    """监控看板数据 - 代理到可视化模块"""
+    from src.web.modules.visualization import get_dashboard_data
+    return get_dashboard_data()
+
+
 @app.route('/api/screener', methods=['POST'])
 @token_required
 def api_screener():
