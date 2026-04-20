@@ -3317,18 +3317,22 @@ def compress_response(response):
     accept_encoding = request.headers.get('Accept-Encoding', '')
     if 'gzip' not in accept_encoding.lower():
         return response
-    
+
     if (response.content_type and 'text' in response.content_type.lower()) or \
        (response.content_type and 'json' in response.content_type.lower()):
-        if len(response.data) > 1024:
+        try:
+            data = response.get_data()
+        except RuntimeError:
+            return response
+        if len(data) > 1024:
             gzip_buffer = io.BytesIO()
             with gzip.GzipFile(mode='wb', fileobj=gzip_buffer) as gzip_file:
-                gzip_file.write(response.data)
-            response.data = gzip_buffer.getvalue()
+                gzip_file.write(data)
+            response.set_data(gzip_buffer.getvalue())
             response.headers['Content-Encoding'] = 'gzip'
             response.headers['Vary'] = 'Accept-Encoding'
-            response.headers['Content-Length'] = len(response.data)
-    
+            response.headers['Content-Length'] = str(len(gzip_buffer.getvalue()))
+
     return response
 
 # ========== 数据库连接池配置 ==========
@@ -3835,7 +3839,6 @@ app.register_blueprint(ai_research_bp)
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve_vue(path):
-    print(f"serve_vue called with path: {path}")
     if path and path.startswith('static/'):
         return send_from_directory(app.static_folder, path)
     if path and '.' in path:
