@@ -70,12 +70,42 @@ class WebConfig:
     debug: bool = False
     secret_key: str = "change-me-in-production"
 
+
+@dataclass
+class DataSyncConfig:
+    """数据同步配置 - 通过系统配置模型管理股票数据同步。"""
+    # 数据源选择: futu / akshare / both
+    source: str = "akshare"
+    # 同步股票池: watchlist / all / custom
+    pool: str = "watchlist"
+    # 自定义股票代码列表 (当 pool=custom 时生效)
+    custom_codes: list = field(default_factory=list)
+    # 同步天数 (历史数据)
+    days_back: int = 30
+    # 同步间隔 (秒)，防止频率过高被限流
+    interval_seconds: int = 1
+    # 批量大小 (每次同步多少只股票)
+    batch_size: int = 5
+    # 自动同步: 是否在启动时自动同步
+    auto_sync_on_start: bool = False
+    # 定时同步 cron 表达式 (如 "0 9 * * 1-5" 表示工作日 9:00)
+    schedule_cron: str = ""
+    # 数据源优先级 (当 source=both 时)
+    primary_source: str = "futu"
+    fallback_source: str = "akshare"
+    # 失败重试次数
+    max_retries: int = 3
+    # 日志级别
+    log_level: str = "INFO"
+
 @dataclass 
 class AppConfig:
     """Main application configuration."""
     name: str = "翠花量化系统"
     version: str = "1.5.0"
     environment: str = "development"  # development, staging, production
+    
+    datasync: DataSyncConfig = field(default_factory=DataSyncConfig)
     
     database: DatabaseConfig = field(default_factory=DatabaseConfig)
     futu: FutuConfig = field(default_factory=FutuConfig)

@@ -5,6 +5,10 @@
 
 import os
 import sys
+
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, project_root)
+
 import yaml
 import json
 import hashlib
@@ -15,12 +19,9 @@ from flask import Flask, jsonify, request
 from flask import send_from_directory, session
 from src.web.response_helpers import ok, error, not_found, bad_request
 
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.insert(0, project_root)
-
 import pandas as pd
 
-app = Flask(__name__, static_folder='../frontend/dist', static_url_path='')
+app = Flask(__name__, static_folder=os.path.join(project_root, 'frontend', 'dist'), static_url_path='')
 app.config['SECRET_KEY'] = 'cuihua-quant-api-secret'
 
 # ========== 配置加载 ==========
