@@ -113,12 +113,8 @@ export const constantRoutes = [
     { path: 'strategy-market', name: 'StrategyMarket', component: () => import('@/views/strategy-market/index'), meta: { title: '策略市场', icon: 'el-icon-shopping-cart-full' } },
   ]},
 
+  { path: '/knowledge-base', component: Layout, children: [{ path: '', name: 'KnowledgeBase', component: () => import('@/views/knowledge-base/index'), meta: { title: '知识库', icon: 'el-icon-notebook-2' } }] },
   { path: '*', redirect: '/404', hidden: true }
 ]
 
 export default new Router({ mode: 'history', scrollBehavior: () => ({ y: 0 }), routes: constantRoutes })
-
-// Phase 266: 知识库管理
-constantRoutes.push(
-  { path: '/knowledge-base', component: Layout, children: [{ path: '', name: 'KnowledgeBase', component: () => import('@/views/knowledge-base/index'), meta: { title: '知识库', icon: 'el-icon-notebook-2' } }] }
-)
