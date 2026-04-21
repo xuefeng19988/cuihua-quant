@@ -89,20 +89,20 @@ export default {
         if (data.code === 200) {
           const d = data.data
           // 系统状态
-          this.stats[0].value = '运行中'
+          this.$set(this.stats, 0, { icon: '✅', label: '系统状态', value: '运行中' })
           // 持仓信息
           if (d.portfolio_summary) {
             const ps = d.portfolio_summary
-            this.stats[1].value = `收益 ¥${(ps.total_pnl / 10000).toFixed(1)}万`
-            this.stats[2].value = `${ps.position_ratio}%`
-            this.stats[3].value = `¥${(ps.total_value / 10000).toFixed(1)}万`
+            this.$set(this.stats, 1, { icon: '📊', label: '总收益', value: `收益 ¥${(ps.total_pnl / 10000).toFixed(1)}万` })
+            this.$set(this.stats, 2, { icon: '💰', label: '仓位', value: `${ps.position_ratio}%` })
+            this.$set(this.stats, 3, { icon: '💎', label: '总资产', value: `¥${(ps.total_value / 10000).toFixed(1)}万` })
           }
           // 涨跌榜
           this.gainers = (d.top_gainers || []).map(g => ({ code: g.code, name: g.name, price: '-', change: g.change.toFixed(2) }))
           this.losers = (d.top_losers || []).map(l => ({ code: l.code, name: l.name, price: '-', change: l.change.toFixed(2) }))
         }
       } catch (e) {
-        this.stats[0].value = '连接失败'
+        this.$set(this.stats, 0, { icon: '❌', label: '系统状态', value: '连接失败' })
       }
     }
   }
