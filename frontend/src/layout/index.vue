@@ -15,9 +15,9 @@
             :collapse="isCollapse"
             :collapse-transition="false"
             :unique-opened="true"
-            background-color="#304156"
-            text-color="#bfcbd9"
-            active-text-color="#409EFF"
+            :background-color="isDarkTheme ? '#1d1e2c' : '#304156'"
+            :text-color="isDarkTheme ? '#bfcbd9' : '#bfcbd9'"
+            :active-text-color="'#409EFF'"
             router
           >
             <sidebar-item v-for="route in sidebarRoutes" :key="route.path" :item="route" :base-path="route.path" />
@@ -72,11 +72,19 @@ import SidebarItem from './components/SidebarItem'
 export default {
   name: 'Layout',
   components: { SidebarItem },
+  data() {
+    return {
+      currentTheme: localStorage.getItem('theme') || 'light'
+    }
+  },
   computed: {
     ...mapState({
       isCollapse: state => !state.settings.sidebar.opened,
       userInfo: state => state.user
     }),
+    isDarkTheme() {
+      return this.currentTheme === 'dark'
+    },
     activeMenu() {
       const { meta, path } = this.$route
       if (meta.activeMenu) return meta.activeMenu
@@ -88,6 +96,11 @@ export default {
     breadcrumbs() {
       return this.$route.matched.filter(item => item.meta && item.meta.title).map(item => ({ path: item.path, title: item.meta.title }))
     }
+  },
+  created() {
+    window.addEventListener('theme-change', (e) => {
+      this.currentTheme = e.detail.theme
+    })
   },
   methods: {
     handleCommand(command) {
@@ -109,7 +122,7 @@ export default {
 
 .sidebar-container {
   background: #304156;
-  transition: width 0.3s;
+  transition: width 0.3s, background 0.3s;
   overflow: hidden;
   box-shadow: 2px 0 6px rgba(0, 21, 41, 0.35);
 
@@ -123,6 +136,7 @@ export default {
     cursor: pointer;
     background: #2b2f3a;
     border-bottom: 1px solid #1f2d3d;
+    transition: background 0.3s;
 
     .logo-icon { width: 32px; height: 32px; margin-right: 8px; }
     .logo-title { color: #fff; font-size: 16px; font-weight: 600; white-space: nowrap; }
@@ -150,6 +164,7 @@ export default {
   justify-content: space-between;
   padding: 0 20px;
   box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
+  transition: background 0.3s, border-color 0.3s;
 
   .header-left { display: flex; align-items: center; flex: 1; }
   .hamburger { font-size: 20px; cursor: pointer; padding: 0 12px; transition: color 0.3s; &:hover { color: #409EFF; } }
@@ -160,5 +175,22 @@ export default {
   .user-avatar { font-size: 20px; }
 }
 
-.main-container { background: #f0f2f5; overflow-y: auto; }
+.main-container { background: #f0f2f5; overflow-y: auto; transition: background 0.3s; }
+
+/* 暗色主题 */
+body[data-theme="dark"] .sidebar-container {
+  background: #1d1e2c;
+  .logo { background: #1a1b26; border-bottom-color: #2a2a3e; }
+}
+
+body[data-theme="dark"] .header-container {
+  background: #1a1a2e;
+  border-bottom-color: #2a2a3e;
+  .user-name { color: #d1d4dc; }
+  .hamburger { color: #d1d4dc; }
+}
+
+body[data-theme="dark"] .main-container {
+  background: #0f0f1a;
+}
 </style>
