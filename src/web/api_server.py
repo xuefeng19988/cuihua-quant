@@ -2977,6 +2977,7 @@ def api_data_market():
 def api_note_articles():
     """笔记文章列表/创建 (公众号风格)"""
     from src.data.database import NoteArticles
+    from sqlalchemy.orm import sessionmaker
     engine = get_db_engine()
     if not engine:
         return error(message='数据库未连接')

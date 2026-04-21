@@ -329,7 +329,7 @@ export default {
           formData.append('file', file)
           try {
             const res = await request.post('/api/notes/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
-            if (res.data.code === 200) insertImgFn(res.data.data.url)
+            if (res.code === 200) insertImgFn(res.data.url)
           } catch (e) { this.$message.error('图片上传失败') }
         }
       }
