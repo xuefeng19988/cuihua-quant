@@ -3849,12 +3849,21 @@ app.register_blueprint(ai_research_bp)
 @app.route('/<path:path>')
 def serve_vue(path):
     if path and path.startswith('static/'):
-        return send_from_directory(app.static_folder, path)
+        resp = send_from_directory(app.static_folder, path)
+        resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        resp.headers['Pragma'] = 'no-cache'
+        return resp
     if path and '.' in path:
-        return send_from_directory(app.static_folder, path)
+        resp = send_from_directory(app.static_folder, path)
+        resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        resp.headers['Pragma'] = 'no-cache'
+        return resp
     index_path = os.path.join(app.static_folder, 'index.html')
     if os.path.exists(index_path):
-        return send_from_directory(app.static_folder, 'index.html')
+        resp = send_from_directory(app.static_folder, 'index.html')
+        resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        resp.headers['Pragma'] = 'no-cache'
+        return resp
     return jsonify({ 'code': 200, 'message': '前端未构建，请运行 cd frontend && npm run build' })
 
 if __name__ == '__main__':
