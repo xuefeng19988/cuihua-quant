@@ -114,6 +114,8 @@ export const constantRoutes = [
   ]},
 
   { path: '/knowledge-base', component: Layout, children: [{ path: '', name: 'KnowledgeBase', component: () => import('@/views/knowledge-base/index'), meta: { title: '知识库', icon: 'el-icon-notebook-2' } }] },
+  { path: '/note-editor', component: Layout, children: [{ path: '', name: 'NoteEditor', component: () => import('@/views/note-editor/index'), meta: { title: '笔记编辑器', icon: 'el-icon-edit' }, hidden: true }] },
+  { path: '/note-editor/:id', name: 'NoteEditorById', component: Layout, children: [{ path: '', component: () => import('@/views/note-editor/index'), meta: { title: '编辑笔记', icon: 'el-icon-edit' }, hidden: true }] },
   { path: '*', redirect: '/404', hidden: true }
 ]
 
