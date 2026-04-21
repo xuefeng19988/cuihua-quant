@@ -177,20 +177,28 @@ export default {
 
 .main-container { background: #f0f2f5; overflow-y: auto; transition: background 0.3s; }
 
-/* 暗色主题 */
+</style>
+
+<!-- 全局暗色主题样式（不能使用 scoped） -->
+<style lang="scss">
 body[data-theme="dark"] .sidebar-container {
-  background: #1d1e2c;
-  .logo { background: #1a1b26; border-bottom-color: #2a2a3e; }
+  background: #1d1e2c !important;
 }
-
+body[data-theme="dark"] .sidebar-container .logo {
+  background: #1a1b26 !important;
+  border-bottom-color: #2a2a3e !important;
+}
 body[data-theme="dark"] .header-container {
-  background: #1a1a2e;
-  border-bottom-color: #2a2a3e;
-  .user-name { color: #d1d4dc; }
-  .hamburger { color: #d1d4dc; }
+  background: #1a1a2e !important;
+  border-bottom-color: #2a2a3e !important;
 }
-
+body[data-theme="dark"] .header-container .user-name {
+  color: #d1d4dc !important;
+}
+body[data-theme="dark"] .header-container .hamburger {
+  color: #d1d4dc !important;
+}
 body[data-theme="dark"] .main-container {
-  background: #0f0f1a;
+  background: #0f0f1a !important;
 }
 </style>
