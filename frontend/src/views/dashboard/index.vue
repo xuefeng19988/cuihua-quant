@@ -85,9 +85,12 @@ export default {
   methods: {
     async fetchData() {
       try {
-        const { data } = await request.get('/dashboard')
-        if (data.code === 200) {
-          const d = data.data
+        const resp = await request.get('/dashboard')
+        // 拦截器已解包 response.data，所以 resp = { code: 200, data: { ... } }
+        console.log('Dashboard response:', resp)
+        if (resp.code === 200) {
+          const d = resp.data
+          console.log('Dashboard data:', d)
           // 系统状态
           this.$set(this.stats, 0, { icon: '✅', label: '系统状态', value: '运行中' })
           // 持仓信息
@@ -100,8 +103,12 @@ export default {
           // 涨跌榜
           this.gainers = (d.top_gainers || []).map(g => ({ code: g.code, name: g.name, price: '-', change: g.change.toFixed(2) }))
           this.losers = (d.top_losers || []).map(l => ({ code: l.code, name: l.name, price: '-', change: l.change.toFixed(2) }))
+        } else {
+          console.warn('Dashboard code not 200:', resp.code)
+          this.$set(this.stats, 0, { icon: '⚠️', label: '系统状态', value: '数据异常' })
         }
       } catch (e) {
+        console.error('Dashboard fetch error:', e)
         this.$set(this.stats, 0, { icon: '❌', label: '系统状态', value: '连接失败' })
       }
     }
