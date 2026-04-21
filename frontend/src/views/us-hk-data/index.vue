@@ -20,7 +20,7 @@ export default {
   methods: {
     async fetchData() {
       this.loading = true
-      try { const { data } = await request.get('/api/us-hk-data'); if (data.code === 200) this.data = data.data }
+      try { const { data } = await request.get('/us-hk-data'); if (data.code === 200) this.data = data.data }
       catch (e) { this.$message.error('获取数据失败') }
       finally { this.loading = false }
     }

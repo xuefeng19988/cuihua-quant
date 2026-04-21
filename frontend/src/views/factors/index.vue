@@ -28,7 +28,7 @@ export default {
   methods: {
     async fetchData() {
       try {
-        const { data } = await request.get('/api/factors')
+        const { data } = await request.get('/factors')
         if (data.code === 200) this.factors = data.data.list || []
       } catch (e) { this.$message.error('获取因子数据失败') }
     }

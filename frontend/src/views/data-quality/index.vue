@@ -99,7 +99,7 @@ export default {
     async checkQuality() {
       this.loading = true
       try {
-        const { data } = await request.get('/api/data-quality')
+        const { data } = await request.get('/data-quality')
         if (data.code === 200) {
           const d = data.data
           this.qualityScore = d.quality_score

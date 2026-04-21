@@ -18,7 +18,7 @@ export default {
   name: 'LogAnalyzer', data() { return { data: { total_logs: 0, error_count: 0, warning_count: 0, recent_errors: [] } } },
   created() { this.fetchData() },
   methods: {
-    async fetchData() { try { const { data } = await request.get('/api/log-analyzer'); if (data.code === 200) this.data = data.data } catch (e) {} }
+    async fetchData() { try { const { data } = await request.get('/log-analyzer'); if (data.code === 200) this.data = data.data } catch (e) {} }
   }
 }
 </script>

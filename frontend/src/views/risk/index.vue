@@ -78,7 +78,7 @@ export default {
   methods: {
     async fetchData() {
       this.loading = true
-      try { const { data } = await request.get('/api/risk'); if (data.code === 200) {} }
+      try { const { data } = await request.get('/risk'); if (data.code === 200) {} }
       catch (e) {}
       finally { this.loading = false }
     }

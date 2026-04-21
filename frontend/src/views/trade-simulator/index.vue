@@ -104,7 +104,7 @@ export default {
   methods: {
     async fetchData() {
       try {
-        const { data } = await request.get('/api/trade-simulator')
+        const { data } = await request.get('/trade-simulator')
         if (data.code === 200) this.simData = data.data
       } catch (e) { this.$message.error('获取模拟交易数据失败') }
     },
@@ -113,7 +113,7 @@ export default {
         return this.$message.warning('请填写完整交易信息')
       }
       try {
-        const { data } = await request.post('/api/trade-simulator', {
+        const { data } = await request.post('/trade-simulator', {
           action,
           code: this.tradeForm.code,
           price: this.tradeForm.price,

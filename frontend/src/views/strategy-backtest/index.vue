@@ -73,14 +73,14 @@ export default {
   methods: {
     async fetchStrategies() {
       try {
-        const { data } = await request.get('/api/strategy-backtest')
+        const { data } = await request.get('/strategy-backtest')
         if (data.code === 200) { this.strategies = data.data.strategies; this.selectedStrategy = this.strategies[0]?.name }
       } catch (e) {}
     },
     async runBacktest() {
       this.loading = true
       try {
-        const { data } = await request.post('/api/strategy-backtest', { strategy: this.selectedStrategy, start_date: this.startDate, end_date: this.endDate })
+        const { data } = await request.post('/strategy-backtest', { strategy: this.selectedStrategy, start_date: this.startDate, end_date: this.endDate })
         if (data.code === 200) { this.results = data.data; this.$message.success('回测完成') }
       } catch (e) { this.$message.error('回测失败') }
       finally { this.loading = false }

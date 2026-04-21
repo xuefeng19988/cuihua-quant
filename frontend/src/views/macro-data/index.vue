@@ -32,7 +32,7 @@ export default {
   methods: {
     async fetchData() {
       this.loading = true
-      try { const { data } = await request.get('/api/macro-data'); if (data.code === 200) { this.macro = data.data; this.renderChart() } }
+      try { const { data } = await request.get('/macro-data'); if (data.code === 200) { this.macro = data.data; this.renderChart() } }
       catch (e) { this.$message.error('获取数据失败') }
       finally { this.loading = false }
     },

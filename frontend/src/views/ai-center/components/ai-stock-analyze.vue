@@ -60,7 +60,7 @@ export default {
   methods: {
     async loadStocks() {
       try {
-        const { data } = await request.get('/api/stocks?limit=50')
+        const { data } = await request.get('/stocks?limit=50')
         if (data.code === 200) {
           this.stockList = data.data.stocks || []
         }
@@ -80,7 +80,7 @@ export default {
       this.loading = true
       this.error = ''
       try {
-        const { data } = await request.post('/api/ai/analyze-stock', {
+        const { data } = await request.post('/ai/analyze-stock', {
           code: this.selectedStock.code,
           name: this.selectedStock.name,
           score: 60

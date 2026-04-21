@@ -43,7 +43,7 @@ export default {
     async fetchData() {
       this.loading = true
       try {
-        const { data } = await request.get('/api/notifications')
+        const { data } = await request.get('/notifications')
         if (data.code === 200) {
           this.notifications = data.data.notifications || []
           this.unread = data.data.unread || 0
@@ -53,7 +53,7 @@ export default {
     },
     async markAllRead() {
       try {
-        await request.post('/api/notifications', { action: 'mark_read' })
+        await request.post('/notifications', { action: 'mark_read' })
         this.$message.success('已全部标为已读')
         this.fetchData()
       } catch (e) { this.$message.error('操作失败') }

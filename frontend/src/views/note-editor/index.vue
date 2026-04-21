@@ -31,7 +31,7 @@
           <el-form-item label="封面图">
             <el-upload
               class="cover-uploader"
-              action="/api/notes/upload"
+              action="/notes/upload"
               :show-file-list="false"
               :on-success="handleCoverSuccess"
               :headers="uploadHeaders"
@@ -322,7 +322,7 @@ export default {
     },
     async loadArticle(id) {
       try {
-        const { data } = await request.get(`/api/articles/${id}`)
+        const { data } = await request.get(`/articles/${id}`)
         if (data.code === 200) {
           this.article = data.data
           this.form = {
@@ -338,7 +338,7 @@ export default {
     },
     async loadRelatedNotes(id) {
       try {
-        const { data } = await request.get(`/api/articles/${id}/related`)
+        const { data } = await request.get(`/articles/${id}/related`)
         if (data.code === 200) {
           this.relatedNotes = data.data.notes || []
         }
@@ -346,7 +346,7 @@ export default {
     },
     async loadVersions(id) {
       try {
-        const { data } = await request.get(`/api/articles/${id}/versions`)
+        const { data } = await request.get(`/articles/${id}/versions`)
         if (data.code === 200) {
           this.versions = data.data.versions || []
         }
@@ -354,13 +354,13 @@ export default {
     },
     async loadCategories() {
       try {
-        const { data } = await request.get('/api/categories')
+        const { data } = await request.get('/categories')
         if (data.code === 200) this.categories = data.data.categories || []
       } catch (e) {}
     },
     async loadTags() {
       try {
-        const { data } = await request.get('/api/notes/tags')
+        const { data } = await request.get('/notes/tags')
         if (data.code === 200) this.availableTags = data.data.tags || []
       } catch (e) {}
     },
@@ -380,9 +380,9 @@ export default {
         
         let res
         if (this.articleId) {
-          res = await request.put(`/api/articles/${this.articleId}`, payload)
+          res = await request.put(`/articles/${this.articleId}`, payload)
         } else {
-          res = await request.post('/api/articles', payload)
+          res = await request.post('/articles', payload)
           this.articleId = res.data.data.id
         }
         this.$message.success('草稿已保存')
@@ -400,9 +400,9 @@ export default {
         
         let res
         if (this.articleId) {
-          res = await request.put(`/api/articles/${this.articleId}`, payload)
+          res = await request.put(`/articles/${this.articleId}`, payload)
         } else {
-          res = await request.post('/api/articles', payload)
+          res = await request.post('/articles', payload)
           this.articleId = res.data.data.id
         }
         this.$message.success('文章已发布')
@@ -432,7 +432,7 @@ export default {
     restoreVersion(version) {
       this.$confirm('确定恢复此版本？', '提示', { type: 'warning' }).then(async () => {
         try {
-          await request.post(`/api/articles/${this.articleId}/restore`, { version_id: version.id })
+          await request.post(`/articles/${this.articleId}/restore`, { version_id: version.id })
           this.$message.success('版本已恢复')
           this.historyVisible = false
           this.loadArticle(this.articleId)

@@ -19,7 +19,7 @@ export default {
   name: 'CacheManager', data() { return { data: {} } },
   created() { this.fetchData() },
   methods: {
-    async fetchData() { try { const { data } = await request.get('/api/cache/config'); if (data.code === 200) this.data = data.data } catch (e) {} }
+    async fetchData() { try { const { data } = await request.get('/cache/config'); if (data.code === 200) this.data = data.data } catch (e) {} }
   }
 }
 </script>

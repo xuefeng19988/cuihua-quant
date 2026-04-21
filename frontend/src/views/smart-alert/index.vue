@@ -15,7 +15,7 @@ export default {
   name: 'SmartAlert', data() { return { data: { alerts: [], ml_anomaly: {} } } },
   created() { this.fetchData() },
   methods: {
-    async fetchData() { try { const { data } = await request.get('/api/smart-alert'); if (data.code === 200) this.data = data.data } catch (e) {} }
+    async fetchData() { try { const { data } = await request.get('/smart-alert'); if (data.code === 200) this.data = data.data } catch (e) {} }
   }
 }
 </script>

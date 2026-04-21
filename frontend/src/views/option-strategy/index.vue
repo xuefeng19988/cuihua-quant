@@ -15,7 +15,7 @@ export default {
   created() { this.fetchData() },
   methods: {
     async fetchData() {
-      try { const { data } = await request.get('/api/option-chain', { params: { underlying: this.underlying } }); if (data.code === 200) this.options = data.data }
+      try { const { data } = await request.get('/option-chain', { params: { underlying: this.underlying } }); if (data.code === 200) this.options = data.data }
       catch (e) { this.$message.error('获取期权链失败') }
     }
   }

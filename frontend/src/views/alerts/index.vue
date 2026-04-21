@@ -32,7 +32,7 @@ export default {
   methods: {
     async fetchData() {
       try {
-        const { data } = await request.get('/api/alerts')
+        const { data } = await request.get('/alerts')
         if (data.code === 200) this.rules = data.data.rules || []
       } catch (e) { this.$message.error('获取告警规则失败') }
     },

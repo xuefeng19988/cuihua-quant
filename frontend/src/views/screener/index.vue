@@ -157,7 +157,7 @@ export default {
       this.loading = true
       this.currentPage = 1
       try {
-        const { data } = await request.post('/api/screener', this.form)
+        const { data } = await request.post('/screener', this.form)
         if (data.code === 200) {
           this.results = data.data.list || []
           if (this.form.sortBy) {

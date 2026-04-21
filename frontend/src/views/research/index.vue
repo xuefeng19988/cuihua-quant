@@ -19,7 +19,7 @@ export default { name: 'Research', data() { return { notes: [] } },
   methods: {
     async fetchData() {
       try {
-        const { data } = await request.get('/api/research')
+        const { data } = await request.get('/research')
         if (data.code === 200) this.notes = data.data.notes || []
       } catch (e) { this.$message.error('获取研究笔记失败') }
     },

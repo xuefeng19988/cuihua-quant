@@ -20,7 +20,7 @@ export default { name: 'Stress', data() { return { scenarios: [] } },
   methods: {
     async fetchData() {
       try {
-        const { data } = await request.get('/api/stress')
+        const { data } = await request.get('/stress')
         if (data.code === 200) this.scenarios = data.data.scenarios || []
       } catch (e) { this.$message.error('获取压力测试数据失败') }
     },

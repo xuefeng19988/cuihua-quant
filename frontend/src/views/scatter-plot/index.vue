@@ -16,7 +16,7 @@ export default {
     async fetchData() {
       this.loading = true
       try {
-        const { data } = await request.get('/api/scatter-data')
+        const { data } = await request.get('/scatter-data')
         if (data.code === 200) this.renderChart(data.data.points)
       } catch (e) { this.$message.error('获取数据失败') }
       finally { this.loading = false }

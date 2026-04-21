@@ -109,7 +109,7 @@ export default {
     async fetchData() {
       this.loading = true
       try {
-        const { data } = await request.get('/api/performance')
+        const { data } = await request.get('/performance')
         if (data.code === 200) {
           const d = data.data
           this.metrics[0].value = d.total_return ? '+' + d.total_return + '%' : '--'

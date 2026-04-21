@@ -17,7 +17,7 @@ export default {
   name: 'StrategyRecommender', data() { return { data: {} } },
   created() { this.fetchData() },
   methods: {
-    async fetchData() { try { const { data } = await request.get('/api/strategy-recommender'); if (data.code === 200) this.data = data.data } catch (e) {} }
+    async fetchData() { try { const { data } = await request.get('/strategy-recommender'); if (data.code === 200) this.data = data.data } catch (e) {} }
   }
 }
 </script>

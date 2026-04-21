@@ -243,7 +243,7 @@ export default {
 
     async fetchStocks() {
       try {
-        const { data } = await request.get('/api/stocks')
+        const { data } = await request.get('/stocks')
         if (data.code === 200) {
           this.stocks = data.data.list || []
           this.selectedStocks = this.stocks.slice(0, 3).map(s => s.code)
@@ -256,7 +256,7 @@ export default {
       if (this.selectedStocks.length < 2) return
       this.loading = true
       try {
-        const { data } = await request.post('/api/stock-compare', {
+        const { data } = await request.post('/stock-compare', {
           codes: this.selectedStocks
         })
         if (data.code === 200) {
@@ -274,7 +274,7 @@ export default {
 
     async loadPriceCompare() {
       const promises = this.selectedStocks.map(code =>
-        request.get('/api/charts', { params: { code, days: 30 } })
+        request.get('/charts', { params: { code, days: 30 } })
       )
       const results = await Promise.all(promises)
       this.compareStocks = []

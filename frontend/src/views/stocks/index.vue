@@ -237,7 +237,7 @@ export default {
     async fetchStocks() {
       this.loading = true
       try {
-        const { data } = await request.get('/api/stocks')
+        const { data } = await request.get('/stocks')
         if (data.code === 200) {
           this.stocks = (data.data.list || []).map(s => ({
             ...s,
@@ -288,7 +288,7 @@ export default {
       if (!this.newStock.code) return this.$message.warning('请输入股票代码')
       this.adding = true
       try {
-        await request.post('/api/stocks', this.newStock)
+        await request.post('/stocks', this.newStock)
         this.$message.success('添加成功')
         this.addDialogVisible = false
         this.fetchStocks()
@@ -297,7 +297,7 @@ export default {
     },
     async removeStock(stock) {
       try {
-        await request.delete(`/api/stocks/${stock.code}`)
+        await request.delete(`/stocks/${stock.code}`)
         this.$message.success('已删除')
         this.fetchStocks()
       } catch (e) { this.$message.error('删除失败') }

@@ -21,7 +21,7 @@ export default {
     async fetchData() {
       this.loading = true
       try {
-        const { data } = await request.get('/api/sentiment-engine')
+        const { data } = await request.get('/sentiment-engine')
         if (data.code === 200) { this.data = data.data; this.renderChart() }
       } catch (e) { this.$message.error('获取失败') }
       finally { this.loading = false }

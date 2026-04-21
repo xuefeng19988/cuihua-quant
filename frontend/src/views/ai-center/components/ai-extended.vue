@@ -180,14 +180,14 @@ export default {
 
     // Phase 301: AI 回测
     async loadStrategies() {
-      try { const { data } = await request.get('/api/ai/backtest-strategies'); if (data.code === 200) this.strategyTemplates = data.data.strategies } catch (e) {}
+      try { const { data } = await request.get('/ai/backtest-strategies'); if (data.code === 200) this.strategyTemplates = data.data.strategies } catch (e) {}
     },
     useStrategy(s) { this.backtestDesc = s.description },
     async runBacktest() {
       if (!this.backtestDesc) return this.$message.warning('请描述策略')
       this.backtestLoading = true
       try {
-        const { data } = await request.post('/api/ai/backtest-gen', { description: this.backtestDesc })
+        const { data } = await request.post('/ai/backtest-gen', { description: this.backtestDesc })
         if (data.code === 200) {
           this.backtestResult = data.data.result
           this.$nextTick(() => this.renderBacktestChart())
@@ -211,18 +211,18 @@ export default {
     // Phase 302: 实时盯盘
     async toggleMonitor() {
       if (this.monitorRunning) {
-        await request.post('/api/ai/monitor/stop')
+        await request.post('/ai/monitor/stop')
         this.monitorRunning = false
         clearInterval(this.monitorTimer)
       } else {
-        await request.post('/api/ai/monitor/start')
+        await request.post('/ai/monitor/start')
         this.monitorRunning = true
         this.monitorTimer = setInterval(() => this.checkMonitor(), 5000)
       }
     },
     async checkMonitor() {
       try {
-        const { data } = await request.post('/api/ai/monitor/check')
+        const { data } = await request.post('/ai/monitor/check')
         if (data.code === 200 && data.data.alerts.length) {
           this.monitorAlerts = [...data.data.alerts, ...this.monitorAlerts].slice(0, 50)
         }
@@ -234,7 +234,7 @@ export default {
       if (!this.kbQuery) return
       this.kbLoading = true
       try {
-        const { data } = await request.post('/api/ai/knowledge/qa', { question: this.kbQuery })
+        const { data } = await request.post('/ai/knowledge/qa', { question: this.kbQuery })
         if (data.code === 200) { this.kbAnswer = data.data.answer; this.kbSources = data.data.sources || [] }
       } catch (e) { this.$message.error('查询失败') }
       finally { this.kbLoading = false }
@@ -243,7 +243,7 @@ export default {
       if (!this.kbDocContent) return this.$message.warning('请输入内容')
       this.kbDocLoading = true
       try {
-        const { data } = await request.post('/api/ai/knowledge/add', {
+        const { data } = await request.post('/ai/knowledge/add', {
           title: this.kbDocTitle || '未命名', content: this.kbDocContent, category: this.kbDocCategory
         })
         if (data.code === 200) { this.$message.success('已添加'); this.kbDocTitle = ''; this.kbDocContent = '' }
@@ -253,19 +253,19 @@ export default {
 
     // Phase 307: Prompt 模板
     async loadPrompts() {
-      try { const { data } = await request.get('/api/prompt-templates'); if (data.code === 200) this.promptTemplates = Object.values(data.data.templates) } catch (e) {}
+      try { const { data } = await request.get('/prompt-templates'); if (data.code === 200) this.promptTemplates = Object.values(data.data.templates) } catch (e) {}
     },
     showAddPrompt() { this.promptDialogTitle = '新建模板'; this.promptForm = { name: '', system: '', user: '', temperature: 0.7, max_tokens: 1000, version: '1.0' }; this.promptDialogVisible = true },
     editPrompt(row) { this.promptDialogTitle = '编辑模板'; this.promptForm = { ...row }; this.promptDialogVisible = true },
     async savePrompt() {
       try {
         const method = this.promptTemplates.find(t => t.name === this.promptForm.name) ? 'put' : 'post'
-        const { data } = await request[method](`/api/prompt-templates/${this.promptForm.name}`, this.promptForm)
+        const { data } = await request[method](`/prompt-templates/${this.promptForm.name}`, this.promptForm)
         if (data.code === 200) { this.$message.success('已保存'); this.promptDialogVisible = false; this.loadPrompts() }
       } catch (e) { this.$message.error('保存失败') }
     },
     async deletePrompt(name) {
-      try { await request.delete(`/api/prompt-templates/${name}`); this.$message.success('已删除'); this.loadPrompts() } catch (e) {}
+      try { await request.delete(`/prompt-templates/${name}`); this.$message.success('已删除'); this.loadPrompts() } catch (e) {}
     },
 
     // Phase 306: 多模型代理
@@ -273,7 +273,7 @@ export default {
       if (!this.proxyQuestion) return
       this.proxyLoading = true
       try {
-        const { data } = await request.post('/api/ai/proxy/chat', { question: this.proxyQuestion, api_keys: this.apiKeys })
+        const { data } = await request.post('/ai/proxy/chat', { question: this.proxyQuestion, api_keys: this.apiKeys })
         if (data.code === 200) { this.proxyAnswer = data.data.content; this.proxyProvider = data.data.used_provider }
       } catch (e) { this.$message.error('请求失败') }
       finally { this.proxyLoading = false }

@@ -58,7 +58,7 @@ export default {
     async fetchBackups() {
       this.loading = true
       try {
-        const { data } = await request.get('/api/backup/list', { params: { page: this.page, per_page: 10 } })
+        const { data } = await request.get('/backup/list', { params: { page: this.page, per_page: 10 } })
         if (data.code === 200) { this.backups = data.data.backups; this.total = data.data.total }
       } catch (e) { this.$message.error('获取备份列表失败') }
       finally { this.loading = false }
@@ -66,7 +66,7 @@ export default {
     async createBackup() {
       this.creating = true
       try {
-        const { data } = await request.post('/api/backup/create')
+        const { data } = await request.post('/backup/create')
         if (data.code === 200) { this.$message.success(`备份创建成功 (${data.data.size_mb}MB)`); this.fetchBackups() }
       } catch (e) { this.$message.error('备份失败') }
       finally { this.creating = false }
@@ -75,25 +75,25 @@ export default {
       const formData = new FormData()
       formData.append('file', file)
       try {
-        await request.post('/api/backup/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+        await request.post('/backup/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
         this.$message.success('备份上传成功')
         this.fetchBackups()
       } catch (e) { this.$message.error('上传失败') }
     },
     downloadBackup(row) {
-      window.open(`/api/backup/download/${row.filename}?token=${localStorage.getItem('token')}`)
+      window.open(`/backup/download/${row.filename}?token=${localStorage.getItem('token')}`)
     },
     async restoreBackup(row) {
       try {
         await this.$confirm(`确定要恢复备份 "${row.name}" 吗？当前数据将被覆盖！`, '警告', { type: 'warning' })
-        const { data } = await request.post(`/api/backup/restore/${row.filename}`)
+        const { data } = await request.post(`/backup/restore/${row.filename}`)
         if (data.code === 200) { this.$message.success('备份恢复成功'); this.$router.push('/notes') }
       } catch (e) { if (e !== 'cancel') this.$message.error('恢复失败') }
     },
     async deleteBackup(row) {
       try {
         await this.$confirm(`确定删除备份 "${row.name}" 吗？`, '提示', { type: 'warning' })
-        await request.delete(`/api/backup/delete/${row.filename}`)
+        await request.delete(`/backup/delete/${row.filename}`)
         this.$message.success('备份删除成功')
         this.fetchBackups()
       } catch (e) {}

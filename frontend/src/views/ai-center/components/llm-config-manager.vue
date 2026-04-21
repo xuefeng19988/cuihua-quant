@@ -137,7 +137,7 @@ export default {
   methods: {
     async loadConfigs() {
       try {
-        const { data } = await request.get('/api/llm/configs')
+        const { data } = await request.get('/llm/configs')
         if (data.code === 200) {
           this.configs = data.data.configs || []
           this.stats = data.data.stats || {}
@@ -158,7 +158,7 @@ export default {
     },
     async saveConfig() {
       try {
-        const { data } = await request.post('/api/llm/configs', this.form)
+        const { data } = await request.post('/llm/configs', this.form)
         if (data.code === 200) {
           this.$message.success('配置已添加')
           this.dialogVisible = false
@@ -177,7 +177,7 @@ export default {
     },
     async switchTo(name) {
       try {
-        const { data } = await request.post(`/api/llm/switch/${name}`)
+        const { data } = await request.post(`/llm/switch/${name}`)
         if (data.code === 200) {
           this.$message.success('已切换')
           this.loadConfigs()
@@ -186,7 +186,7 @@ export default {
     },
     async deleteConfig(name) {
       try {
-        const { data } = await request.delete(`/api/llm/configs/${name}`)
+        const { data } = await request.delete(`/llm/configs/${name}`)
         if (data.code === 200) {
           this.$message.success('已删除')
           this.loadConfigs()
@@ -207,7 +207,7 @@ export default {
       this.testLoading = true
       this.testResult = ''
       try {
-        const { data } = await request.post('/api/llm/test', this.testForm)
+        const { data } = await request.post('/llm/test', this.testForm)
         if (data.code === 200) {
           this.testResult = '✅ 连接成功！'
           this.testResultType = 'success'

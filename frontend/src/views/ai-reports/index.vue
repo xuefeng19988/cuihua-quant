@@ -22,7 +22,7 @@ export default {
     async generateReport() {
       this.loading = true
       try {
-        const { data } = await request.post('/api/ai-report', { stock: '贵州茅台' })
+        const { data } = await request.post('/ai-report', { stock: '贵州茅台' })
         if (data.code === 200) this.report = data.data
       } catch (e) { this.$message.error('生成失败') }
       finally { this.loading = false }

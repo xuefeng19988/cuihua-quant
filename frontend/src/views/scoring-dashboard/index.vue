@@ -287,7 +287,7 @@ export default {
         const params = { limit: this.limitFilter }
         if (this.marketFilter) params.market = this.marketFilter
         if (this.sortBy && this.sortBy !== 'score') params.sort_by = this.sortBy
-        const { data } = await request.get('/api/stock-ranking', { params })
+        const { data } = await request.get('/stock-ranking', { params })
         if (data.code === 200) {
           this.rankings = data.data.rankings || []
           this.summary = {

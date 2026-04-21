@@ -16,7 +16,7 @@ export default {
   methods: {
     async fetchData() {
       try {
-        const { data } = await request.get('/api/perf-monitor')
+        const { data } = await request.get('/perf-monitor')
         if (data.code === 200) {
           this.data = data.data
           this.metrics = [

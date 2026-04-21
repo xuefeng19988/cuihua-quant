@@ -18,7 +18,7 @@ export default {
   methods: {
     async fetchData() {
       try {
-        const { data } = await request.get('/api/community/stats')
+        const { data } = await request.get('/community/stats')
         if (data.code === 200) {
           this.data = data.data
           this.stats = [

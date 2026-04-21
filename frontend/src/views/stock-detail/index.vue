@@ -432,7 +432,7 @@ export default {
 
     async fetchStocks() {
       try {
-        const { data } = await request.get('/api/stocks')
+        const { data } = await request.get('/stocks')
         if (data.code === 200) this.stocks = data.data.list || []
       } catch (e) {}
     },
@@ -442,9 +442,9 @@ export default {
       try {
         // 并行加载Futu风格数据
         const [quoteRes, intradayRes, financialsRes] = await Promise.all([
-          request.get(`/api/futu/quote/${this.selectedCode}`),
-          request.get(`/api/futu/intraday/${this.selectedCode}`, { params: { period: this.intradayPeriod } }),
-          request.get(`/api/futu/financials/${this.selectedCode}`)
+          request.get(`/futu/quote/${this.selectedCode}`),
+          request.get(`/futu/intraday/${this.selectedCode}`, { params: { period: this.intradayPeriod } }),
+          request.get(`/futu/financials/${this.selectedCode}`)
         ])
         
         if (quoteRes.data.code === 200) {
@@ -673,7 +673,7 @@ export default {
       this.loadingData = true
       try {
         // 获取历史K线数据
-        const { data } = await request.get(`/api/stock-kline/${this.selectedCode}`, {
+        const { data } = await request.get(`/stock-kline/${this.selectedCode}`, {
           params: { days: 30 }
         })
         if (data.code === 200 && data.data.kline) {
@@ -719,7 +719,7 @@ export default {
 
         // 获取评分
         try {
-          const { data: sd } = await request.get(`/api/stock-score/${this.selectedCode}`)
+          const { data: sd } = await request.get(`/stock-score/${this.selectedCode}`)
           if (sd.code === 200) {
             this.stockData.score = sd.data?.total_score || sd.data?.score || '-'
           }
@@ -763,7 +763,7 @@ export default {
 
       const context = this.buildStockContext()
       try {
-        const { data } = await request.post('/api/ai/chat', {
+        const { data } = await request.post('/ai/chat', {
           question: `关于股票 ${this.stockInfo.name || this.selectedCode} 的数据如下：\n${context}\n\n请回答：${question}`
         })
         if (data.code === 200) {

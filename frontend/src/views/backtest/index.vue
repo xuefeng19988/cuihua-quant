@@ -34,7 +34,7 @@ export default {
     async runBacktest() {
       this.loading = true
       try {
-        const { data } = await request.post('/api/backtest', this.form)
+        const { data } = await request.post('/backtest', this.form)
         if (data.code === 200) {
           this.result = data.data
           const r = data.data

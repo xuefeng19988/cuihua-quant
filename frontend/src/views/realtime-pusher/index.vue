@@ -42,7 +42,7 @@ export default {
   created() { this.fetchStatus() },
   methods: {
     async fetchStatus() {
-      try { await request.get('/api/realtime/status') } catch (e) {}
+      try { await request.get('/realtime/status') } catch (e) {}
     }
   }
 }

@@ -19,12 +19,12 @@ export default {
   created() { this.fetchConfig() },
   methods: {
     async fetchConfig() {
-      try { const { data } = await request.get('/api/custom-dashboard'); if (data.code === 200) this.config = data.data }
+      try { const { data } = await request.get('/custom-dashboard'); if (data.code === 200) this.config = data.data }
       catch (e) { this.$message.error('获取配置失败') }
     },
     async saveConfig() {
       try {
-        await request.post('/api/custom-dashboard', this.config)
+        await request.post('/custom-dashboard', this.config)
         this.$message.success('布局已保存')
       } catch (e) { this.$message.error('保存失败') }
     }

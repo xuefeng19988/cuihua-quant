@@ -50,7 +50,7 @@ export default {
   methods: {
     async checkStatus() {
       try {
-        const { data } = await request.get('/api/ai/status')
+        const { data } = await request.get('/ai/status')
         if (data.code === 200) {
           this.status = { available: data.data.available, model: data.data.model }
         }
@@ -64,7 +64,7 @@ export default {
       this.loading = true
 
       try {
-        const { data } = await request.post('/api/ai/chat', {
+        const { data } = await request.post('/ai/chat', {
           question: q,
           history: this.history
         })

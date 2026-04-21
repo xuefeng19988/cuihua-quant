@@ -49,7 +49,7 @@ export default {
     async fetchData() {
       this.loading = true
       try {
-        const { data } = await request.get('/api/sector-rotation')
+        const { data } = await request.get('/sector-rotation')
         if (data.code === 200) {
           const sectors = data.data.sectors || []
           this.sectorNames = sectors.map(s => s.sector)

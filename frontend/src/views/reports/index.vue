@@ -50,7 +50,7 @@ export default {
     async fetchData() {
       this.loading = true
       try {
-        const { data } = await request.get('/api/reports')
+        const { data } = await request.get('/reports')
         if (data.code === 200) this.reports = data.data.reports || []
       } catch (e) { this.$message.error('获取报告列表失败') }
       finally { this.loading = false }
@@ -58,7 +58,7 @@ export default {
     async generateReport() {
       this.generating = true
       try {
-        const { data } = await request.get('/api/export/csv', { params: { days: 30 } })
+        const { data } = await request.get('/export/csv', { params: { days: 30 } })
         if (data.code === 200) {
           this.$message.success('报告生成成功！')
           this.fetchData()

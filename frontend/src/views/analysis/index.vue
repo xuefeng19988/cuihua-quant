@@ -25,7 +25,7 @@ export default {
     async fetchData() {
       this.loading = true
       try {
-        const { data } = await request.get('/api/signals')
+        const { data } = await request.get('/signals')
         if (data.code === 200) this.signals = data.data.signals || []
       } catch (e) { this.$message.error('获取信号失败') }
       finally { this.loading = false }

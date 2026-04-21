@@ -34,7 +34,7 @@ export default {
       this.error = ''
       const context = '今日A股市场数据：上证指数、深证成指、创业板指。板块热点：AI、新能源、半导体。资金流向：北向资金、主力净流入。'
       try {
-        const { data } = await request.post('/api/ai/market-summary', { context })
+        const { data } = await request.post('/ai/market-summary', { context })
         if (data.code === 200) {
           this.result = data.data
         } else {

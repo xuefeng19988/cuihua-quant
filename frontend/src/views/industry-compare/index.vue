@@ -23,7 +23,7 @@ export default {
   methods: {
     async fetchData() {
       this.loading = true
-      try { const { data } = await request.get('/api/industry-compare'); if (data.code === 200) this.industries = data.data.industries }
+      try { const { data } = await request.get('/industry-compare'); if (data.code === 200) this.industries = data.data.industries }
       catch (e) { this.$message.error('获取数据失败') }
       finally { this.loading = false }
     }

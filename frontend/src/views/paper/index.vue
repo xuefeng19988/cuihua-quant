@@ -43,7 +43,7 @@ export default {
     async fetchData() {
       this.loading = true
       try {
-        const { data } = await request.get('/api/paper')
+        const { data } = await request.get('/paper')
         if (data.code === 200) {
           const d = data.data
           this.running = d.running

@@ -68,7 +68,7 @@ export default {
     async fetchData() {
       this.loading = true
       try {
-        const { data } = await request.get('/api/fund-flow')
+        const { data } = await request.get('/fund-flow')
         if (data.code === 200) {
           this.flows = data.data.flows || []
           this.renderChart()

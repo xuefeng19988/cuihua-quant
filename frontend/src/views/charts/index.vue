@@ -119,14 +119,14 @@ export default {
   methods: {
     async fetchStocks() {
       try {
-        const { data } = await request.get('/api/stocks')
+        const { data } = await request.get('/stocks')
         if (data.code === 200) this.stocks = data.data.list || []
       } catch (e) {}
     },
     async fetchChartData() {
       this.loading = true
       try {
-        const { data } = await request.get('/api/charts', { 
+        const { data } = await request.get('/charts', { 
           params: { code: this.selectedCode, days: this.selectedDays } 
         })
         if (data.code === 200) this.chartData = data.data

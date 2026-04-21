@@ -76,7 +76,7 @@ export default {
   methods: {
     async loadIndicator() {
       try {
-        const { data } = await request.get(`/api/futu/technical/${this.code}`)
+        const { data } = await request.get(`/futu/technical/${this.code}`)
         if (data.code === 200) {
           this.indicatorData = data.data
           this.updateIndicator()

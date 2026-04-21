@@ -31,7 +31,7 @@ export default { name: 'StopLoss', data() { return { rules: [], stats: {}, loadi
     async fetchData() {
       this.loading = true
       try {
-        const { data } = await request.get('/api/stoploss')
+        const { data } = await request.get('/stoploss')
         if (data.code === 200) { this.rules = data.data.rules || []; this.stats = data.data.stats || {} }
       } catch (e) { this.$message.error('获取止损数据失败') }
       finally { this.loading = false }

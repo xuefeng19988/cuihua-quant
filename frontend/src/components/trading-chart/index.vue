@@ -180,7 +180,7 @@ export default {
 
     async loadChart() {
       try {
-        const { data } = await request.get('/api/charts', { 
+        const { data } = await request.get('/charts', { 
           params: { code: this.code, days: this.days } 
         })
         

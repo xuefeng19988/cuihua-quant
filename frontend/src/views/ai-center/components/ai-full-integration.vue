@@ -309,7 +309,7 @@ export default {
       if (!this.screenQuery) return this.$message.warning('请输入选股条件')
       this.screenLoading = true
       try {
-        const { data } = await request.post('/api/ai/stock-screen', { query: this.screenQuery })
+        const { data } = await request.post('/ai/stock-screen', { query: this.screenQuery })
         if (data.code === 200) {
           this.screenResults = data.data.results
           this.screenSummary = data.data.ai_summary
@@ -319,7 +319,7 @@ export default {
     },
     async loadSectorForecast() {
       try {
-        const { data } = await request.get('/api/ai/sector-forecast')
+        const { data } = await request.get('/ai/sector-forecast')
         if (data.code === 200) {
           this.sectorForecast = data.data.sectors
           this.sectorComment = data.data.ai_comment
@@ -333,8 +333,8 @@ export default {
       this.deepLoading = true
       try {
         const [chain, val] = await Promise.all([
-          request.get(`/api/ai/industry-chain/${this.deepCode}`),
-          request.get(`/api/ai/valuation/${this.deepCode}`)
+          request.get(`/ai/industry-chain/${this.deepCode}`),
+          request.get(`/ai/valuation/${this.deepCode}`)
         ])
         this.deepData = {
           industryChain: chain.data.data,
@@ -347,19 +347,19 @@ export default {
     // Phase 316: 图表增强
     async runDrawLines() {
       try {
-        const { data } = await request.post('/api/ai/chart/draw-lines', {})
+        const { data } = await request.post('/ai/chart/draw-lines', {})
         if (data.code === 200) this.chartEnhancedData = data.data
       } catch (e) {}
     },
     async runVolumePrice() {
       try {
-        const { data } = await request.post('/api/ai/chart/volume-price', {})
+        const { data } = await request.post('/ai/chart/volume-price', {})
         if (data.code === 200) this.chartEnhancedData = data.data
       } catch (e) {}
     },
     async runWaveAnalysis() {
       try {
-        const { data } = await request.post('/api/ai/chart/wave-analysis', {})
+        const { data } = await request.post('/ai/chart/wave-analysis', {})
         if (data.code === 200) this.chartEnhancedData = data.data
       } catch (e) {}
     },
@@ -368,7 +368,7 @@ export default {
     async generateDailyNote() {
       this.noteLoading = true
       try {
-        const { data } = await request.post('/api/ai/note/auto-generate', { date: '今日' })
+        const { data } = await request.post('/ai/note/auto-generate', { date: '今日' })
         if (data.code === 200) this.dailyNote = data.data.content
       } catch (e) { this.$message.error('生成失败') }
       finally { this.noteLoading = false }
@@ -376,7 +376,7 @@ export default {
     async runTradeReview() {
       this.reviewLoading = true
       try {
-        const { data } = await request.post('/api/ai/note/trade-review', { trades: [] })
+        const { data } = await request.post('/ai/note/trade-review', { trades: [] })
         if (data.code === 200) this.tradeReview = data.data
       } catch (e) { this.$message.error('复盘失败') }
       finally { this.reviewLoading = false }
@@ -387,7 +387,7 @@ export default {
       if (!this.nlQuery) return this.$message.warning('请输入查询')
       this.nlLoading = true
       try {
-        const { data } = await request.post('/api/ai/nl-query', { query: this.nlQuery })
+        const { data } = await request.post('/ai/nl-query', { query: this.nlQuery })
         if (data.code === 200) {
           this.nlResults = data.data.results
           this.nlColumns = this.nlResults.length ? Object.keys(this.nlResults[0]) : []
@@ -397,7 +397,7 @@ export default {
     },
     async loadStrategyMarket() {
       try {
-        const { data } = await request.get('/api/ai/strategy-market')
+        const { data } = await request.get('/ai/strategy-market')
         if (data.code === 200) this.strategies = data.data.strategies
       } catch (e) {}
     },
@@ -406,20 +406,20 @@ export default {
     async generateIndustryReport() {
       this.researchLoading = true
       try {
-        const { data } = await request.post('/api/ai/research/industry', { industry: this.researchIndustry })
+        const { data } = await request.post('/ai/research/industry', { industry: this.researchIndustry })
         if (data.code === 200) this.industryReport = data.data
       } catch (e) { this.$message.error('生成失败') }
       finally { this.researchLoading = false }
     },
     async loadWeeklyReport() {
       try {
-        const { data } = await request.get('/api/ai/research/weekly')
+        const { data } = await request.get('/ai/research/weekly')
         if (data.code === 200) this.weeklyReport = data.data
       } catch (e) {}
     },
     async loadMacroReport() {
       try {
-        const { data } = await request.get('/api/ai/research/macro')
+        const { data } = await request.get('/ai/research/macro')
         if (data.code === 200) {
           this.macroReport = data.data
           this.macroIndicators = Object.entries(data.data.report.indicators).map(([k, v]) => ({

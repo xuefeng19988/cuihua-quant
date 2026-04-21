@@ -90,14 +90,14 @@ export default {
   methods: {
     async fetchStocks() {
       try {
-        const { data } = await request.get('/api/stocks')
+        const { data } = await request.get('/stocks')
         if (data.code === 200) this.stocks = data.data.list || []
       } catch (e) {}
     },
     async loadFinancial() {
       if (!this.selectedCode) return
       try {
-        const { data } = await request.get(`/api/financial/${this.selectedCode}`)
+        const { data } = await request.get(`/financial/${this.selectedCode}`)
         if (data.code === 200) {
           this.financial = data.data
           this.renderChart()

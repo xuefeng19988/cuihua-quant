@@ -11,7 +11,7 @@ export default {
   name: 'Scheduler', data() { return { data: { tasks: [] } } },
   created() { this.fetchData() },
   methods: {
-    async fetchData() { try { const { data } = await request.get('/api/scheduler'); if (data.code === 200) this.data = data.data } catch (e) {} }
+    async fetchData() { try { const { data } = await request.get('/scheduler'); if (data.code === 200) this.data = data.data } catch (e) {} }
   }
 }
 </script>

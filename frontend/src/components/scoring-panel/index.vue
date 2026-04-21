@@ -128,7 +128,7 @@ export default {
       if (!this.code) return
       this.loading = true
       try {
-        const { data } = await request.get('/api/stock-scoring-dashboard', {
+        const { data } = await request.get('/stock-scoring-dashboard', {
           params: { code: this.code }
         })
         if (data.code === 200) {

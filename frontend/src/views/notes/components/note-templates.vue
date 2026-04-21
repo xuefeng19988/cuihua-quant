@@ -60,7 +60,7 @@ export default {
   methods: {
     async loadStocks() {
       try {
-        const { data } = await request.get('/api/stocks?limit=100')
+        const { data } = await request.get('/stocks?limit=100')
         if (data.code === 200) this.stockList = data.data.stocks || []
       } catch (e) { /* ignore */ }
     },
@@ -71,7 +71,7 @@ export default {
     },
     async createNote() {
       try {
-        const { data } = await request.post('/api/notes', {
+        const { data } = await request.post('/notes', {
           title: `${this.selectedTemplate.name}: ${this.form.code || ''}`,
           content: this.form.content,
           tags: this.selectedTemplate.tags,

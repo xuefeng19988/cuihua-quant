@@ -11,7 +11,7 @@ export default {
   name: 'MultiUser', data() { return { users: [] } },
   created() { this.fetchUsers() },
   methods: {
-    async fetchUsers() { try { const { data } = await request.get('/api/users'); if (data.code === 200) this.users = data.data.users || [] } catch (e) {} },
+    async fetchUsers() { try { const { data } = await request.get('/users'); if (data.code === 200) this.users = data.data.users || [] } catch (e) {} },
     showAddUser() { this.$message.info('添加用户功能') }
   }
 }

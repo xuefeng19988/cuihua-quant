@@ -105,7 +105,7 @@ export default {
   methods: {
     async loadData() {
       try {
-        const { data } = await request.get(`/api/futu/capital-flow/${this.code}`, {
+        const { data } = await request.get(`/futu/capital-flow/${this.code}`, {
           params: { period: this.period }
         })
         

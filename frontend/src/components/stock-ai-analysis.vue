@@ -75,7 +75,7 @@ export default {
     async loadAIAnalysis() {
       if (!this.code) return
       try {
-        const { data } = await request.post('/api/ai/analyze-stock', {
+        const { data } = await request.post('/ai/analyze-stock', {
           code: this.code, name: this.name || this.code, score: 60
         })
         if (data.code === 200) {

@@ -20,7 +20,7 @@ export default {
   methods: {
     async fetchData() {
       this.loading = true
-      try { const { data } = await request.get('/api/trade-calendar'); if (data.code === 200) this.events = data.data.events }
+      try { const { data } = await request.get('/trade-calendar'); if (data.code === 200) this.events = data.data.events }
       catch (e) { this.$message.error('获取数据失败') }
       finally { this.loading = false }
     }

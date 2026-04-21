@@ -24,7 +24,7 @@ export default {
   methods: {
     async fetchData() {
       try {
-        const { data } = await request.get('/api/heatmap')
+        const { data } = await request.get('/heatmap')
         if (data.code === 200) this.sectors = data.data.sectors || []
       } catch (e) { this.$message.error('获取热力图数据失败') }
     }

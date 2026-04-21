@@ -52,7 +52,7 @@ export default {
   methods: {
     async loadNotes() {
       try {
-        const { data } = await request.get('/api/notes')
+        const { data } = await request.get('/notes')
         if (data.code === 200) {
           this.noteList = (data.data.notes || []).slice(0, 50)
         }
@@ -70,7 +70,7 @@ export default {
       this.loading = true
       this.error = ''
       try {
-        const { data } = await request.post('/api/ai/chat', {
+        const { data } = await request.post('/ai/chat', {
           question: `请分析以下笔记的核心观点，并给出投资建议：\n\n${this.selectedNote.title}`
         })
         if (data.code === 200) {
@@ -89,7 +89,7 @@ export default {
       this.loading = true
       this.error = ''
       try {
-        const { data } = await request.post('/api/ai/generate-report', {
+        const { data } = await request.post('/ai/generate-report', {
           context: `笔记标题: ${this.selectedNote.title}\n\n请基于该笔记生成一份专业研报。`
         })
         if (data.code === 200) {

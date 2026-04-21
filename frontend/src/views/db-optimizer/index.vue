@@ -18,10 +18,10 @@ export default {
   name: 'DBOptimizer', data() { return { data: {}, loading: false } },
   created() { this.fetchData() },
   methods: {
-    async fetchData() { try { const { data } = await request.get('/api/db/indexes'); if (data.code === 200) this.data = data.data } catch (e) {} },
+    async fetchData() { try { const { data } = await request.get('/db/indexes'); if (data.code === 200) this.data = data.data } catch (e) {} },
     async optimizeIndexes() {
       this.loading = true
-      try { const { data } = await request.post('/api/db/indexes'); if (data.code === 200) { this.$message.success('索引优化成功'); this.fetchData() } }
+      try { const { data } = await request.post('/db/indexes'); if (data.code === 200) { this.$message.success('索引优化成功'); this.fetchData() } }
       catch (e) { this.$message.error('优化失败') }
       finally { this.loading = false }
     }

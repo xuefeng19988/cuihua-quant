@@ -115,7 +115,7 @@ export default {
     async fetchData() {
       this.loading = true
       try {
-        const { data } = await request.get('/api/watchlist')
+        const { data } = await request.get('/watchlist')
         if (data.code === 200) this.watchlist = data.data.stocks || this.watchlist
       } catch (e) { this.$message.error('刷新失败') }
       finally { this.loading = false }
@@ -126,7 +126,7 @@ export default {
     async addStock() {
       if (!this.newStock.code) return this.$message.warning('请输入代码')
       try {
-        await request.post('/api/watchlist', this.newStock)
+        await request.post('/watchlist', this.newStock)
         this.$message.success('添加成功')
         this.watchlist.push({ ...this.newStock, price: 0, change: 0, volume: 0 })
         this.addDialogVisible = false
@@ -134,7 +134,7 @@ export default {
     },
     async removeStock(stock) {
       try {
-        await request.delete('/api/watchlist', { params: { code: stock.code } })
+        await request.delete('/watchlist', { params: { code: stock.code } })
         this.watchlist = this.watchlist.filter(s => s.code !== stock.code)
         this.$message.success('已移除')
       } catch (e) { this.$message.error('移除失败') }

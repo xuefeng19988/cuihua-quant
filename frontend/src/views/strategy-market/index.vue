@@ -26,7 +26,7 @@ export default {
   methods: {
     async fetchData() {
       this.loading = true
-      try { const { data } = await request.get('/api/strategy-market'); if (data.code === 200) this.strategies = data.data.strategies }
+      try { const { data } = await request.get('/strategy-market'); if (data.code === 200) this.strategies = data.data.strategies }
       catch (e) { this.$message.error('获取数据失败') }
       finally { this.loading = false }
     }

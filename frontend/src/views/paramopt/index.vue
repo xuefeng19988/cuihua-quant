@@ -26,13 +26,13 @@ export default { name: 'ParamOpt', data() { return {
   async startOptimize() {
     this.running = true
     try {
-      const { data } = await request.post('/api/paramopt', this.form)
+      const { data } = await request.post('/paramopt', this.form)
       if (data.code === 200) this.results = data.data.results || []
       this.$message.success('优化完成')
     } catch (e) { this.$message.error('优化失败') }
     finally { this.running = false }
   }
 }, created() {
-  request.get('/api/paramopt').then(({ data }) => { if (data.code === 200) this.strategies = data.data.strategies || [] })
+  request.get('/paramopt').then(({ data }) => { if (data.code === 200) this.strategies = data.data.strategies || [] })
 }}
 </script>

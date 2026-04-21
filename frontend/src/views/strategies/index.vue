@@ -69,7 +69,7 @@ export default {
   methods: {
     async fetchData() {
       try {
-        const { data } = await request.get('/api/strategies')
+        const { data } = await request.get('/strategies')
         if (data.code === 200) {
           this.strategies = data.data.strategies || []
           this.filterData()
@@ -91,7 +91,7 @@ export default {
         confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning'
       }).then(async () => {
         try {
-          await request.post(`/api/strategies/${row.id}/toggle`, { status: newStatus })
+          await request.post(`/strategies/${row.id}/toggle`, { status: newStatus })
           this.$message.success('操作成功')
           this.fetchData()
         } catch (e) {

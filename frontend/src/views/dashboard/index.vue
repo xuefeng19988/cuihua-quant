@@ -85,7 +85,7 @@ export default {
   methods: {
     async fetchData() {
       try {
-        const { data } = await request.get('/api/dashboard')
+        const { data } = await request.get('/dashboard')
         if (data.code === 200) {
           const d = data.data
           this.stats[1].value = d.db_records || '--'

@@ -148,7 +148,7 @@ export default {
   created() { this.fetchData() },
   methods: {
     async fetchData() {
-      try { const { data } = await request.get('/api/portfolio'); if (data.code === 200) { this.positions = data.data.positions || this.positions; this.totalCapital = data.data.total_capital || 1000000 } } catch (e) {}
+      try { const { data } = await request.get('/portfolio'); if (data.code === 200) { this.positions = data.data.positions || this.positions; this.totalCapital = data.data.total_capital || 1000000 } } catch (e) {}
     },
     showAddDialog() { this.newPosition = { code: '', name: '', shares: 100, cost: 0, price: 0 }; this.addDialogVisible = true },
     addPosition() {

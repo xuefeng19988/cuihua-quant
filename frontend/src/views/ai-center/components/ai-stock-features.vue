@@ -188,7 +188,7 @@ export default {
     async runStockPick() {
       this.pickLoading = true
       try {
-        const { data } = await request.post('/api/ai/stock-pick', this.pickForm)
+        const { data } = await request.post('/ai/stock-pick', this.pickForm)
         this.pickResult = data.code === 200 ? data.data.picks : data.message
       } catch (e) { this.pickResult = '请求失败: ' + e.message }
       finally { this.pickLoading = false }
@@ -199,7 +199,7 @@ export default {
       if (!this.anomalyForm.code) return this.$message.warning('请输入股票代码')
       this.anomalyLoading = true
       try {
-        const { data } = await request.post('/api/ai/analyze-anomaly', this.anomalyForm)
+        const { data } = await request.post('/ai/analyze-anomaly', this.anomalyForm)
         this.anomalyResult = data.code === 200 ? data.data.analysis : data.message
       } catch (e) { this.anomalyResult = '请求失败: ' + e.message }
       finally { this.anomalyLoading = false }
@@ -210,7 +210,7 @@ export default {
       this.portfolioLoading = true
       try {
         const positions = [] // TODO: 从真实持仓接口获取
-        const { data } = await request.post('/api/ai/portfolio-diagnosis', { positions })
+        const { data } = await request.post('/ai/portfolio-diagnosis', { positions })
         this.portfolioResult = data.code === 200 ? data.data.diagnosis : data.message
       } catch (e) { this.portfolioResult = '请求失败: ' + e.message }
       finally { this.portfolioLoading = false }
@@ -221,7 +221,7 @@ export default {
       this.newsLoading = true
       try {
         const news = [] // TODO: 从新闻接口获取
-        const { data } = await request.post('/api/ai/news-summary', { news })
+        const { data } = await request.post('/ai/news-summary', { news })
         if (data.code === 200) this.newsResults = data.data.summaries
       } catch (e) { this.$message.error('请求失败') }
       finally { this.newsLoading = false }
@@ -232,7 +232,7 @@ export default {
       if (!this.researchForm.code) return this.$message.warning('请输入股票代码')
       this.researchLoading = true
       try {
-        const { data } = await request.post('/api/ai/generate-research', { code: this.researchForm.code })
+        const { data } = await request.post('/ai/generate-research', { code: this.researchForm.code })
         if (data.code === 200) {
           this.researchResult = data.data.report
           this.researchGeneratedAt = data.data.generated_at
@@ -246,7 +246,7 @@ export default {
       if (!this.riskForm.code) return this.$message.warning('请输入股票代码')
       this.riskLoading = true
       try {
-        const { data } = await request.post('/api/ai/risk-alert', { code: this.riskForm.code })
+        const { data } = await request.post('/ai/risk-alert', { code: this.riskForm.code })
         if (data.code === 200) this.riskResult = data.data
         else this.$message.error(data.message)
       } catch (e) { this.$message.error('请求失败') }
@@ -258,7 +258,7 @@ export default {
       if (!this.sectorForm.sector) return this.$message.warning('请输入板块名称')
       this.sectorLoading = true
       try {
-        const { data } = await request.post('/api/ai/sector-analysis', this.sectorForm)
+        const { data } = await request.post('/ai/sector-analysis', this.sectorForm)
         this.sectorResult = data.code === 200 ? data.data.analysis : data.message
       } catch (e) { this.sectorResult = '请求失败: ' + e.message }
       finally { this.sectorLoading = false }
@@ -268,7 +268,7 @@ export default {
     async runJournal() {
       this.journalLoading = true
       try {
-        const { data } = await request.post('/api/ai/trading-journal', { trades: [], market_summary: '' })
+        const { data } = await request.post('/ai/trading-journal', { trades: [], market_summary: '' })
         this.journalResult = data.code === 200 ? data.data.journal : data.message
       } catch (e) { this.journalResult = '请求失败: ' + e.message }
       finally { this.journalLoading = false }

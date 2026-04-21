@@ -155,7 +155,7 @@ export default {
     async fetchArticles() {
       this.loading = true
       try {
-        const { data } = await request.get('/api/articles', { params: { page: this.page, per_page: 10, ...this.query } })
+        const { data } = await request.get('/articles', { params: { page: this.page, per_page: 10, ...this.query } })
         if (data.code === 200) { this.articles = data.data.articles; this.total = data.data.total; this.stats = data.data.stats || this.stats }
       } catch (e) { this.$message.error('获取笔记失败') }
       finally { this.loading = false }
@@ -164,16 +164,16 @@ export default {
       this.$router.push({ path: '/ai-center/note', query: { id: note.id, title: note.title } })
     },
     async fetchTags() {
-      try { const { data } = await request.get('/api/notes/tags'); if (data.code === 200) this.tags = data.data.tags || [] } catch (e) {}
+      try { const { data } = await request.get('/notes/tags'); if (data.code === 200) this.tags = data.data.tags || [] } catch (e) {}
     },
     createArticle() { this.$router.push('/note-editor') },
     editArticle(article) { this.$router.push(`/note-editor/${article.id}`) },
     async togglePublish(article) {
-      try { await request.put(`/api/articles/${article.id}`, { status: 'published' }); this.$message.success('已发布'); this.fetchArticles() }
+      try { await request.put(`/articles/${article.id}`, { status: 'published' }); this.$message.success('已发布'); this.fetchArticles() }
       catch (e) { this.$message.error('发布失败') }
     },
     async deleteArticle(article) {
-      try { await this.$confirm(`确定删除"${article.title}"？`, '提示', { type: 'warning' }); await request.delete(`/api/articles/${article.id}`); this.$message.success('删除成功'); this.fetchArticles() } catch (e) {}
+      try { await this.$confirm(`确定删除"${article.title}"？`, '提示', { type: 'warning' }); await request.delete(`/articles/${article.id}`); this.$message.success('删除成功'); this.fetchArticles() } catch (e) {}
     },
     resetQuery() { this.query = { status: '', category: '', tag: '', keyword: '' }; this.page = 1; this.fetchArticles() }
   }

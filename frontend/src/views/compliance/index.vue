@@ -17,7 +17,7 @@ export default { name: 'Compliance', data() { return { checks: [], loading: fals
     async fetchData() {
       this.loading = true
       try {
-        const { data } = await request.get('/api/compliance')
+        const { data } = await request.get('/compliance')
         if (data.code === 200) this.checks = data.data.checks || []
       } catch (e) { this.$message.error('获取合规数据失败') }
       finally { this.loading = false }

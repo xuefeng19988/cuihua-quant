@@ -44,7 +44,7 @@ export default {
     async runBacktest() {
       this.loading = true
       try {
-        const { data } = await request.post('/api/strategy/upgrade', this.form)
+        const { data } = await request.post('/strategy/upgrade', this.form)
         if (data.code === 200) this.results = data.data.results
       } catch (e) { this.$message.error('回测失败') }
       finally { this.loading = false }

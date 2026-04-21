@@ -52,7 +52,7 @@ export default {
     async fetchData() {
       this.loading = true
       try {
-        const { data } = await request.get('/api/portfolio-report')
+        const { data } = await request.get('/portfolio-report')
         if (data.code === 200) { this.report = data.data; this.renderChart() }
       } catch (e) { this.$message.error('获取数据失败') }
       finally { this.loading = false }

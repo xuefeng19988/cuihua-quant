@@ -174,7 +174,7 @@ export default {
     
     async loadStocks() {
       try {
-        const { data } = await request.get('/api/stocks')
+        const { data } = await request.get('/stocks')
         if (data.code === 200) {
           this.stocks = data.data.list || []
         }
