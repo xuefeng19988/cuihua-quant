@@ -38,13 +38,13 @@ export default { name: 'Settings', data() { return { activeTab: 'profile', setti
   methods: {
     async fetchSettings() {
       try {
-        const { data } = await request.get('/api/settings')
+        const { data } = await request.get('/settings')
         if (data.code === 200) this.settings = data.data
-      } catch (e) { this.$message.error('获取设置失败') }
+      } catch (e) { /* silent - not critical */ }
     },
     async saveSettings() {
       try {
-        await request.post('/api/settings', this.settings)
+        await request.post('/settings', this.settings)
         this.$message.success('设置已保存')
       } catch (e) { this.$message.error('保存失败') }
     },
