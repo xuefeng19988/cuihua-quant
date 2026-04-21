@@ -128,22 +128,8 @@
         </div>
       </div>
 
-      <!-- 右侧：快捷操作 -->
+      <!-- 右侧：编辑器工具 -->
       <div class="editor-tools">
-        <el-card class="tool-card">
-          <div slot="header"><span>📋 快捷操作</span></div>
-          <el-button-group style="width:100%;display:flex;flex-wrap:wrap;">
-            <el-button size="mini" @click="insertImage">🖼️ 图片</el-button>
-            <el-button size="mini" @click="insertVideo">🎬 视频</el-button>
-            <el-button size="mini" @click="insertCode">💻 代码</el-button>
-            <el-button size="mini" @click="insertTable">📊 表格</el-button>
-            <el-button size="mini" @click="insertQuote">💬 引用</el-button>
-            <el-button size="mini" @click="insertDivider">➖ 分割线</el-button>
-            <el-button size="mini" @click="insertLink">🔗 链接</el-button>
-            <el-button size="mini" @click="insertNote">📝 笔记链接</el-button>
-          </el-button-group>
-        </el-card>
-
         <el-card class="tool-card">
           <div slot="header"><span>🎨 排版模板</span></div>
           <el-select v-model="selectedTemplate" placeholder="选择模板" style="width:100%;" @change="applyTemplate">
@@ -316,21 +302,14 @@ export default {
       
       const editor = new E('#rich-toolbar', '#rich-content')
       editor.config.height = 600
-      editor.config.uploadImgServer = '/api/notes/upload'
-      editor.config.uploadFileName = 'file'
-      editor.config.uploadImgHooks = {
-        customInsert: (insertImgFn, result) => {
-          if (result.code === 200) insertImgFn(result.data.url)
-        }
-      }
       editor.config.customUploadImg = async (resultFiles, insertImgFn) => {
         for (const file of resultFiles) {
           const formData = new FormData()
           formData.append('file', file)
           try {
-            const res = await request.post('/api/notes/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+            const res = await request.post('/notes/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
             if (res.code === 200) insertImgFn(res.data.url)
-          } catch (e) { this.$message.error('图片上传失败') }
+          } catch (e) { this.$message.error('图片上传失败: ' + (e.message || '未知错误')) }
         }
       }
       editor.create()
