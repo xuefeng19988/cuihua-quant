@@ -91,7 +91,7 @@ export default {
   },
   methods: {
     handleCommand(command) {
-      const map = { profile: '/settings', settings: '/settings', theme: '/theme-switcher' }
+      const map = { profile: '/admin/settings', settings: '/admin/settings', theme: '/admin/theme' }
       if (command === 'logout') {
         this.$confirm('确定退出登录?', '提示', { type: 'warning' })
           .then(() => this.$router.push('/login'))
