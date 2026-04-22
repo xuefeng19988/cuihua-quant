@@ -243,5 +243,21 @@ def get_llm_engine(config: Optional[Dict] = None) -> LLMEngine:
     """获取全局 LLM 引擎实例"""
     global _llm_engine
     if _llm_engine is None:
+        # 优先从 LLM Manager 获取活跃配置
+        if config is None:
+            try:
+                from src.ai.llm_manager import get_llm_manager
+                mgr = get_llm_manager()
+                active = mgr.get_active_config()
+                if active and active.get('api_key_full'):
+                    preset = PROVIDER_PRESETS.get(active['provider'], {})
+                    config = {
+                        'provider': active['provider'],
+                        'api_key': active['api_key_full'],
+                        'base_url': active.get('base_url', preset.get('base_url', '')),
+                        'model': active.get('model', preset.get('default_model', '')),
+                    }
+            except Exception:
+                pass
         _llm_engine = LLMEngine(config)
     return _llm_engine
