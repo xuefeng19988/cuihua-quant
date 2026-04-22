@@ -95,37 +95,9 @@
         </div>
       </div>
 
-      <!-- 中间：编辑器 -->
+      <!-- 中间：Cherry Markdown 编辑器 -->
       <div class="editor-main">
-        <div class="editor-mode-switch">
-          <el-radio-group v-model="editorMode" size="mini">
-            <el-radio-button label="rich">富文本</el-radio-button>
-            <el-radio-button label="markdown">Markdown</el-radio-button>
-            <el-radio-button label="preview">预览</el-radio-button>
-          </el-radio-group>
-        </div>
-
-        <!-- 富文本编辑器 -->
-        <div v-show="editorMode === 'rich'" class="editor-wrapper">
-          <div id="rich-toolbar" style="border:1px solid #dcdfe6;border-radius:4px 4px 0 0;"></div>
-          <div id="rich-content" style="border:1px solid #dcdfe6;border-top:none;min-height:600px;overflow-y:auto;border-radius:0 0 4px 4px;"></div>
-        </div>
-
-        <!-- Markdown 编辑器 -->
-        <div v-show="editorMode === 'markdown'" class="md-editor-wrapper">
-          <el-input
-            type="textarea"
-            v-model="form.content_md"
-            :rows="25"
-            placeholder="支持 Markdown 语法..."
-            style="font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;font-size:14px;line-height:1.6;"
-          />
-        </div>
-
-        <!-- 预览模式 -->
-        <div v-show="editorMode === 'preview'" class="preview-wrapper">
-          <div class="preview-content" v-html="sanitizeHTML(previewContent)"></div>
-        </div>
+        <div id="cherry-markdown" ref="cherryEditor"></div>
       </div>
 
       <!-- 右侧：编辑器工具 -->
@@ -163,7 +135,7 @@
 
     <!-- 预览对话框 -->
     <el-dialog title="文章预览" :visible.sync="previewVisible" width="70%" top="5vh">
-      <div class="preview-dialog-content" v-html="sanitizeHTML(previewContent)"></div>
+      <div class="preview-dialog-content" v-html="previewHtml"></div>
     </el-dialog>
 
     <!-- 历史版本对话框 -->
@@ -208,7 +180,8 @@
 
 <script>
 import request from '@/utils/request'
-import E from 'wangeditor'
+import Cherry from 'cherry-markdown'
+import 'cherry-markdown/dist/cherry-markdown.min.css'
 import sanitizeMixin from '@/mixins/sanitize'
 
 export default {
@@ -229,12 +202,11 @@ export default {
         status: 'draft',
         is_top: 0
       },
-      editorMode: 'rich',
-      editor: null,
+      cherryEditor: null,
       saving: false,
       publishing: false,
       previewVisible: false,
-      previewContent: '',
+      previewHtml: '',
       historyVisible: false,
       shareVisible: false,
       shareLink: '',
@@ -263,15 +235,15 @@ export default {
       return { Authorization: `Bearer ${localStorage.getItem('token')}` }
     },
     wordCount() {
-      const html = this.editorMode === 'rich' ? (this.editor ? this.editor.txt.text() : '') : this.form.content_md
-      return html ? html.length : 0
+      const md = this.form.content_md
+      return md ? md.length : 0
     },
     chineseWordCount() {
-      const text = this.editorMode === 'rich' ? (this.editor ? this.editor.txt.text() : '') : this.form.content_md
+      const text = this.form.content_md
       return text ? (text.match(/[\u4e00-\u9fa5]/g) || []).length : 0
     },
     paragraphCount() {
-      const text = this.editorMode === 'rich' ? (this.editor ? this.editor.txt.text() : '') : this.form.content_md
+      const text = this.form.content_md
       return text ? text.split(/\n\s*\n/).length : 0
     },
     readTime() {
@@ -291,34 +263,98 @@ export default {
     await this.loadTags()
   },
   mounted() {
-    this.$nextTick(() => this.initEditor())
+    this.$nextTick(() => this.initCherryEditor())
   },
   beforeDestroy() {
-    if (this.editor) { this.editor.destroy(); this.editor = null }
+    if (this.cherryEditor) {
+      this.cherryEditor.destroy()
+      this.cherryEditor = null
+    }
   },
   methods: {
-    initEditor() {
-      if (this.editor) { this.editor.destroy(); this.editor = null }
+    initCherryEditor() {
+      if (this.cherryEditor) {
+        this.cherryEditor.destroy()
+        this.cherryEditor = null
+      }
       
-      const editor = new E('#rich-toolbar', '#rich-content')
-      editor.config.height = 600
-      editor.config.customUploadImg = async (resultFiles, insertImgFn) => {
-        for (const file of resultFiles) {
-          const formData = new FormData()
-          formData.append('file', file)
-          try {
-            const res = await request.post('/notes/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
-            if (res.code === 200) insertImgFn(res.data.url)
-          } catch (e) { this.$message.error('图片上传失败: ' + (e.message || '未知错误')) }
+      this.cherryEditor = new Cherry({
+        id: 'cherry-markdown',
+        value: this.form.content_md || '# 开始写作...\n\n',
+        engine: {
+          global: {
+            htmlWhiteList: 'iframe|script|video|audio|embed|object|param',
+            urlProcessor: (url, srcType) => url,
+          },
+          syntax: {
+            table: { enableChart: false },
+            fontEmphasis: { enableDoubleUnderscore: true },
+            strikethrough: { enable: true },
+            header: { enable: true },
+            list: { enable: true },
+            codeBlock: { enable: true },
+            link: { enable: true, autoLink: true },
+            image: { 
+              enable: true,
+              autoLink: true,
+              canFloat: false,
+              maxFileSize: 10 * 1024 * 1024, // 10MB
+              allowUpload: true,
+              fileUpload: this.handleFileUpload.bind(this),
+            },
+            video: { enable: true },
+            pdf: { enable: true },
+          }
+        },
+        toolbars: {
+          showAutoNumber: true,
+          toolbar: [
+            'bold', 'italic', 'strikethrough', '|',
+            'color', 'bgColor', '|',
+            'header', 'list', 'panel', '|',
+            'insert', 'image', 'video', 'pdf', 'code', 'formula', 'table', 'link', '|',
+            'graph', 'justify', 'export', '|',
+            'fullscreen', 'settings', 'theme', 'preview'
+          ],
+          bubble: ['bold', 'italic', 'underline', 'strikethrough', 'sub', 'sup', 'quote', 'code', 'color'],
+          float: ['bold', 'italic', 'underline', 'strikethrough', 'quote', 'code', 'color'],
+          toc: true,
+        },
+        editor: {
+          defaultModel: 'edit&preview',
+          showLineNo: true,
+        },
+        preview: {
+          theme: 'dark',
+          hljs: { enable: true, style: 'github-dark' },
+          math: { engine: 'katex' },
+          mermaid: { enable: true },
+        },
+        callback: {
+          afterChange: (md, html) => {
+            this.form.content_md = md
+            this.form.content = html
+          },
+          afterInit: (md, html) => {
+            this.form.content_md = md
+            this.form.content = html
+          }
+        }
+      })
+    },
+    async handleFileUpload(files, callback) {
+      for (const file of files) {
+        const formData = new FormData()
+        formData.append('file', file)
+        try {
+          const res = await request.post('/notes/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+          if (res.code === 200) {
+            callback(res.data.url)
+          }
+        } catch (e) {
+          this.$message.error('文件上传失败: ' + (e.message || '未知错误'))
         }
       }
-      editor.create()
-      if (this.form.content) editor.txt.html(this.form.content)
-      
-      editor.config.onchange = (newHtml) => {
-        this.form.content = newHtml
-      }
-      this.editor = editor
     },
     async loadArticle(id) {
       try {
@@ -329,9 +365,10 @@ export default {
             ...data.data,
             tags: Array.isArray(data.data.tags) ? data.data.tags : (data.data.tags ? data.data.tags.split(',') : [])
           }
-          this.previewContent = this.form.content || '<p style="color:#999;">暂无内容</p>'
-          if (this.editor && this.form.content) {
-            this.editor.txt.html(this.form.content)
+          this.previewHtml = this.form.content || '<p style="color:#999;">暂无内容</p>'
+          // Update Cherry editor content
+          if (this.cherryEditor && this.form.content_md) {
+            this.cherryEditor.setMarkdown(this.form.content_md)
           }
         }
       } catch (e) { this.$message.error('加载文章失败') }
@@ -374,8 +411,9 @@ export default {
       this.saving = true
       try {
         const payload = { ...this.form, status: 'draft' }
-        if (this.editorMode === 'rich' && this.editor) {
-          payload.content = this.editor.txt.html()
+        if (this.cherryEditor) {
+          payload.content_md = this.cherryEditor.getMarkdown()
+          payload.content = this.cherryEditor.getHtml()
         }
         
         let res
@@ -394,8 +432,9 @@ export default {
       this.publishing = true
       try {
         const payload = { ...this.form, status: 'published' }
-        if (this.editorMode === 'rich' && this.editor) {
-          payload.content = this.editor.txt.html()
+        if (this.cherryEditor) {
+          payload.content_md = this.cherryEditor.getMarkdown()
+          payload.content = this.cherryEditor.getHtml()
         }
         
         let res
@@ -411,7 +450,7 @@ export default {
       finally { this.publishing = false }
     },
     showPreview() {
-      this.previewContent = this.form.content || '<p style="color:#999;">暂无内容</p>'
+      this.previewHtml = this.cherryEditor ? this.cherryEditor.getHtml() : (this.form.content || '<p style="color:#999;">暂无内容</p>')
       this.previewVisible = true
     },
     showHistory() {
@@ -444,41 +483,17 @@ export default {
         this.form.tags.push(tag)
       }
     },
-    insertImage() {
-      if (this.editor) this.editor.cmd.do('insertHTML', '<img src="图片链接" style="max-width:100%;"><p><br/></p>')
-    },
-    insertVideo() {
-      if (this.editor) this.editor.cmd.do('insertHTML', '<video src="视频链接" controls style="max-width:100%;"></video><p><br/></p>')
-    },
-    insertCode() {
-      if (this.editor) this.editor.cmd.do('insertHTML', '<pre><code>代码块</code></pre><p><br/></p>')
-    },
-    insertTable() {
-      if (this.editor) this.editor.cmd.do('insertTable', '3行3列')
-    },
-    insertQuote() {
-      if (this.editor) this.editor.cmd.do('insertHTML', '<blockquote>引用内容</blockquote><p><br/></p>')
-    },
-    insertDivider() {
-      if (this.editor) this.editor.cmd.do('insertHTML', '<hr><p><br/></p>')
-    },
-    insertLink() {
-      if (this.editor) this.editor.cmd.do('insertLink', 'https://')
-    },
-    insertNote() {
-      if (this.editor) this.editor.cmd.do('insertHTML', '<a href="/note/笔记ID" class="note-link">📝 关联笔记</a>')
-    },
     applyTemplate(template) {
       const templates = {
-        default: '<h1>标题</h1><p>正文内容...</p>',
-        report: '<h2>📊 核心观点</h2><p></p><h2>📈 数据分析</h2><p></p><h2>💡 投资建议</h2><p></p>',
-        news: '<h2>📰 事件概述</h2><p></p><h2>🔍 深度分析</h2><p></p><h2>📊 市场影响</h2><p></p>',
-        tutorial: '<h2>🎯 目标</h2><p></p><h2>📋 步骤</h2><ol><li></li></ol><h2>💡 注意事项</h2><p></p>',
-        meeting: '<h2>📅 会议信息</h2><p></p><h2>📝 会议内容</h2><p></p><h2>✅ 待办事项</h2><ul><li></li></ul>',
-        wiki: '<h1>知识库标题</h1><h2>概述</h2><p></p><h2>详细说明</h2><p></p><h2>参考资料</h2><ul><li></li></ul>'
+        default: '# 标题\n\n正文内容...\n',
+        report: '## 📊 核心观点\n\n## 📈 数据分析\n\n## 💡 投资建议\n',
+        news: '## 📰 事件概述\n\n## 🔍 深度分析\n\n## 📊 市场影响\n',
+        tutorial: '## 🎯 目标\n\n## 📋 步骤\n\n1. 第一步\n2. 第二步\n\n## 💡 注意事项\n',
+        meeting: '## 📅 会议信息\n\n## 📝 会议内容\n\n## ✅ 待办事项\n\n- [ ] 待办 1\n- [ ] 待办 2\n',
+        wiki: '# 知识库标题\n\n## 概述\n\n## 详细说明\n\n## 参考资料\n\n'
       }
-      if (this.editor && templates[template]) {
-        this.editor.txt.html(templates[template])
+      if (this.cherryEditor && templates[template]) {
+        this.cherryEditor.setMarkdown(templates[template])
       }
     },
     editArticle(article) {
@@ -525,9 +540,29 @@ export default {
 
 .editor-main {
   flex: 1;
-  padding: 16px;
+  padding: 0;
   overflow-y: auto;
   background: #ffffff;
+}
+
+/* Cherry Markdown 样式 */
+#cherry-markdown {
+  height: 100%;
+  min-height: 600px;
+}
+
+::v-deep .cherry {
+  height: 100%;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+::v-deep .cherry-editor {
+  height: 100% !important;
+}
+
+::v-deep .cherry-preview {
+  height: 100% !important;
 }
 
 .editor-tools {
@@ -610,8 +645,6 @@ export default {
   color: #606266;
   margin-top: 4px;
 }
-
-.editor-mode-switch { margin-bottom: 12px; text-align: center; }
 
 .word-count {
   font-size: 13px;

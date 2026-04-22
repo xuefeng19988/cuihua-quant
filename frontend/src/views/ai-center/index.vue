@@ -49,17 +49,33 @@ export default {
   components: { AIChat, AIStockAnalyze, AINoteAnalyze, AIMarketSummary, LLMConfigManager, AIStockFeatures, AIExtendedFeatures, AIChartDemo, AIFullIntegration },
   data() { return { activeTab: 'chat' } },
   watch: {
-    '$route.path': { handler(v) {
-      const tab = v.split('/').pop()
-      if (['chat', 'stock', 'note', 'market', 'config', 'stock-ai', 'extended', 'chart-demo', 'full-integration'].includes(tab)) {
-        this.$nextTick(() => { this.activeTab = tab })
-      }
-    }, immediate: true }
+    '$route.path': {
+      handler(v) {
+        const tab = v.split('/').pop()
+        const valid = ['chat', 'stock', 'note', 'market', 'config', 'stock-ai', 'extended', 'chart-demo', 'full-integration']
+        console.log('[AI-Center] watch $route.path:', v, '→ tab:', tab, 'activeTab before:', this.activeTab)
+        if (valid.includes(tab)) {
+          this.activeTab = tab
+          console.log('[AI-Center] activeTab after:', this.activeTab)
+        }
+      },
+      immediate: true
+    }
+  },
+  beforeRouteUpdate(to, from, next) {
+    const tab = to.path.split('/').pop()
+    const valid = ['chat', 'stock', 'note', 'market', 'config', 'stock-ai', 'extended', 'chart-demo', 'full-integration']
+    console.log('[AI-Center] beforeRouteUpdate from:', from.path, 'to:', to.path, '→ tab:', tab)
+    if (valid.includes(tab)) {
+      this.activeTab = tab
+    }
+    next()
   },
   created() {
-    // Initialize from URL path on component creation
     const tab = this.$route.path.split('/').pop()
-    if (['chat', 'stock', 'note', 'market', 'config', 'stock-ai', 'extended', 'chart-demo', 'full-integration'].includes(tab)) {
+    const valid = ['chat', 'stock', 'note', 'market', 'config', 'stock-ai', 'extended', 'chart-demo', 'full-integration']
+    console.log('[AI-Center] created, path:', this.$route.path, '→ tab:', tab)
+    if (valid.includes(tab)) {
       this.activeTab = tab
     }
   }
