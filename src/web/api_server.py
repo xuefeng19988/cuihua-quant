@@ -2254,6 +2254,8 @@ def api_notes_upload():
 @token_required
 def api_notes_tags():
     """获取所有标签 (数据库查询)"""
+    from sqlalchemy.orm import sessionmaker
+    from src.data.database import Notes
 
     engine = get_db_engine()
     if not engine:
@@ -3184,6 +3186,9 @@ def api_article_like(article_id):
 @token_required
 def api_categories():
     """分类管理"""
+    from sqlalchemy.orm import sessionmaker
+    from src.data.database import NoteArticles
+
     engine = get_db_engine()
     Session = sessionmaker(bind=engine)
     session = Session()
