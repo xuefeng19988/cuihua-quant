@@ -50,13 +50,19 @@ export default {
   data() { return { activeTab: 'chat' } },
   watch: {
     '$route.query.tab': { handler(v) { if (v) this.activeTab = v }, immediate: true },
+    '$route.path': { handler(v) {
+      const tab = v.split('/').pop()
+      if (['chat', 'stock', 'note', 'market', 'config', 'stock-ai', 'extended', 'chart-demo', 'full-integration'].includes(tab)) {
+        this.activeTab = tab
+      }
+    }, immediate: true },
     activeTab(v) {
       this.$router.replace({ path: this.$route.path, query: { tab: v } })
     }
   },
   mounted() {
     const tab = this.$route.path.split('/').pop()
-    if (['chat', 'stock', 'note', 'market', 'config'].includes(tab)) {
+    if (['chat', 'stock', 'note', 'market', 'config', 'stock-ai', 'extended', 'chart-demo', 'full-integration'].includes(tab)) {
       this.activeTab = tab
     }
   }
