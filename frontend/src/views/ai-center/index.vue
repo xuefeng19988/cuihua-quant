@@ -1,7 +1,7 @@
 <template>
   <div class="ai-center">
     <!-- 顶部标签页 -->
-    <el-tabs v-model="activeTab" type="border-card">
+    <el-tabs :key="$route.fullPath" v-model="activeTab" type="border-card">
       <el-tab-pane label="🤖 AI 对话" name="chat">
         <ai-chat />
       </el-tab-pane>
@@ -49,14 +49,19 @@ export default {
   components: { AIChat, AIStockAnalyze, AINoteAnalyze, AIMarketSummary, LLMConfigManager, AIStockFeatures, AIExtendedFeatures, AIChartDemo, AIFullIntegration },
   data() { return { activeTab: 'chat' } },
   watch: {
-    // Route path watcher - the only source of truth for tab switching
     '$route.path': { handler(v) {
       const tab = v.split('/').pop()
       if (['chat', 'stock', 'note', 'market', 'config', 'stock-ai', 'extended', 'chart-demo', 'full-integration'].includes(tab)) {
-        this.activeTab = tab
+        this.$nextTick(() => { this.activeTab = tab })
       }
     }, immediate: true }
-    // Removed query.tab watcher to prevent race condition with path watcher
+  },
+  created() {
+    // Initialize from URL path on component creation
+    const tab = this.$route.path.split('/').pop()
+    if (['chat', 'stock', 'note', 'market', 'config', 'stock-ai', 'extended', 'chart-demo', 'full-integration'].includes(tab)) {
+      this.activeTab = tab
+    }
   }
 }
 </script>
