@@ -205,13 +205,15 @@ def api_stocks():
         price, change = '-', 0
         if engine:
             try:
+                from sqlalchemy import text
                 df = pd.read_sql(text("SELECT close_price FROM stock_daily WHERE code=:code ORDER BY date DESC LIMIT 2"), engine, params={'code': code})
                 if len(df) >= 2:
                     price = df.iloc[0]['close_price']
                     change = round(((price - df.iloc[1]['close_price']) / df.iloc[1]['close_price']) * 100, 2)
                 elif len(df) == 1:
                     price = df.iloc[0]['close_price']
-            except: pass
+            except Exception as e:
+                print(f'Error fetching {code}: {e}')
         stocks.append({ 'code': code, 'name': sn.get(code, ''), 'price': f"{price:.2f}" if isinstance(price, (int, float)) else price, 'change': change })
 
     return jsonify({ 'code': 200, 'data': { 'list': stocks, 'total': total, 'page': page } })
